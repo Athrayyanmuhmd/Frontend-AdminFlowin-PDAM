@@ -26,7 +26,7 @@ import {
   Link as LinkIcon,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
-import API from '../../../../utils/API';
+import { useGetMeteran } from '../../../../../lib/graphql/hooks/useMeteran';
 
 interface Meteran {
   _id: string;
@@ -60,29 +60,38 @@ export default function MeteranDetail() {
   const params = useParams();
   const meteranId = params.id as string;
 
-  const [meteran, setMeteran] = useState<Meteran | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // ✅ GraphQL Query - Replace REST API
+  const { meteran: meteranData, loading, error: graphqlError, refetch } = useGetMeteran(meteranId);
 
-  useEffect(() => {
-    fetchMeteran();
-  }, [meteranId]);
+  // Transform GraphQL data to match component interface
+  const meteran = meteranData ? {
+    _id: meteranData._id,
+    noMeteran: meteranData.nomorMeteran,
+    kelompokPelangganId: meteranData.idKelompokPelanggan ? {
+      _id: meteranData.idKelompokPelanggan._id,
+      namaKelompok: meteranData.idKelompokPelanggan.namaKelompok,
+      hargaPenggunaanDibawah10: meteranData.idKelompokPelanggan.hargaDiBawah10mKubik,
+      hargaPenggunaanDiatas10: meteranData.idKelompokPelanggan.hargaDiAtas10mKubik,
+      biayaBeban: meteranData.idKelompokPelanggan.biayaBeban || 0,
+    } : null,
+    userId: meteranData.idKoneksiData?.userId ? {
+      _id: meteranData.idKoneksiData.userId._id,
+      namaLengkap: meteranData.idKoneksiData.userId.namaLengkap,
+      noHp: meteranData.idKoneksiData.userId.noHP,
+    } : null,
+    connectionDataId: meteranData.idKoneksiData ? {
+      _id: meteranData.idKoneksiData._id,
+      nik: '', // Not available in schema
+      alamat: meteranData.idKoneksiData.alamat,
+    } : null,
+    totalPemakaian: 0, // Not in schema
+    pemakaianBelumTerbayar: 0, // Not in schema
+    jatuhTempo: undefined,
+    createdAt: meteranData.createdAt,
+    updatedAt: meteranData.updatedAt,
+  } : null;
 
-  const fetchMeteran = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await API.get(`/meteran/${meteranId}`);
-      const data = response.data.data || response.data;
-      setMeteran(data);
-    } catch (err: any) {
-      console.error('Error fetching meteran:', err);
-      setError(err.response?.data?.message || 'Gagal memuat data meteran');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const error = graphqlError?.message || '';
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {

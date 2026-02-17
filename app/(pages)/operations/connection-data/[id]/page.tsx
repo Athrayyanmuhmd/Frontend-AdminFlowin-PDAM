@@ -37,13 +37,13 @@ import {
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
-  getConnectionDataById,
   verifyConnectionDataByAdmin,
   verifyConnectionDataByTechnician,
   completeAllProcedure,
   ConnectionData,
 } from '../../../../services/connectionData.service';
 import AssignTechnicianDialog from '../../../../components/AssignTechnicianDialog';
+import { useGetConnectionData } from '../../../../../lib/graphql/hooks/useConnectionData';
 
 export default function ConnectionDataDetail() {
   const params = useParams();
@@ -67,52 +67,53 @@ export default function ConnectionDataDetail() {
   // Assignment dialog state
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
+  // ✅ GraphQL Query - Replace REST API
+  const { connectionData: graphqlData, loading: graphqlLoading, error: graphqlError, refetch } = useGetConnectionData(id);
 
-    try {
-      console.log('Fetching connection data detail for ID:', id);
-      const response = await getConnectionDataById(id);
-
-      console.log('Detail response:', response);
-      console.log('Detail response.data:', response.data);
-
-      // Handle both response structures
-      let detailData: ConnectionData | null = null;
-
-      if (response.data) {
-        const responseData: any = response.data;
-        if (responseData.data) {
-          // Structure: { status: 200, data: {...} }
-          detailData = responseData.data;
-        } else if (responseData._id) {
-          // Structure: { _id, userId, ... } (direct object)
-          detailData = responseData;
-        }
-      }
-
-      console.log('Final detail data:', detailData);
-
-      if (detailData) {
-        setData(detailData);
-      } else {
-        setError('Data tidak ditemukan');
-      }
-    } catch (err: any) {
-      console.error('Error fetching connection data:', err);
-      console.error('Error response:', err.response);
-      setError(err.response?.data?.message || 'Gagal memuat detail data');
-    } finally {
-      setLoading(false);
+  // Transform and set data when GraphQL loads
+  useEffect(() => {
+    if (graphqlData) {
+      const transformedData: ConnectionData = {
+        _id: graphqlData._id,
+        userId: graphqlData.idPelanggan?._id || '',
+        namaLengkap: graphqlData.idPelanggan?.namaLengkap || '',
+        email: graphqlData.idPelanggan?.email || '',
+        noHP: graphqlData.idPelanggan?.noHP || '',
+        NIK: graphqlData.NIK,
+        NIKUrl: graphqlData.NIKUrl,
+        noKK: graphqlData.noKK,
+        KKUrl: graphqlData.KKUrl,
+        IMB: graphqlData.IMB,
+        IMBUrl: graphqlData.IMBUrl,
+        alamat: graphqlData.alamat,
+        kelurahan: graphqlData.kelurahan,
+        kecamatan: graphqlData.kecamatan,
+        luasBangunan: graphqlData.luasBangunan,
+        statusVerifikasi: graphqlData.statusVerifikasi,
+        isVerifiedByData: graphqlData.statusVerifikasi,
+        isVerifiedByTechnician: false, // Not available in GraphQL
+        isAllProcedureDone: false, // Not available in GraphQL
+        createdAt: graphqlData.createdAt,
+        updatedAt: graphqlData.updatedAt,
+      };
+      setData(transformedData);
     }
-  };
+  }, [graphqlData]);
 
   useEffect(() => {
-    if (id) {
-      fetchData();
+    if (graphqlError) {
+      setError(graphqlError.message);
     }
-  }, [id]);
+  }, [graphqlError]);
+
+  useEffect(() => {
+    setLoading(graphqlLoading);
+  }, [graphqlLoading]);
+
+  const fetchData = async () => {
+    // Use GraphQL refetch instead
+    refetch();
+  };
 
   const handleVerifyAdmin = async () => {
     if (!data) return;

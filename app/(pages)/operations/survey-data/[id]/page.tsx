@@ -28,10 +28,8 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
-import {
-  getSurveyDataById,
-  SurveyData,
-} from '../../../../services/surveyData.service';
+import { SurveyData } from '../../../../services/surveyData.service';
+import { useGetSurveyData } from '../../../../../lib/graphql/hooks/useSurveyData';
 
 export default function SurveyDataDetail() {
   const params = useParams();
@@ -39,8 +37,23 @@ export default function SurveyDataDetail() {
   const { userRole } = useAdmin();
   const id = params.id as string;
 
-  const [data, setData] = useState<SurveyData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // ✅ GraphQL Query - Replace REST API
+  const { surveyData: graphqlSurvey, loading, error: graphqlError, refetch } = useGetSurveyData(id);
+
+  // Transform GraphQL data to match SurveyData interface
+  const data = graphqlSurvey ? {
+    _id: graphqlSurvey._id,
+    connectionDataId: graphqlSurvey.idKoneksiData?._id || '',
+    technicianId: graphqlSurvey.idTeknisi?._id || '',
+    urlJaringan: graphqlSurvey.urlJaringan,
+    diameterPipa: graphqlSurvey.diameterPipa,
+    jumlahPenghuni: graphqlSurvey.jumlahPenghuni,
+    standar: graphqlSurvey.standar,
+    catatan: graphqlSurvey.catatan,
+    createdAt: graphqlSurvey.createdAt,
+    updatedAt: graphqlSurvey.updatedAt,
+  } : null;
+
   const [error, setError] = useState('');
 
   // Image viewer state
@@ -50,38 +63,10 @@ export default function SurveyDataDetail() {
   const [zoom, setZoom] = useState(100);
 
   useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await getSurveyDataById(id);
-      let detailData: SurveyData | null = null;
-
-      if (response.data) {
-        const responseData: any = response.data;
-        if (responseData.data) {
-          detailData = responseData.data;
-        } else if (responseData._id) {
-          detailData = responseData;
-        }
-      }
-
-      if (detailData) {
-        setData(detailData);
-      } else {
-        setError('Data tidak ditemukan');
-      }
-    } catch (err: any) {
-      console.error('Error fetching survey data:', err);
-      setError(err.response?.data?.message || 'Gagal memuat detail data');
-    } finally {
-      setLoading(false);
+    if (graphqlError) {
+      setError(graphqlError.message);
     }
-  };
+  }, [graphqlError]);
 
   const handleOpenViewer = (imageUrl: string, title: string) => {
     setViewerImage(imageUrl);

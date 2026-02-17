@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
-import API from '../../../../utils/API';
+import { useGetRABConnection } from '../../../../../lib/graphql/hooks/useRABConnection';
 
 interface RabConnection {
   _id: string;
@@ -56,43 +56,32 @@ export default function RabConnectionDetail() {
   const { userRole } = useAdmin();
   const id = params.id as string;
 
-  const [data, setData] = useState<RabConnection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // ✅ GraphQL Query - Replace REST API
+  const { rabConnection: rabData, loading, error: graphqlError, refetch } = useGetRABConnection(id);
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+  // Transform GraphQL data to match component interface
+  const data = rabData ? {
+    _id: rabData._id,
+    connectionDataId: rabData.idKoneksiData ? {
+      _id: rabData.idKoneksiData._id,
+      nik: rabData.idKoneksiData.NIK || '',
+      userId: rabData.idKoneksiData.idPelanggan ? {
+        _id: rabData.idKoneksiData.idPelanggan._id,
+        namaLengkap: rabData.idKoneksiData.idPelanggan.namaLengkap,
+        email: rabData.idKoneksiData.idPelanggan.email,
+      } : null,
+    } : null,
+    userId: '',
+    technicianId: undefined,
+    totalBiaya: rabData.totalBiaya,
+    isPaid: rabData.statusPembayaran === 'Settlement',
+    urlRab: rabData.urlRab || '',
+    catatan: rabData.catatan,
+    createdAt: rabData.createdAt,
+    updatedAt: rabData.updatedAt,
+  } : null;
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await API.get(`/rab-connection/${id}`);
-      let detailData: RabConnection | null = null;
-
-      if (response.data) {
-        const responseData: any = response.data;
-        if (responseData.data) {
-          detailData = responseData.data;
-        } else if (responseData._id) {
-          detailData = responseData;
-        }
-      }
-
-      if (detailData) {
-        setData(detailData);
-      } else {
-        setError('Data tidak ditemukan');
-      }
-    } catch (err: any) {
-      console.error('Error fetching RAB data:', err);
-      setError(err.response?.data?.message || 'Gagal memuat detail data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const error = graphqlError?.message || '';
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {

@@ -54,7 +54,8 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { CustomerAccount } from '../../../types/admin.types';
-import { customerAPI } from '../../../utils/API';
+import { useGetAllMeteran } from '../../../../lib/graphql/hooks/useMeteran';
+import { useMemo } from 'react';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -84,8 +85,6 @@ function TabPanel(props: TabPanelProps) {
 
 export default function CustomerAccounts() {
   const [tabValue, setTabValue] = useState(0);
-  const [accounts, setAccounts] = useState<CustomerAccount[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterTariff, setFilterTariff] = useState('all');
@@ -93,112 +92,62 @@ export default function CustomerAccounts() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [rowsPerPage] = useState(10);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Mock data for demonstration
-  const mockAccounts: CustomerAccount[] = [
-    {
-      id: '1',
-      customerId: '1',
-      accountNumber: 'ACC-001-2024',
-      meterNumber: 'MTR-001-2024',
-      connectionType: 'existing',
-      serviceStatus: 'active',
-      tariffCategory: '2A2',
-      installationDate: new Date('2023-01-15'),
-      lastReading: new Date('2024-01-01'),
-      currentReading: 1250,
-      previousReading: 1200,
-      consumption: 50,
-    },
-    {
-      id: '2',
-      customerId: '2',
-      accountNumber: 'ACC-002-2024',
-      meterNumber: 'MTR-002-2024',
-      connectionType: 'new',
-      serviceStatus: 'active',
-      tariffCategory: 'komersial',
-      installationDate: new Date('2023-02-20'),
-      lastReading: new Date('2024-01-01'),
-      currentReading: 2500,
-      previousReading: 2300,
-      consumption: 200,
-    },
-    {
-      id: '3',
-      customerId: '3',
-      accountNumber: 'ACC-003-2024',
-      meterNumber: 'MTR-003-2024',
-      connectionType: 'new',
-      serviceStatus: 'suspended',
-      tariffCategory: 'industri',
-      installationDate: new Date('2023-03-10'),
-      lastReading: new Date('2024-01-01'),
-      currentReading: 5000,
-      previousReading: 4500,
-      consumption: 500,
-    },
-  ];
+  // ✅ GraphQL Query - Replace REST API
+  const { meteran: meteranData, loading, error: graphqlError, refetch } = useGetAllMeteran();
 
-  const [stats, setStats] = useState({
-    totalAccounts: 0,
-    activeAccounts: 0,
-    suspendedAccounts: 0,
-    avgConsumption: 0,
-    accountsByTariff: {} as Record<string, number>
-  });
+  // Transform GraphQL meteran data to CustomerAccount format
+  const accounts = useMemo(() => {
+    return meteranData.map((meter: any) => ({
+      id: meter._id,
+      customerId: meter.idKoneksiData?.userId?._id || '',
+      accountNumber: meter.nomorAkun || '-',
+      meterNumber: meter.nomorMeteran || '-',
+      connectionType: 'existing' as const,
+      serviceStatus: 'active' as const, // Assume active if meter exists
+      tariffCategory: meter.idKelompokPelanggan?.namaKelompok || '-',
+      installationDate: new Date(meter.createdAt),
+      lastReading: new Date(meter.updatedAt),
+      currentReading: 0, // Not available in meteran schema
+      previousReading: 0,
+      consumption: 0,
+    }));
+  }, [meteranData]);
 
-  useEffect(() => {
-    loadAccounts();
-    loadStats();
-  }, [page, searchTerm, filterStatus, filterTariff]);
+  // Calculate stats from meteran data
+  const stats = useMemo(() => {
+    const totalAccounts = accounts.length;
+    const activeAccounts = accounts.filter(acc => acc.serviceStatus === 'active').length;
+    const suspendedAccounts = accounts.filter(acc => acc.serviceStatus === 'suspended').length;
+    const avgConsumption = 0; // Not available in current schema
 
-  const loadAccounts = async () => {
-    try {
-      setLoading(true);
-      // For now, use mock data since we need to implement account-specific endpoints
-      setAccounts(mockAccounts);
-      setTotalPages(1);
-    } catch (err: any) {
-      setError('Gagal memuat data akun: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+    const accountsByTariff = accounts.reduce((acc, account) => {
+      acc[account.tariffCategory] = (acc[account.tariffCategory] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const loadStats = async () => {
-    try {
-      // Calculate stats from mock data
-      const totalAccounts = mockAccounts.length;
-      const activeAccounts = mockAccounts.filter(acc => acc.serviceStatus === 'active').length;
-      const suspendedAccounts = mockAccounts.filter(acc => acc.serviceStatus === 'suspended').length;
-      const avgConsumption = mockAccounts.reduce((sum, acc) => sum + acc.consumption, 0) / totalAccounts;
-
-      const accountsByTariff = mockAccounts.reduce((acc, account) => {
-        acc[account.tariffCategory] = (acc[account.tariffCategory] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      setStats({
-        totalAccounts,
-        activeAccounts,
-        suspendedAccounts,
-        avgConsumption,
-        accountsByTariff
-      });
-    } catch (err: any) {
-      console.error('Failed to load stats:', err);
-    }
-  };
+    return {
+      totalAccounts,
+      activeAccounts,
+      suspendedAccounts,
+      avgConsumption,
+      accountsByTariff
+    };
+  }, [accounts]);
 
   const handleRefresh = () => {
-    loadAccounts();
-    loadStats();
+    refetch();
   };
+
+  // Handle GraphQL errors
+  useEffect(() => {
+    if (graphqlError) {
+      setError('Gagal memuat data: ' + graphqlError.message);
+    }
+  }, [graphqlError]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, account: CustomerAccount) => {
     setAnchorEl(event.currentTarget);
