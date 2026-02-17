@@ -1,0 +1,150 @@
+# GraphQL Migration Progress
+
+**Target:** Migrate admin panel from REST API to GraphQL
+**Current Progress:** 13/39 pages (33.3%)
+**Goal:** 25/39 pages (64%) for thesis presentation
+
+## ✅ Migrated Pages (13)
+
+### Billing Management (2 pages)
+1. `/billing` - Billing List page (GET_BILLINGS, GET_BILLING_STATS)
+2. `/billing/payments` - Payment History (GET_TAGIHAN_BY_STATUS)
+
+### Customer Management (3 pages)
+3. `/customers` - Customer List (useGetAllCustomers hooks)
+4. `/customers/detail/[id]` - Customer Detail (GET_CUSTOMER, GET_TAGIHAN_BY_METERAN - Hybrid)
+5. `/customers/registration` - Customer Registration (useCreateCustomer, useUpdateCustomer hooks)
+
+### Operations (5 pages)
+6. `/operations/connection-data` - Connection Requests (GET_ALL_CONNECTION_DATA)
+7. `/operations/rab-connection` - RAB Management (GET_ALL_RAB_CONNECTIONS)
+8. `/operations/survey-data` - Survey Data (GET_ALL_SURVEY_DATA)
+9. `/operations/technicians` - Technician Management (GET_ALL_TEKNISI, CRUD mutations)
+10. `/operations/work-orders` - Work Orders (GET_WORK_ORDERS, GET_WORK_ORDER_STATS)
+
+### Master Data (1 page)
+11. `/master-data/kelompok-pelanggan` - Customer Groups/Tariffs (GET_ALL_KELOMPOK_PELANGGAN, CRUD mutations)
+
+### Monitoring (1 page)
+12. `/monitoring/smart-meter` - Smart Meter Monitoring (GraphQL)
+
+### Dashboard (1 page)
+13. `/dashboard` - Main Dashboard (GraphQL)
+
+## 📋 Available GraphQL Resources
+
+### Query Files Ready
+- ✅ admin.ts - Admin operations
+- ✅ billing.ts - Billing and payments
+- ✅ connectionData.ts - Connection requests
+- ✅ customers.ts - Customer management
+- ✅ dashboard.ts - Dashboard stats
+- ✅ extended.ts - Extended queries
+- ✅ kelompokPelanggan.ts - Customer groups/tariffs (CRUD complete)
+- ✅ meteran.ts - Smart water meters
+- ✅ rabConnection.ts - RAB connections
+- ✅ surveyData.ts - Survey data
+- ✅ technicians.ts - Technician management (CRUD complete)
+- ✅ workOrder.ts - Work orders
+
+### Custom Hooks Ready
+- ✅ useCustomers.ts - Full CRUD for customers
+- ✅ useKelompokPelanggan.ts - Full CRUD for customer groups (NEW)
+
+## 🔄 Partially Migrated (Hybrid GraphQL/REST)
+
+- `/customers/detail/[id]` - Uses GraphQL for customer data and billing, REST for meteran info
+
+## ⏳ Pending Migration (26 pages)
+
+### High Priority (Backend Schema Available)
+- `/billing/generate` - **Mock data**, needs manual billing generation
+- `/customers/accounts` - REST API, can use meteran queries
+- `/operations/meteran/[id]` - REST service, meteran queries available
+- `/operations/connection-data/[id]` - REST service
+- `/operations/rab-connection/[id]` - REST service
+- `/operations/survey-data/[id]` - REST service
+
+### Medium Priority (Backend Schema Unclear)
+- `/monitoring/smart-meters/register` - REST/Mock
+- `/mobile/technician` - Mobile interface
+- `/billing/tariffs` - Mock data (uses KelompokPelanggan)
+
+### Low Priority (No Backend Schema)
+- `/operations/materials` - Mock data, no backend schema
+- `/operations/meteran/create` - REST service
+- `/operations/rab-connection/create` - REST service
+- `/operations/survey-data/create` - REST service
+- `/kredit-air` - No backend schema
+- `/reports/*` - 4 report pages, unclear backend support
+
+### Utility Pages
+- `/auth/login` - Authentication (working)
+- `/home` - Landing page
+- `/debitor/[id]` - Debtor detail
+- `/system/audit-logs` - Audit logging
+
+## 🎯 Next Steps to Reach 25 Pages
+
+Priority order for next 12 pages:
+
+1. Create `useMeteran.ts` hooks
+2. Migrate `/customers/accounts` using meteran queries
+3. Migrate `/operations/meteran/[id]` 
+4. Migrate `/monitoring/smart-meters/register`
+5. Create hooks for remaining entities (RAB detail, connection detail, survey detail)
+6. Migrate detail pages for operations
+7. Test all migrated pages
+8. Fix any schema mismatches
+
+## 📊 Backend GraphQL Coverage
+
+The backend has comprehensive GraphQL support for:
+- ✅ Pengguna (Customers)
+- ✅ Admin
+- ✅ Teknisi (Technicians)
+- ✅ KelompokPelanggan (Customer Groups/Tariffs)
+- ✅ Meteran (Water Meters)
+- ✅ KoneksiData (Connection Requests)
+- ✅ Tagihan (Billing)
+- ✅ Laporan (Reports)
+- ✅ PekerjaanTeknisi/WorkOrder
+- ✅ RABConnection
+- ✅ Survei
+- ✅ Notifikasi
+- ✅ DashboardStats
+
+Missing backend support:
+- ❌ Material (inventory management)
+- ❌ Wallet/KreditAir
+- ❌ Some report types
+
+## 🔧 Technical Notes
+
+### Import Pattern (Apollo Client v4)
+```typescript
+import { useQuery, useMutation } from '@apollo/client/react';
+import { gql } from '@apollo/client';
+```
+
+### Indonesian Field Names (ERD Compliance)
+All GraphQL queries use Indonesian field names:
+- `namaLengkap` not `fullName`
+- `noHP` not `phone`
+- `totalBiaya` not `totalCost`
+- `statusPembayaran` not `paymentStatus`
+
+### Schema Flexibility
+Made several fields nullable to handle database inconsistencies:
+- Teknisi.NIP (was String!, now String)
+- Teknisi.divisi (was EnumDivisiTeknisi!, now EnumDivisiTeknisi)
+
+## 📝 Recent Changes
+
+### 2026-02-17
+- Added CRUD mutations to kelompokPelanggan.ts
+- Created useKelompokPelanggan.ts custom hooks
+- Fixed schema issues for Teknisi (NIP, divisi nullable)
+- Committed progress to GitHub (Frontend-AdminFlowin-PDAM)
+- Progress: 13/39 pages (33.3%)
+
