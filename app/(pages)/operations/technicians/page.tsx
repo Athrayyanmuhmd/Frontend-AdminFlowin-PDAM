@@ -133,17 +133,42 @@ export default function TechnicianManagement() {
     email: '',
     password: '',
     noHP: '',
-    divisi: 'INSTALASI',
+    divisi: 'PerencanaanTeknik',
   });
 
   // ==================== Data Processing ====================
   const technicians = data?.getAllTeknisi || [];
 
+  // Helper function to format date safely
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return '-';
+    }
+  };
+
+  // Sort technicians by createdAt (newest first), then apply filter
   const filteredTechnicians = useMemo(() => {
-    if (searchQuery.trim() === '') return technicians;
+    // First, sort by createdAt descending (newest first)
+    const sorted = [...technicians].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA; // Descending order (newest first)
+    });
+
+    // Then apply search filter
+    if (searchQuery.trim() === '') return sorted;
 
     const query = searchQuery.toLowerCase();
-    return technicians.filter((tech: Technician) =>
+    return sorted.filter((tech: Technician) =>
       tech.namaLengkap?.toLowerCase().includes(query) ||
       tech.email?.toLowerCase().includes(query) ||
       tech.noHP?.toLowerCase().includes(query) ||
@@ -161,7 +186,7 @@ export default function TechnicianManagement() {
       email: '',
       password: '',
       noHP: '',
-      divisi: 'INSTALASI',
+      divisi: 'PerencanaanTeknik',
     });
   };
 
@@ -174,9 +199,11 @@ export default function TechnicianManagement() {
     setSelectedTechnician(technician);
     setFormData({
       namaLengkap: technician.namaLengkap,
+      NIP: technician.NIP || '',
       email: technician.email,
       password: '',
-      noHP: technician.phone,
+      noHP: technician.noHP,
+      divisi: technician.divisi || 'PerencanaanTeknik',
     });
     setEditDialogOpen(true);
   };
@@ -395,11 +422,7 @@ export default function TechnicianManagement() {
                           </TableCell>
                           <TableCell>{tech.email}</TableCell>
                           <TableCell>{tech.noHP}</TableCell>
-                          <TableCell>
-                            {new Date(tech.createdAt).toLocaleDateString(
-                              'id-ID'
-                            )}
-                          </TableCell>
+                          <TableCell>{formatDate(tech.createdAt)}</TableCell>
                           <TableCell align='center'>
                             <Tooltip title='Edit'>
                               <IconButton
@@ -485,21 +508,17 @@ export default function TechnicianManagement() {
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth>
-                  <InputLabel>Divisi (Opsional)</InputLabel>
+                  <InputLabel>Divisi</InputLabel>
                   <Select
                     value={formData.divisi}
-                    label='Divisi (Opsional)'
+                    label='Divisi'
                     onChange={e =>
                       setFormData({ ...formData, divisi: e.target.value })
                     }
                   >
-                    <MenuItem value=''>
-                      <em>Tidak ada</em>
-                    </MenuItem>
-                    <MenuItem value='INSTALASI'>Instalasi</MenuItem>
-                    <MenuItem value='PEMELIHARAAN'>Pemeliharaan</MenuItem>
-                    <MenuItem value='PEMBACAAN_METER'>Pembacaan Meter</MenuItem>
-                    <MenuItem value='PERBAIKAN'>Perbaikan</MenuItem>
+                    <MenuItem value='PerencanaanTeknik'>Perencanaan Teknik</MenuItem>
+                    <MenuItem value='TeknikCabang'>Teknik Cabang</MenuItem>
+                    <MenuItem value='PengawasanTeknik'>Pengawasan Teknik</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -558,6 +577,16 @@ export default function TechnicianManagement() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  label='NIP (Opsional)'
+                  value={formData.NIP}
+                  onChange={e =>
+                    setFormData({ ...formData, NIP: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
                   label='Email'
                   type='email'
                   value={formData.email}
@@ -569,21 +598,37 @@ export default function TechnicianManagement() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  label='Nomor Telepon'
+                  value={formData.noHP}
+                  onChange={e =>
+                    setFormData({ ...formData, noHP: e.target.value })
+                  }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Divisi</InputLabel>
+                  <Select
+                    value={formData.divisi}
+                    label='Divisi'
+                    onChange={e =>
+                      setFormData({ ...formData, divisi: e.target.value })
+                    }
+                  >
+                    <MenuItem value='PerencanaanTeknik'>Perencanaan Teknik</MenuItem>
+                    <MenuItem value='TeknikCabang'>Teknik Cabang</MenuItem>
+                    <MenuItem value='PengawasanTeknik'>Pengawasan Teknik</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
                   label='Password (Kosongkan jika tidak ingin diubah)'
                   type='password'
                   value={formData.password}
                   onChange={e =>
                     setFormData({ ...formData, password: e.target.value })
-                  }
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Nomor Telepon'
-                  value={formData.phone}
-                  onChange={e =>
-                    setFormData({ ...formData, noHP: e.target.value })
                   }
                 />
               </Grid>
@@ -598,7 +643,7 @@ export default function TechnicianManagement() {
                 actionLoading ||
                 !formData.namaLengkap ||
                 !formData.email ||
-                !formData.phone
+                !formData.noHP
               }
             >
               {actionLoading ? <CircularProgress size={24} /> : 'Simpan'}
