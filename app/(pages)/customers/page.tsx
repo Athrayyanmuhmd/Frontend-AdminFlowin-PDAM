@@ -192,7 +192,7 @@ export default function CustomerManagement() {
     id: customer._id,
     name: customer.namaLengkap,
     phone: customer.noHP,
-    registrationDate: new Date(customer.createdAt),
+    registrationDate: customer.createdAt ? new Date(customer.createdAt) : new Date(),
   }));
 
   const loading = loadingCustomers;
@@ -777,7 +777,9 @@ export default function CustomerManagement() {
                       />
                     </TableCell>
                     <TableCell>
-                      {customer.registrationDate.toLocaleDateString('id-ID')}
+                      {customer.registrationDate && !isNaN(customer.registrationDate.getTime())
+                        ? customer.registrationDate.toLocaleDateString('id-ID')
+                        : '-'}
                     </TableCell>
                     <TableCell align='right'>
                       <IconButton
