@@ -103,7 +103,7 @@ export default function CustomerAccounts() {
   const accounts = useMemo(() => {
     return meteranData.map((meter: any) => ({
       id: meter._id,
-      customerId: meter.idKoneksiData?.userId?._id || '',
+      customerId: meter.idKoneksiData?.idPelanggan?._id || '',
       accountNumber: meter.nomorAkun || '-',
       meterNumber: meter.nomorMeteran || '-',
       connectionType: 'existing' as const,
@@ -289,7 +289,7 @@ export default function CustomerAccounts() {
 
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
             <Pagination
-              count={totalPages}
+              count={Math.ceil(filteredAccounts.length / rowsPerPage)}
               page={page}
               onChange={(_, newPage) => setPage(newPage)}
               color="primary"

@@ -21,7 +21,7 @@ export const GET_ALL_METERAN = gql`
       idKoneksiData {
         _id
         alamat
-        userId {
+        idPelanggan {
           _id
           namaLengkap
           email
@@ -50,15 +50,12 @@ export const GET_METERAN_BY_ID = gql`
       idKoneksiData {
         _id
         alamat
-        latitude
-        longitude
         statusVerifikasi
-        userId {
+        idPelanggan {
           _id
           namaLengkap
           email
           noHP
-          isVerified
         }
       }
       createdAt

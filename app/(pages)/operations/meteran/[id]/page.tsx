@@ -74,10 +74,10 @@ export default function MeteranDetail() {
       hargaPenggunaanDiatas10: meteranData.idKelompokPelanggan.hargaDiAtas10mKubik,
       biayaBeban: meteranData.idKelompokPelanggan.biayaBeban || 0,
     } : null,
-    userId: meteranData.idKoneksiData?.userId ? {
-      _id: meteranData.idKoneksiData.userId._id,
-      namaLengkap: meteranData.idKoneksiData.userId.namaLengkap,
-      noHp: meteranData.idKoneksiData.userId.noHP,
+    userId: meteranData.idKoneksiData?.idPelanggan ? {
+      _id: meteranData.idKoneksiData.idPelanggan._id,
+      namaLengkap: meteranData.idKoneksiData.idPelanggan.namaLengkap,
+      noHp: meteranData.idKoneksiData.idPelanggan.noHP,
     } : null,
     connectionDataId: meteranData.idKoneksiData ? {
       _id: meteranData.idKoneksiData._id,
