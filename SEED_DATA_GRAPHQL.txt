@@ -1,0 +1,73 @@
+# ============================================
+# GRAPHQL MUTATIONS UNTUK POPULATE DUMMY DATA
+# Buka: http://localhost:5000/graphql
+# Copy-paste mutations di bawah satu per satu
+# ============================================
+
+# 1. CREATE KELOMPOK PELANGGAN (Customer Groups)
+# ============================================
+
+mutation CreateKelompokRT {
+  createKelompokPelanggan(input: {
+    namaKelompok: "Rumah Tangga 2A2"
+    hargaDiBawah10mKubik: 2500
+    hargaDiAtas10mKubik: 3000
+    biayaBeban: 5000
+  }) {
+    _id
+    namaKelompok
+  }
+}
+
+mutation CreateKelompokKomersial {
+  createKelompokPelanggan(input: {
+    namaKelompok: "Komersial"
+    hargaDiBawah10mKubik: 3500
+    hargaDiAtas10mKubik: 4500
+    biayaBeban: 10000
+  }) {
+    _id
+    namaKelompok
+  }
+}
+
+# 2. CREATE TEKNISI
+# ============================================
+
+mutation CreateTeknisi1 {
+  createTeknisi(input: {
+    namaLengkap: "Budi Santoso"
+    email: "budi.teknisi@pdam.com"
+    password: "password123"
+    noHP: "081298765432"
+    NIP: "NIP-TECH-001"
+    divisi: INSTALASI
+  }) {
+    _id
+    namaLengkap
+  }
+}
+
+mutation CreateTeknisi2 {
+  createTeknisi(input: {
+    namaLengkap: "Andi Wijaya"
+    email: "andi.teknisi@pdam.com"
+    password: "password123"
+    noHP: "081298765433"
+    NIP: "NIP-TECH-002"
+    divisi: PEMELIHARAAN
+  }) {
+    _id
+    namaLengkap
+  }
+}
+
+# ============================================
+# CATATAN PENTING:
+# ============================================
+# Untuk data lainnya (Customers, Connection Data, RAB, Survey, Meteran, Tagihan)
+# backend belum punya GraphQL mutations untuk create.
+# 
+# Anda bisa test dengan data yang sudah ada di database,
+# atau buat manual via MongoDB Compass/Studio 3T
+# ============================================
