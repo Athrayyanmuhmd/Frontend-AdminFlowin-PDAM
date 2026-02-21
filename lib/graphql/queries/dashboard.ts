@@ -5,6 +5,25 @@ import { gql } from '@apollo/client';
  * Backend: BE_backend/graphql/resolvers/index.js - getDashboardStats
  */
 
+export const GET_CHART_KONSUMSI_PER_BULAN = gql`
+  query GetChartKonsumsiPerBulan {
+    getChartKonsumsiPerBulan {
+      bulan
+      totalTagihan
+      jumlahTagihan
+    }
+  }
+`;
+
+export const GET_DISTRIBUSI_KELOMPOK_PELANGGAN = gql`
+  query GetDistribusiKelompokPelanggan {
+    getDistribusiKelompokPelanggan {
+      namaKelompok
+      jumlahMeteran
+    }
+  }
+`;
+
 export const GET_DASHBOARD_STATS = gql`
   query GetDashboardStats {
     getDashboardStats {
