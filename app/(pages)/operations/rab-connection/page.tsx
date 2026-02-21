@@ -27,6 +27,7 @@ import {
   MenuItem,
   SelectChangeEvent,
   Grid,
+  Pagination,
 } from '@mui/material';
 import {
   Search,
@@ -51,6 +52,8 @@ export default function RabConnectionManagement() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
 
   // Handle GraphQL errors
   useEffect(() => {
@@ -86,6 +89,9 @@ export default function RabConnectionManagement() {
 
     return filtered;
   }, [rabData, searchQuery, paymentFilter]);
+
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const paginatedData = filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const handleViewDetail = (id: string) => {
     router.push(`/operations/rab-connection/${id}`);
@@ -145,7 +151,7 @@ export default function RabConnectionManagement() {
                   fullWidth
                   placeholder='Cari NIK, Nama Pelanggan, atau Alamat...'
                   value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
+                  onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position='start'>
@@ -161,9 +167,9 @@ export default function RabConnectionManagement() {
                   <Select
                     value={paymentFilter}
                     label='Status Pembayaran'
-                    onChange={(e: SelectChangeEvent) =>
-                      setPaymentFilter(e.target.value)
-                    }
+                    onChange={(e: SelectChangeEvent) => {
+                      setPaymentFilter(e.target.value); setPage(1);
+                    }}
                   >
                     <MenuItem value='all'>Semua</MenuItem>
                     <MenuItem value='paid'>Lunas</MenuItem>
@@ -189,21 +195,21 @@ export default function RabConnectionManagement() {
                 </Typography>
               </Box>
             ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>NIK / Pelanggan</TableCell>
-                      <TableCell>Alamat</TableCell>
-                      <TableCell align='right'>Total Biaya</TableCell>
-                      <TableCell>Status Pembayaran</TableCell>
-                      <TableCell>Tanggal Dibuat</TableCell>
-                      <TableCell align='center'>Aksi</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(filteredData) &&
-                      filteredData.map((item: any) => (
+              <>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>NIK / Pelanggan</TableCell>
+                        <TableCell>Alamat</TableCell>
+                        <TableCell align='right'>Total Biaya</TableCell>
+                        <TableCell>Status Pembayaran</TableCell>
+                        <TableCell>Tanggal Dibuat</TableCell>
+                        <TableCell align='center'>Aksi</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedData.map((item: any) => (
                         <TableRow key={item._id} hover>
                           <TableCell>
                             <Typography variant='body2' fontWeight='bold'>
@@ -265,9 +271,15 @@ export default function RabConnectionManagement() {
                           </TableCell>
                         </TableRow>
                       ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {totalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                  </Box>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

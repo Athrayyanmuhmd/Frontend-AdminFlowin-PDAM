@@ -23,565 +23,406 @@ import {
   Checkbox,
   FormControlLabel,
   FormGroup,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
   Divider,
   Paper,
   Stepper,
   Step,
   StepLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  CircularProgress,
+  IconButton,
 } from '@mui/material';
 import {
   Add,
   Delete,
-  Edit,
-  Save,
-  Download,
-  PictureAsPdf,
-  TableChart,
-  Assessment,
-  FilterList,
-  Schedule,
-  Settings,
-  CheckCircle,
   PlayArrow,
+  Assessment,
 } from '@mui/icons-material';
+import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
+import {
+  GET_KPI_OPERASIONAL,
+  GET_RINGKASAN_WORK_ORDER,
+  GET_RINGKASAN_LAPORAN,
+  GET_RINGKASAN_STATUS_TAGIHAN,
+  GET_LAPORAN_KEUANGAN_BULANAN,
+  GET_TUNGGAKAN_PER_KELOMPOK,
+} from '@/lib/graphql/queries/reports';
 
-// Mock report templates
-const reportTemplates = [
+// Kategori laporan yang tersedia
+const REPORT_CATEGORIES = [
   {
-    id: '1',
-    name: 'Laporan Konsumsi Air per Zona',
-    description: 'Analisis konsumsi air berdasarkan zona distribusi',
-    category: 'operational',
-    fields: ['zona', 'konsumsi', 'pelanggan', 'periode'],
-    createdAt: new Date('2024-01-10'),
+    id: 'kpi_operasional',
+    nama: 'KPI Operasional',
+    deskripsi: 'Ringkasan indikator kinerja operasional: meteran, pelanggan, work order, laporan, teknisi',
+    kategori: 'operational',
   },
   {
-    id: '2',
-    name: 'Analisis Pendapatan per Kategori',
-    description: 'Breakdown pendapatan berdasarkan kategori pelanggan',
-    category: 'financial',
-    fields: ['kategori', 'pendapatan', 'jumlah_pelanggan', 'rata_rata'],
-    createdAt: new Date('2024-01-12'),
+    id: 'work_order',
+    nama: 'Distribusi Work Order',
+    deskripsi: 'Sebaran status pekerjaan teknis lapangan (ditugaskan, dikerjakan, selesai, dll)',
+    kategori: 'operational',
   },
   {
-    id: '3',
-    name: 'Work Order Performance',
-    description: 'Statistik kinerja penyelesaian work order',
-    category: 'operational',
-    fields: ['tipe_wo', 'jumlah', 'avg_durasi', 'completion_rate'],
-    createdAt: new Date('2024-01-15'),
+    id: 'laporan_pelanggan',
+    nama: 'Status Laporan Pelanggan',
+    deskripsi: 'Distribusi status pengaduan/laporan dari pelanggan',
+    kategori: 'operational',
   },
   {
-    id: '4',
-    name: 'Kualitas Air Harian',
-    description: 'Monitoring parameter kualitas air harian',
-    category: 'compliance',
-    fields: ['parameter', 'nilai', 'standar', 'status', 'waktu'],
-    createdAt: new Date('2024-01-08'),
+    id: 'ringkasan_tagihan',
+    nama: 'Ringkasan Status Tagihan',
+    deskripsi: 'Total tagihan, jumlah lunas, tunggakan, dan nilai rupiah keseluruhan',
+    kategori: 'financial',
+  },
+  {
+    id: 'laporan_bulanan',
+    nama: 'Laporan Keuangan Bulanan',
+    deskripsi: 'Pendapatan tagihan dan jumlah tagihan per bulan (6 bulan terakhir)',
+    kategori: 'financial',
+  },
+  {
+    id: 'tunggakan_kelompok',
+    nama: 'Tunggakan per Kelompok Pelanggan',
+    deskripsi: 'Rekapitulasi tunggakan berdasarkan kelompok/kategori pelanggan',
+    kategori: 'financial',
   },
 ];
 
-const availableFields = [
-  { id: 'customer_name', name: 'Nama Pelanggan', category: 'customer' },
-  { id: 'customer_nik', name: 'NIK', category: 'customer' },
-  { id: 'customer_address', name: 'Alamat', category: 'customer' },
-  { id: 'customer_type', name: 'Tipe Pelanggan', category: 'customer' },
-  { id: 'account_number', name: 'No. Akun', category: 'billing' },
-  { id: 'consumption', name: 'Konsumsi', category: 'billing' },
-  { id: 'amount', name: 'Tagihan', category: 'billing' },
-  { id: 'payment_status', name: 'Status Pembayaran', category: 'billing' },
-  { id: 'payment_date', name: 'Tanggal Pembayaran', category: 'billing' },
-  { id: 'wo_type', name: 'Tipe Work Order', category: 'operations' },
-  { id: 'wo_status', name: 'Status Work Order', category: 'operations' },
-  { id: 'wo_duration', name: 'Durasi Work Order', category: 'operations' },
-  { id: 'technician', name: 'Teknisi', category: 'operations' },
-  { id: 'water_ph', name: 'pH Air', category: 'quality' },
-  { id: 'water_turbidity', name: 'Kekeruhan', category: 'quality' },
-  { id: 'water_chlorine', name: 'Klorin', category: 'quality' },
-  { id: 'pressure', name: 'Tekanan', category: 'quality' },
-];
+type ReportId = typeof REPORT_CATEGORIES[number]['id'];
 
-const filterOperators = [
-  { value: 'equals', label: 'Sama dengan' },
-  { value: 'not_equals', label: 'Tidak sama dengan' },
-  { value: 'greater_than', label: 'Lebih besar dari' },
-  { value: 'less_than', label: 'Lebih kecil dari' },
-  { value: 'contains', label: 'Mengandung' },
-  { value: 'between', label: 'Antara' },
-];
+function useReportData(reportId: ReportId | null) {
+  const skip = !reportId;
+  const { data: kpiData, loading: l1 } = useQuery(GET_KPI_OPERASIONAL, { skip: skip || reportId !== 'kpi_operasional', fetchPolicy: 'network-only' });
+  const { data: woData, loading: l2 } = useQuery(GET_RINGKASAN_WORK_ORDER, { skip: skip || reportId !== 'work_order', fetchPolicy: 'network-only' });
+  const { data: laporanData, loading: l3 } = useQuery(GET_RINGKASAN_LAPORAN, { skip: skip || reportId !== 'laporan_pelanggan', fetchPolicy: 'network-only' });
+  const { data: tagihanData, loading: l4 } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { skip: skip || reportId !== 'ringkasan_tagihan', fetchPolicy: 'network-only' });
+  const { data: bulananData, loading: l5 } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { skip: skip || reportId !== 'laporan_bulanan', fetchPolicy: 'network-only' });
+  const { data: tunggakanData, loading: l6 } = useQuery(GET_TUNGGAKAN_PER_KELOMPOK, { skip: skip || reportId !== 'tunggakan_kelompok', fetchPolicy: 'network-only' });
+
+  const loading = l1 || l2 || l3 || l4 || l5 || l6;
+
+  const result: any = {};
+  if (kpiData?.getKpiOperasional) result.rows = kpiData.getKpiOperasional;
+  if (woData?.getRingkasanWorkOrder) result.rows = woData.getRingkasanWorkOrder;
+  if (laporanData?.getRingkasanLaporan) result.rows = laporanData.getRingkasanLaporan;
+  if (tagihanData?.getRingkasanStatusTagihan) result.rows = tagihanData.getRingkasanStatusTagihan;
+  if (bulananData?.getLaporanKeuanganBulanan) result.rows = bulananData.getLaporanKeuanganBulanan;
+  if (tunggakanData?.getTunggakanPerKelompok) result.rows = tunggakanData.getTunggakanPerKelompok;
+
+  return { data: result.rows, loading };
+}
+
+function renderReportTable(reportId: ReportId, data: any) {
+  if (!data) return null;
+
+  if (reportId === 'kpi_operasional') {
+    const kpi = data;
+    const rows = [
+      { label: 'Total Meteran Terpasang', nilai: kpi.totalMeteranTerpasang, satuan: 'unit' },
+      { label: 'Total Pelanggan', nilai: kpi.totalPelanggan, satuan: 'orang' },
+      { label: 'Work Order Aktif', nilai: kpi.totalWorkOrderAktif, satuan: 'WO' },
+      { label: 'Work Order Selesai', nilai: kpi.totalWorkOrderSelesai, satuan: 'WO' },
+      { label: 'Laporan Masuk', nilai: kpi.totalLaporanMasuk, satuan: 'laporan' },
+      { label: 'Laporan Selesai', nilai: kpi.totalLaporanSelesai, satuan: 'laporan' },
+      { label: 'Total Teknisi', nilai: kpi.totalTeknisi, satuan: 'orang' },
+      { label: 'Tingkat Penyelesaian Laporan', nilai: `${kpi.tingkatPenyelesaianLaporan}%`, satuan: '' },
+    ];
+    return (
+      <Table size="small">
+        <TableHead><TableRow>
+          <TableCell>Indikator</TableCell>
+          <TableCell align="right">Nilai</TableCell>
+          <TableCell>Satuan</TableCell>
+        </TableRow></TableHead>
+        <TableBody>
+          {rows.map(r => (
+            <TableRow key={r.label}>
+              <TableCell sx={{ fontWeight: 600 }}>{r.label}</TableCell>
+              <TableCell align="right">{typeof r.nilai === 'number' ? r.nilai.toLocaleString('id-ID') : r.nilai}</TableCell>
+              <TableCell>{r.satuan}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  if (reportId === 'work_order' || reportId === 'laporan_pelanggan') {
+    const rows: any[] = data;
+    const total = rows.reduce((s: number, r: any) => s + r.jumlah, 0);
+    return (
+      <Table size="small">
+        <TableHead><TableRow>
+          <TableCell>Status</TableCell>
+          <TableCell align="right">Jumlah</TableCell>
+          <TableCell align="right">Persentase</TableCell>
+        </TableRow></TableHead>
+        <TableBody>
+          {rows.map((r: any) => (
+            <TableRow key={r.status}>
+              <TableCell sx={{ fontWeight: 600 }}>{r.status}</TableCell>
+              <TableCell align="right">{r.jumlah}</TableCell>
+              <TableCell align="right">{total > 0 ? ((r.jumlah / total) * 100).toFixed(1) : 0}%</TableCell>
+            </TableRow>
+          ))}
+          <TableRow sx={{ backgroundColor: 'action.hover' }}>
+            <TableCell sx={{ fontWeight: 700 }}>Total</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700 }}>{total}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700 }}>100%</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+  }
+
+  if (reportId === 'ringkasan_tagihan') {
+    const t = data;
+    const rows = [
+      { label: 'Total Tagihan', nilai: t.totalTagihan, tipe: 'angka' },
+      { label: 'Tagihan Lunas', nilai: t.totalLunas, tipe: 'angka' },
+      { label: 'Tagihan Tunggakan', nilai: t.totalTunggakan, tipe: 'angka' },
+      { label: 'Tagihan Pending', nilai: t.totalPending, tipe: 'angka' },
+      { label: 'Nilai Total Tagihan', nilai: t.nilaiTotal, tipe: 'rupiah' },
+      { label: 'Nilai Sudah Lunas', nilai: t.nilaiLunas, tipe: 'rupiah' },
+      { label: 'Nilai Tunggakan', nilai: t.nilaiTunggakan, tipe: 'rupiah' },
+    ];
+    return (
+      <Table size="small">
+        <TableHead><TableRow>
+          <TableCell>Keterangan</TableCell>
+          <TableCell align="right">Nilai</TableCell>
+        </TableRow></TableHead>
+        <TableBody>
+          {rows.map(r => (
+            <TableRow key={r.label}>
+              <TableCell sx={{ fontWeight: 600 }}>{r.label}</TableCell>
+              <TableCell align="right">
+                {r.tipe === 'rupiah'
+                  ? `Rp ${Number(r.nilai).toLocaleString('id-ID')}`
+                  : Number(r.nilai).toLocaleString('id-ID')}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  if (reportId === 'laporan_bulanan') {
+    const rows: any[] = data;
+    return (
+      <Table size="small">
+        <TableHead><TableRow>
+          <TableCell>Bulan</TableCell>
+          <TableCell align="right">Total Tagihan (Rp)</TableCell>
+          <TableCell align="right">Sudah Lunas (Rp)</TableCell>
+          <TableCell align="right">Jumlah Tagihan</TableCell>
+          <TableCell align="right">Jumlah Lunas</TableCell>
+        </TableRow></TableHead>
+        <TableBody>
+          {rows.map((r: any) => (
+            <TableRow key={r.bulan}>
+              <TableCell sx={{ fontWeight: 600 }}>{r.bulan}</TableCell>
+              <TableCell align="right">{Number(r.totalTagihan).toLocaleString('id-ID')}</TableCell>
+              <TableCell align="right">{Number(r.totalLunas).toLocaleString('id-ID')}</TableCell>
+              <TableCell align="right">{r.jumlahTagihan}</TableCell>
+              <TableCell align="right">{r.jumlahLunas}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  if (reportId === 'tunggakan_kelompok') {
+    const rows: any[] = data;
+    return (
+      <Table size="small">
+        <TableHead><TableRow>
+          <TableCell>Kelompok Pelanggan</TableCell>
+          <TableCell align="right">Jumlah Tunggakan</TableCell>
+          <TableCell align="right">Total Nilai (Rp)</TableCell>
+        </TableRow></TableHead>
+        <TableBody>
+          {rows.map((r: any) => (
+            <TableRow key={r.namaKelompok}>
+              <TableCell sx={{ fontWeight: 600 }}>{r.namaKelompok}</TableCell>
+              <TableCell align="right">{r.jumlahTunggakan}</TableCell>
+              <TableCell align="right">{Number(r.totalTunggakan).toLocaleString('id-ID')}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  return null;
+}
 
 export default function CustomReports() {
-  const [templates, setTemplates] = useState(reportTemplates);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [openBuilderDialog, setOpenBuilderDialog] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
+  const [selectedReport, setSelectedReport] = useState<ReportId | null>(null);
+  const [generatedReport, setGeneratedReport] = useState<ReportId | null>(null);
+  const [filterKategori, setFilterKategori] = useState<string>('all');
 
-  // Report Builder State
-  const [reportName, setReportName] = useState('');
-  const [reportDescription, setReportDescription] = useState('');
-  const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [filters, setFilters] = useState<any[]>([]);
-  const [groupBy, setGroupBy] = useState('');
-  const [sortBy, setSortBy] = useState('');
-  const [exportFormat, setExportFormat] = useState('pdf');
+  const { data, loading } = useReportData(generatedReport);
 
-  const steps = ['Informasi Dasar', 'Pilih Field', 'Filter Data', 'Pengaturan Output'];
-
-  const handleOpenBuilder = () => {
-    setOpenBuilderDialog(true);
-    setActiveStep(0);
-    // Reset builder state
-    setReportName('');
-    setReportDescription('');
-    setSelectedFields([]);
-    setFilters([]);
-    setGroupBy('');
-    setSortBy('');
+  const kategoriLabel: Record<string, string> = {
+    operational: 'Operasional',
+    financial: 'Keuangan',
+    compliance: 'Kepatuhan',
   };
 
-  const handleCloseBuilder = () => {
-    setOpenBuilderDialog(false);
-    setActiveStep(0);
-  };
+  const tampilKategori = filterKategori === 'all'
+    ? REPORT_CATEGORIES
+    : REPORT_CATEGORIES.filter(r => r.kategori === filterKategori);
 
-  const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-  };
-
-  const handleFieldToggle = (fieldId: string) => {
-    setSelectedFields((prev) =>
-      prev.includes(fieldId)
-        ? prev.filter((id) => id !== fieldId)
-        : [...prev, fieldId]
-    );
-  };
-
-  const handleAddFilter = () => {
-    setFilters([
-      ...filters,
-      { field: '', operator: 'equals', value: '' },
-    ]);
-  };
-
-  const handleRemoveFilter = (index: number) => {
-    setFilters(filters.filter((_, i) => i !== index));
-  };
-
-  const handleSaveTemplate = () => {
-    const newTemplate = {
-      id: Date.now().toString(),
-      name: reportName,
-      description: reportDescription,
-      category: 'custom',
-      fields: selectedFields,
-      filters: filters,
-      groupBy: groupBy,
-      sortBy: sortBy,
-      exportFormat: exportFormat,
-      createdAt: new Date(),
-    };
-
-    setTemplates([...templates, newTemplate]);
-    handleCloseBuilder();
-  };
-
-  const handleGenerateReport = () => {
-    console.log('Generating report with settings:', {
-      reportName,
-      selectedFields,
-      filters,
-      groupBy,
-      sortBy,
-      exportFormat,
-    });
-    // Implementation for report generation
-  };
-
-  const handleDeleteTemplate = (id: string) => {
-    setTemplates(templates.filter((t) => t.id !== id));
-  };
-
-  const renderStepContent = (step: number) => {
-    switch (step) {
-      case 0:
-        return (
-          <Box>
-            <TextField
-              fullWidth
-              label="Nama Laporan"
-              value={reportName}
-              onChange={(e) => setReportName(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label="Deskripsi"
-              value={reportDescription}
-              onChange={(e) => setReportDescription(e.target.value)}
-              multiline
-              rows={3}
-            />
-          </Box>
-        );
-
-      case 1:
-        return (
-          <Box>
-            <Typography variant="subtitle2" gutterBottom>
-              Pilih field yang akan ditampilkan dalam laporan:
-            </Typography>
-            <Grid container spacing={2}>
-              {['customer', 'billing', 'operations', 'quality'].map((category) => (
-                <Grid item xs={12} md={6} key={category}>
-                  <Paper sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, textTransform: 'capitalize' }}>
-                      {category === 'customer' ? 'Pelanggan' :
-                       category === 'billing' ? 'Tagihan' :
-                       category === 'operations' ? 'Operasional' : 'Kualitas Air'}
-                    </Typography>
-                    <FormGroup>
-                      {availableFields
-                        .filter((f) => f.category === category)
-                        .map((field) => (
-                          <FormControlLabel
-                            key={field.id}
-                            control={
-                              <Checkbox
-                                checked={selectedFields.includes(field.id)}
-                                onChange={() => handleFieldToggle(field.id)}
-                              />
-                            }
-                            label={field.name}
-                          />
-                        ))}
-                    </FormGroup>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        );
-
-      case 2:
-        return (
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="subtitle2">Filter Data:</Typography>
-              <Button startIcon={<Add />} onClick={handleAddFilter} size="small">
-                Tambah Filter
-              </Button>
-            </Box>
-
-            {filters.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                Belum ada filter. Klik "Tambah Filter" untuk menambahkan kriteria filter.
-              </Typography>
-            ) : (
-              filters.map((filter, index) => (
-                <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} md={4}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Field</InputLabel>
-                        <Select
-                          value={filter.field}
-                          onChange={(e) => {
-                            const newFilters = [...filters];
-                            newFilters[index].field = e.target.value;
-                            setFilters(newFilters);
-                          }}
-                          label="Field"
-                        >
-                          {availableFields.map((field) => (
-                            <MenuItem key={field.id} value={field.id}>
-                              {field.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Operator</InputLabel>
-                        <Select
-                          value={filter.operator}
-                          onChange={(e) => {
-                            const newFilters = [...filters];
-                            newFilters[index].operator = e.target.value;
-                            setFilters(newFilters);
-                          }}
-                          label="Operator"
-                        >
-                          {filterOperators.map((op) => (
-                            <MenuItem key={op.value} value={op.value}>
-                              {op.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Nilai"
-                        value={filter.value}
-                        onChange={(e) => {
-                          const newFilters = [...filters];
-                          newFilters[index].value = e.target.value;
-                          setFilters(newFilters);
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={1}>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleRemoveFilter(index)}
-                      >
-                        <Delete />
-                      </IconButton>
-                    </Grid>
-                  </Grid>
-                </Box>
-              ))
-            )}
-          </Box>
-        );
-
-      case 3:
-        return (
-          <Box>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Group By</InputLabel>
-                  <Select
-                    value={groupBy}
-                    onChange={(e) => setGroupBy(e.target.value)}
-                    label="Group By"
-                  >
-                    <MenuItem value="">None</MenuItem>
-                    {selectedFields.map((fieldId) => {
-                      const field = availableFields.find((f) => f.id === fieldId);
-                      return (
-                        <MenuItem key={fieldId} value={fieldId}>
-                          {field?.name}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Sort By</InputLabel>
-                  <Select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    label="Sort By"
-                  >
-                    <MenuItem value="">None</MenuItem>
-                    {selectedFields.map((fieldId) => {
-                      const field = availableFields.find((f) => f.id === fieldId);
-                      return (
-                        <MenuItem key={fieldId} value={fieldId}>
-                          {field?.name}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Export Format</InputLabel>
-                  <Select
-                    value={exportFormat}
-                    onChange={(e) => setExportFormat(e.target.value)}
-                    label="Export Format"
-                  >
-                    <MenuItem value="pdf">PDF</MenuItem>
-                    <MenuItem value="excel">Excel</MenuItem>
-                    <MenuItem value="csv">CSV</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Box>
-        );
-
-      default:
-        return null;
-    }
-  };
+  const selectedMeta = REPORT_CATEGORIES.find(r => r.id === generatedReport);
 
   return (
-    <AdminLayout title="Custom Report Builder">
+    <AdminLayout title="Laporan Kustom">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-            Custom Report Builder
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleOpenBuilder}
-          >
-            Buat Laporan Baru
-          </Button>
-        </Box>
-
-        {/* Saved Templates */}
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-          Template Laporan Tersimpan
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 1 }}>
+          Laporan Kustom
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Pilih jenis laporan yang ingin digenerate dari data sistem secara real-time.
         </Typography>
 
         <Grid container spacing={3}>
-          {templates.map((template) => (
-            <Grid item xs={12} md={6} lg={4} key={template.id}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                        {template.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        {template.description}
-                      </Typography>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleDeleteTemplate(template.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </Box>
+          {/* Panel kiri: Pilih laporan */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ position: 'sticky', top: 24 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Jenis Laporan Tersedia
+                </Typography>
 
-                  <Box sx={{ mb: 2 }}>
-                    <Chip
-                      label={template.category === 'operational' ? 'Operasional' :
-                            template.category === 'financial' ? 'Keuangan' :
-                            template.category === 'compliance' ? 'Kepatuhan' : 'Custom'}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                      sx={{ mr: 1 }}
-                    />
-                    <Chip
-                      label={`${template.fields.length} fields`}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                  <InputLabel>Filter Kategori</InputLabel>
+                  <Select
+                    value={filterKategori}
+                    onChange={(e) => setFilterKategori(e.target.value)}
+                    label="Filter Kategori"
+                  >
+                    <MenuItem value="all">Semua</MenuItem>
+                    <MenuItem value="operational">Operasional</MenuItem>
+                    <MenuItem value="financial">Keuangan</MenuItem>
+                  </Select>
+                </FormControl>
 
-                  <Divider sx={{ my: 2 }} />
-
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      startIcon={<PlayArrow />}
-                      onClick={() => {
-                        setSelectedTemplate(template);
-                        handleGenerateReport();
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {tampilKategori.map((r) => (
+                    <Paper
+                      key={r.id}
+                      onClick={() => setSelectedReport(r.id as ReportId)}
+                      sx={{
+                        p: 1.5,
+                        cursor: 'pointer',
+                        border: '2px solid',
+                        borderColor: selectedReport === r.id ? 'primary.main' : 'transparent',
+                        backgroundColor: selectedReport === r.id ? 'primary.50' : 'background.paper',
+                        '&:hover': { borderColor: 'primary.light' },
+                        transition: 'all 0.15s',
                       }}
                     >
-                      Generate
-                    </Button>
-                    <Tooltip title="Export PDF">
-                      <IconButton size="small" color="primary">
-                        <PictureAsPdf />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Export Excel">
-                      <IconButton size="small" color="primary">
-                        <TableChart />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          {r.nama}
+                        </Typography>
+                        <Chip
+                          label={kategoriLabel[r.kategori]}
+                          size="small"
+                          color={r.kategori === 'operational' ? 'info' : r.kategori === 'financial' ? 'success' : 'warning'}
+                          variant="outlined"
+                          sx={{ ml: 1, flexShrink: 0 }}
+                        />
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {r.deskripsi}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Box>
 
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-                    Dibuat: {template.createdAt.toLocaleDateString('id-ID')}
-                  </Typography>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<PlayArrow />}
+                  onClick={() => setGeneratedReport(selectedReport)}
+                  disabled={!selectedReport}
+                  sx={{ mt: 2 }}
+                >
+                  Generate Laporan
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Panel kanan: Hasil laporan */}
+          <Grid item xs={12} md={8}>
+            {!generatedReport ? (
+              <Card>
+                <CardContent>
+                  <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <Assessment sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary">
+                      Pilih jenis laporan di sebelah kiri
+                    </Typography>
+                    <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+                      Klik salah satu laporan lalu tekan "Generate Laporan"
+                    </Typography>
+                  </Box>
                 </CardContent>
               </Card>
-            </Grid>
-          ))}
+            ) : (
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {selectedMeta?.nama}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {selectedMeta?.deskripsi}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={`Kategori: ${kategoriLabel[selectedMeta?.kategori || '']}`}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                    />
+                  </Box>
+
+                  <Divider sx={{ mb: 2 }} />
+
+                  {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : !data ? (
+                    <Alert severity="info">Belum ada data untuk laporan ini.</Alert>
+                  ) : (
+                    <>
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        Data berhasil dimuat — {new Date().toLocaleString('id-ID')}
+                      </Alert>
+                      <TableContainer>
+                        {renderReportTable(generatedReport, data)}
+                      </TableContainer>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </Grid>
         </Grid>
       </Box>
-
-      {/* Report Builder Dialog */}
-      <Dialog
-        open={openBuilderDialog}
-        onClose={handleCloseBuilder}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          Buat Laporan Custom
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-
-            {renderStepContent(activeStep)}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseBuilder}>Batal</Button>
-          {activeStep > 0 && (
-            <Button onClick={handleBack}>Kembali</Button>
-          )}
-          {activeStep < steps.length - 1 ? (
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              disabled={
-                (activeStep === 0 && !reportName) ||
-                (activeStep === 1 && selectedFields.length === 0)
-              }
-            >
-              Lanjut
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              startIcon={<Save />}
-              onClick={handleSaveTemplate}
-              disabled={!reportName || selectedFields.length === 0}
-            >
-              Simpan Template
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
     </AdminLayout>
   );
 }

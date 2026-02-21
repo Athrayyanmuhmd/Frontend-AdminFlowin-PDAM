@@ -29,6 +29,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Pagination,
 } from '@mui/material';
 import {
   Search,
@@ -118,6 +119,8 @@ export default function TechnicianManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -176,6 +179,8 @@ export default function TechnicianManagement() {
     );
   }, [technicians, searchQuery]);
 
+  const totalPages = Math.ceil(filteredTechnicians.length / rowsPerPage);
+  const paginatedTechnicians = filteredTechnicians.slice((page - 1) * rowsPerPage, page * rowsPerPage);
   const actionLoading = createLoading || updateLoading || deleteLoading;
 
   // ==================== Handlers ====================
@@ -217,6 +222,11 @@ export default function TechnicianManagement() {
     setError('');
     setSuccess('');
 
+    if (!formData.namaLengkap.trim()) { setError('Nama lengkap wajib diisi'); return; }
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('Email tidak valid'); return; }
+    if (!formData.password || formData.password.length < 6) { setError('Password minimal 6 karakter'); return; }
+    if (!formData.noHP.trim() || !/^[0-9]{10,15}$/.test(formData.noHP.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
+
     try {
       await createTeknisi({
         variables: {
@@ -240,6 +250,10 @@ export default function TechnicianManagement() {
 
     setError('');
     setSuccess('');
+
+    if (!formData.namaLengkap.trim()) { setError('Nama lengkap wajib diisi'); return; }
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('Email tidak valid'); return; }
+    if (!formData.noHP.trim() || !/^[0-9]{10,15}$/.test(formData.noHP.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
 
     try {
       const updateData: any = {
@@ -362,7 +376,7 @@ export default function TechnicianManagement() {
               fullWidth
               placeholder='Cari nama, email, atau nomor telepon...'
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position='start'>
@@ -391,29 +405,23 @@ export default function TechnicianManagement() {
                 </Typography>
               </Box>
             ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nama Lengkap</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Nomor Telepon</TableCell>
-                      <TableCell>Tanggal Dibuat</TableCell>
-                      <TableCell align='center'>Aksi</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(filteredTechnicians) &&
-                      filteredTechnicians.map(tech => (
+              <>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Nama Lengkap</TableCell>
+                        <TableCell>Email</TableCell>
+                        <TableCell>Nomor Telepon</TableCell>
+                        <TableCell>Tanggal Dibuat</TableCell>
+                        <TableCell align='center'>Aksi</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedTechnicians.map(tech => (
                         <TableRow key={tech._id} hover>
                           <TableCell>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                              }}
-                            >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Engineering color='primary' />
                               <Typography variant='body2' fontWeight='bold'>
                                 {tech.namaLengkap}
@@ -425,29 +433,27 @@ export default function TechnicianManagement() {
                           <TableCell>{formatDate(tech.createdAt)}</TableCell>
                           <TableCell align='center'>
                             <Tooltip title='Edit'>
-                              <IconButton
-                                size='small'
-                                color='primary'
-                                onClick={() => handleEditOpen(tech)}
-                              >
+                              <IconButton size='small' color='primary' onClick={() => handleEditOpen(tech)}>
                                 <Edit />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title='Hapus'>
-                              <IconButton
-                                size='small'
-                                color='error'
-                                onClick={() => handleDeleteOpen(tech)}
-                              >
+                              <IconButton size='small' color='error' onClick={() => handleDeleteOpen(tech)}>
                                 <Delete />
                               </IconButton>
                             </Tooltip>
                           </TableCell>
                         </TableRow>
                       ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {totalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                  </Box>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

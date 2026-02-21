@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { AdminUser, Permission, Notification } from '../types/admin.types';
 import {
   loginAdmin,
@@ -9,6 +9,30 @@ import {
   logoutTechnician,
 } from '../services/auth.service';
 import ApolloWrapper from '../lib/ApolloWrapper';
+import { useQuery, useMutation, gql } from '@apollo/client/react';
+
+const GET_ALL_NOTIFIKASI_ADMIN = gql`
+  query GetAllNotifikasiAdmin {
+    getAllNotifikasiAdmin {
+      _id
+      judul
+      pesan
+      kategori
+      link
+      isRead
+      createdAt
+    }
+  }
+`;
+
+const MARK_NOTIF_READ = gql`
+  mutation MarkNotifikasiAsRead($id: ID!) {
+    markNotifikasiAsRead(id: $id) {
+      _id
+      isRead
+    }
+  }
+`;
 
 interface AdminContextType {
   user: AdminUser | null;
@@ -44,130 +68,43 @@ interface AdminProviderProps {
   children: React.ReactNode;
 }
 
-export default function AdminProvider({ children }: AdminProviderProps) {
+// Inner component with Apollo hooks (must be inside ApolloWrapper)
+function AdminProviderInner({ children }: AdminProviderProps) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<'admin' | 'technician' | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Simulasi data admin untuk demo
-  const mockAdminUser: AdminUser = {
-    id: '1',
-    username: 'admin',
-    email: 'admin@pdam-tirtadaroy.ac.id',
-    role: 'administrator',
-    permissions: [
-      { id: '1', name: 'Manage Users', resource: 'users', action: 'create' },
-      { id: '2', name: 'View Users', resource: 'users', action: 'read' },
-      { id: '3', name: 'Update Users', resource: 'users', action: 'update' },
-      { id: '4', name: 'Delete Users', resource: 'users', action: 'delete' },
-      {
-        id: '5',
-        name: 'Manage Customers',
-        resource: 'customers',
-        action: 'create',
-      },
-      {
-        id: '6',
-        name: 'View Customers',
-        resource: 'customers',
-        action: 'read',
-      },
-      {
-        id: '7',
-        name: 'Update Customers',
-        resource: 'customers',
-        action: 'update',
-      },
-      {
-        id: '8',
-        name: 'Manage Billing',
-        resource: 'billing',
-        action: 'create',
-      },
-      { id: '9', name: 'View Billing', resource: 'billing', action: 'read' },
-      {
-        id: '10',
-        name: 'Update Billing',
-        resource: 'billing',
-        action: 'update',
-      },
-      {
-        id: '11',
-        name: 'Manage Work Orders',
-        resource: 'workorders',
-        action: 'create',
-      },
-      {
-        id: '12',
-        name: 'View Work Orders',
-        resource: 'workorders',
-        action: 'read',
-      },
-      {
-        id: '13',
-        name: 'Update Work Orders',
-        resource: 'workorders',
-        action: 'update',
-      },
-      { id: '14', name: 'View Reports', resource: 'reports', action: 'read' },
-      {
-        id: '15',
-        name: 'Create Reports',
-        resource: 'reports',
-        action: 'create',
-      },
-      {
-        id: '16',
-        name: 'Manage System',
-        resource: 'system',
-        action: 'execute',
-      },
-    ],
-    isActive: true,
-    sessionTimeout: 30, // 30 menit
-    maxConcurrentSessions: 2,
-  };
+  // Load notifikasi dari GraphQL (poll setiap 30 detik)
+  const { data: notifData, refetch: refetchNotif } = useQuery(GET_ALL_NOTIFIKASI_ADMIN, {
+    skip: !isAuthenticated,
+    pollInterval: 30000,
+    fetchPolicy: 'network-only',
+  });
 
-  const mockNotifications: Notification[] = [
-    {
-      id: '1',
-      type: 'warning',
-      title: 'Tekanan Air Rendah',
-      message: 'Tekanan air di zona A menurun hingga 1.2 bar',
-      priority: 'high',
-      isRead: false,
-      createdAt: new Date('2025-10-07T10:00:00'),
-      actionUrl: '/dashboard/operational',
-    },
-    {
-      id: '2',
-      type: 'info',
-      title: 'Pembacaan Meteran Selesai',
-      message: 'Pembacaan meteran untuk 1,250 pelanggan telah selesai',
-      priority: 'medium',
-      isRead: false,
-      createdAt: new Date('2025-10-07T09:30:00'),
-      actionUrl: '/billing/readings',
-    },
-    {
-      id: '3',
-      type: 'error',
-      title: 'Gangguan Sistem',
-      message: 'Koneksi ke server SCADA terputus',
-      priority: 'critical',
-      isRead: false,
-      createdAt: new Date('2025-10-07T09:00:00'),
-      actionUrl: '/system/monitoring',
-    },
-  ];
+  const [markReadMutation] = useMutation(MARK_NOTIF_READ);
+
+  // Sync notifikasi dari GraphQL ke state
+  useEffect(() => {
+    if (notifData?.getAllNotifikasiAdmin) {
+      const mapped: Notification[] = notifData.getAllNotifikasiAdmin.map((n: any) => ({
+        id: n._id,
+        type: n.kategori === 'Peringatan' ? 'warning' : n.kategori === 'Transaksi' ? 'info' : 'info',
+        title: n.judul,
+        message: n.pesan,
+        priority: n.kategori === 'Peringatan' ? 'high' : 'medium',
+        isRead: n.isRead,
+        createdAt: new Date(n.createdAt),
+        actionUrl: n.link || undefined,
+      }));
+      setNotifications(mapped);
+    }
+  }, [notifData]);
 
   useEffect(() => {
-    setMounted(true);
-
-    // Check saved session only on client side
+    // Check saved session on client side
     if (typeof window !== 'undefined') {
       const savedAuth = localStorage.getItem('adminAuth');
 
@@ -177,6 +114,7 @@ export default function AdminProvider({ children }: AdminProviderProps) {
           setUser(authData.user);
           setUserRole(authData.role);
           setPermissions(authData.permissions || []);
+          setIsAuthenticated(true);
         } catch (error) {
           console.error('Error parsing saved auth:', error);
           localStorage.removeItem('adminAuth');
@@ -203,14 +141,11 @@ export default function AdminProvider({ children }: AdminProviderProps) {
         response = await loginTechnician({ email, password });
       }
 
-      // Handle different response formats
-      // Admin: { status, data: {...}, token }
-      // Technician: { status, data: { ..., token } }
       const token = response.token || response.data?.token;
       const userData = response.data;
 
       if (response.status === 200 && userData && token) {
-        const user: AdminUser = {
+        const newUser: AdminUser = {
           id: userData._id || userData.id,
           username: userData.namaLengkap || userData.fullName,
           email: userData.email,
@@ -219,13 +154,13 @@ export default function AdminProvider({ children }: AdminProviderProps) {
           isActive: true,
         };
 
-        setUser(user);
+        setUser(newUser);
         setUserRole(role);
+        setIsAuthenticated(true);
 
-        // Save to localStorage (client-side only)
         if (typeof window !== 'undefined') {
           const authData = {
-            user: user,
+            user: newUser,
             role: role,
             token: token,
             permissions: [],
@@ -234,6 +169,9 @@ export default function AdminProvider({ children }: AdminProviderProps) {
           localStorage.setItem('adminAuth', JSON.stringify(authData));
           localStorage.setItem('admin_token', token);
         }
+
+        // Refetch notifikasi setelah login
+        setTimeout(() => refetchNotif(), 500);
 
         setIsLoading(false);
         return true;
@@ -261,8 +199,9 @@ export default function AdminProvider({ children }: AdminProviderProps) {
       setUser(null);
       setUserRole(null);
       setPermissions([]);
+      setNotifications([]);
+      setIsAuthenticated(false);
 
-      // Clear localStorage (client-side only)
       if (typeof window !== 'undefined') {
         localStorage.removeItem('adminAuth');
         localStorage.removeItem('admin_token');
@@ -291,13 +230,16 @@ export default function AdminProvider({ children }: AdminProviderProps) {
     };
 
     setNotifications(prev => [newNotification, ...prev]);
-    localStorage.setItem(
-      'admin_notifications',
-      JSON.stringify([newNotification, ...notifications])
-    );
   };
 
-  const markNotificationAsRead = (id: string) => {
+  const markNotificationAsRead = async (id: string) => {
+    // Mark in GraphQL backend
+    try {
+      await markReadMutation({ variables: { id } });
+    } catch (err) {
+      console.error('Gagal mark notif as read:', err);
+    }
+    // Optimistic update in state
     setNotifications(prev =>
       prev.map(notification =>
         notification.id === id
@@ -316,14 +258,20 @@ export default function AdminProvider({ children }: AdminProviderProps) {
     hasPermission,
     addNotification,
     markNotificationAsRead,
-    isAuthenticated: !!user,
+    isAuthenticated,
     isLoading,
     userRole,
   };
 
   return (
+    <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
+  );
+}
+
+export default function AdminProvider({ children }: AdminProviderProps) {
+  return (
     <ApolloWrapper>
-      <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
+      <AdminProviderInner>{children}</AdminProviderInner>
     </ApolloWrapper>
   );
 }

@@ -17,7 +17,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Chip,
   IconButton,
   Menu,
@@ -32,388 +31,204 @@ import {
   Avatar,
   Tooltip,
   Pagination,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
   CircularProgress,
   Alert,
+  Divider,
 } from '@mui/material';
 import {
   Search,
-  Add,
   MoreVert,
-  Edit,
-  Delete,
   Visibility,
   Build,
   Schedule,
   CheckCircle,
   Warning,
-  Error,
-  LocationOn,
-  Phone,
+  Error as ErrorIcon,
   Person,
-  CameraAlt,
-  Mic,
-  Upload,
-  Download,
-  Navigation,
-  QrCode,
+  ThumbUp,
+  ThumbDown,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { GET_WORK_ORDERS, GET_WORK_ORDER_STATS } from '@/lib/graphql/queries/workOrder';
-import { UPDATE_WORK_ORDER_STATUS, DELETE_WORK_ORDER } from '@/lib/graphql/mutations/workOrder';
-import { WorkOrder } from '../../../types/workOrder.types';
+import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
+import { UPDATE_WORK_ORDER_STATUS, APPROVE_WORK_ORDER, ASSIGN_WORK_ORDER } from '@/lib/graphql/mutations/workOrder';
 
-const steps = [
-  'Diterima',
-  'Dijadwalkan',
-  'Dalam Proses',
-  'Selesai',
-  'Diverifikasi',
-];
+const STATUS_LABELS: Record<string, string> = {
+  Ditugaskan: 'Ditugaskan',
+  SedangDikerjakan: 'Sedang Dikerjakan',
+  Selesai: 'Selesai',
+  Dibatalkan: 'Dibatalkan',
+  Ditunda: 'Ditunda',
+  DitinjauAdmin: 'Ditinjau Admin',
+};
+
+const STATUS_COLORS: Record<string, 'warning' | 'info' | 'primary' | 'success' | 'error' | 'default'> = {
+  Ditugaskan: 'info',
+  SedangDikerjakan: 'primary',
+  Selesai: 'success',
+  Dibatalkan: 'error',
+  Ditunda: 'warning',
+  DitinjauAdmin: 'default',
+};
+
+function getStatusIcon(status: string) {
+  switch (status) {
+    case 'Selesai': return <CheckCircle fontSize="small" />;
+    case 'SedangDikerjakan': return <Build fontSize="small" />;
+    case 'Ditugaskan': return <Schedule fontSize="small" />;
+    case 'Dibatalkan': return <ErrorIcon fontSize="small" />;
+    default: return <Warning fontSize="small" />;
+  }
+}
 
 export default function WorkOrderManagement() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
+  const [selectedWO, setSelectedWO] = useState<any>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [openDetail, setOpenDetail] = useState(false);
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [newStatus, setNewStatus] = useState('');
+  const [catatan, setCatatan] = useState('');
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
+  const rowsPerPage = 10;
 
-  // GraphQL queries
   const { data, loading, error, refetch } = useQuery(GET_WORK_ORDERS, {
-    variables: {
-      filter: {
-        ...(filterStatus !== 'all' && { status: filterStatus }),
-        ...(filterType !== 'all' && { type: filterType }),
-        ...(filterPriority !== 'all' && { priority: filterPriority }),
-        ...(searchTerm && { search: searchTerm }),
-        page,
-        limit: rowsPerPage,
-      },
-    },
+    fetchPolicy: 'network-only',
   });
 
-  const { data: statsData } = useQuery(GET_WORK_ORDER_STATS);
-
-  // GraphQL mutations
-  const [updateStatus] = useMutation(UPDATE_WORK_ORDER_STATUS, {
-    onCompleted: () => refetch(),
+  const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_WORK_ORDER_STATUS, {
+    onCompleted: () => { refetch(); setOpenStatusDialog(false); setCatatan(''); },
   });
 
-  const [deleteWorkOrder] = useMutation(DELETE_WORK_ORDER, {
-    onCompleted: () => refetch(),
+  const [approveWO, { loading: approving }] = useMutation(APPROVE_WORK_ORDER, {
+    onCompleted: () => { refetch(); setAnchorEl(null); },
   });
 
-  const workOrders = data?.workOrders?.data || [];
-  const pagination = data?.workOrders?.pagination;
-  const stats = statsData?.workOrderStats;
+  const allWO: any[] = data?.getAllWorkOrders || [];
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, workOrder: WorkOrder) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedWorkOrder(workOrder);
+  const filtered = allWO.filter((wo) => {
+    const matchStatus = filterStatus === 'all' || wo.status === filterStatus;
+    const pelanggan = wo.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '';
+    const matchSearch = !searchTerm || pelanggan.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  const totalPages = Math.ceil(filtered.length / rowsPerPage);
+  const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  // Statistik
+  const totalWO = allWO.length;
+  const ditugaskan = allWO.filter(w => w.status === 'Ditugaskan').length;
+  const sedangDikerjakan = allWO.filter(w => w.status === 'SedangDikerjakan').length;
+  const selesai = allWO.filter(w => w.status === 'Selesai').length;
+
+  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, wo: any) => {
+    setAnchorEl(e.currentTarget);
+    setSelectedWO(wo);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedWorkOrder(null);
   };
 
-  const handleViewDetails = () => {
-    setOpenDialog(true);
+  const handleOpenDetail = () => {
+    setOpenDetail(true);
     handleMenuClose();
   };
 
-  const handleStartWork = () => {
-    if (selectedWorkOrder) {
-      updateStatus({
-        variables: { id: selectedWorkOrder._id, status: 'in_progress' },
-      });
-    }
+  const handleOpenStatusUpdate = () => {
+    setNewStatus(selectedWO?.status || '');
+    setCatatan(selectedWO?.catatan || '');
+    setOpenStatusDialog(true);
     handleMenuClose();
   };
 
-  const handleCompleteWork = () => {
-    if (selectedWorkOrder) {
-      updateStatus({
-        variables: { id: selectedWorkOrder._id, status: 'completed' },
-      });
-    }
-    handleMenuClose();
+  const handleUpdateStatus = () => {
+    if (!selectedWO) return;
+    updateStatus({
+      variables: { id: selectedWO._id, status: newStatus, catatan },
+    });
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'installation': return 'Instalasi';
-      case 'maintenance': return 'Pemeliharaan';
-      case 'repair': return 'Perbaikan';
-      case 'disconnection': return 'Pemutusan';
-      case 'emergency': return 'Darurat';
-      default: return type;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'warning';
-      case 'assigned': return 'info';
-      case 'in_progress': return 'primary';
-      case 'completed': return 'success';
-      case 'cancelled': return 'error';
-      default: return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Menunggu';
-      case 'assigned': return 'Ditugaskan';
-      case 'in_progress': return 'Dalam Proses';
-      case 'completed': return 'Selesai';
-      case 'cancelled': return 'Dibatalkan';
-      default: return status;
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'low': return 'success';
-      case 'medium': return 'warning';
-      case 'high': return 'error';
-      case 'critical': return 'error';
-      default: return 'default';
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'low': return 'Rendah';
-      case 'medium': return 'Sedang';
-      case 'high': return 'Tinggi';
-      case 'critical': return 'Kritis';
-      default: return priority;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <Schedule color="warning" />;
-      case 'assigned': return <Build color="info" />;
-      case 'in_progress': return <Build color="primary" />;
-      case 'completed': return <CheckCircle color="success" />;
-      case 'cancelled': return <Error color="error" />;
-      default: return <Build />;
-    }
-  };
-
-  const getCurrentStep = (status: string) => {
-    switch (status) {
-      case 'pending': return 0;
-      case 'assigned': return 1;
-      case 'in_progress': return 2;
-      case 'completed': return 3;
-      default: return 0;
-    }
-  };
-
-  const getStatCount = (statusName: string) => {
-    return stats?.workOrdersByStatus?.find((s: any) => s.status === statusName)?.count || 0;
+  const handleApprove = (disetujui: boolean) => {
+    if (!selectedWO) return;
+    approveWO({ variables: { id: selectedWO._id, disetujui, catatan: '' } });
+    setSelectedWO(null);
   };
 
   return (
-    <AdminLayout title="Manajemen Perintah Kerja">
+    <AdminLayout title="Manajemen Work Order">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 2 }}>
-          Manajemen Perintah Kerja
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
+          Manajemen Work Order
         </Typography>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            Gagal memuat data work order: {error.message}
+            Gagal memuat data: {error.message}
           </Alert>
         )}
 
         {/* Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main' }}>
-                    <Build />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {stats?.totalWorkOrders || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Perintah Kerja
-                    </Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {[
+            { label: 'Total WO', value: totalWO, color: 'primary.main', icon: <Build /> },
+            { label: 'Ditugaskan', value: ditugaskan, color: 'info.main', icon: <Schedule /> },
+            { label: 'Dikerjakan', value: sedangDikerjakan, color: 'warning.main', icon: <Build /> },
+            { label: 'Selesai', value: selesai, color: 'success.main', icon: <CheckCircle /> },
+          ].map((s) => (
+            <Grid item xs={6} md={3} key={s.label}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: s.color }}>{s.icon}</Avatar>
+                    <Box>
+                      <Typography variant="h5" sx={{ fontWeight: 700 }}>{s.value}</Typography>
+                      <Typography variant="body2" color="text.secondary">{s.label}</Typography>
+                    </Box>
                   </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'warning.main' }}>
-                    <Schedule />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {getStatCount('pending')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Menunggu
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'info.main' }}>
-                    <Build />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {getStatCount('in_progress')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Dalam Proses
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'success.main' }}>
-                    <CheckCircle />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {getStatCount('completed')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Selesai
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
 
-        {/* Filters and Search */}
+        {/* Filter & Search */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={3}>
+              <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  placeholder="Cari perintah kerja..."
+                  placeholder="Cari nama pelanggan..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                   InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
+                    startAdornment: <InputAdornment position="start"><Search /></InputAdornment>,
                   }}
                 />
               </Grid>
-              
-              <Grid item xs={12} md={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Jenis</InputLabel>
-                  <Select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    label="Jenis"
-                  >
-                    <MenuItem value="all">Semua</MenuItem>
-                    <MenuItem value="installation">Instalasi</MenuItem>
-                    <MenuItem value="maintenance">Pemeliharaan</MenuItem>
-                    <MenuItem value="repair">Perbaikan</MenuItem>
-                    <MenuItem value="disconnection">Pemutusan</MenuItem>
-                    <MenuItem value="emergency">Darurat</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} md={2}>
+              <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
                   <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    label="Status"
-                  >
+                  <Select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} label="Status">
                     <MenuItem value="all">Semua</MenuItem>
-                    <MenuItem value="pending">Menunggu</MenuItem>
-                    <MenuItem value="assigned">Ditugaskan</MenuItem>
-                    <MenuItem value="in_progress">Dalam Proses</MenuItem>
-                    <MenuItem value="completed">Selesai</MenuItem>
-                    <MenuItem value="cancelled">Dibatalkan</MenuItem>
+                    {Object.keys(STATUS_LABELS).map(s => (
+                      <MenuItem key={s} value={s}>{STATUS_LABELS[s]}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>
-              
               <Grid item xs={12} md={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Prioritas</InputLabel>
-                  <Select
-                    value={filterPriority}
-                    onChange={(e) => setFilterPriority(e.target.value)}
-                    label="Prioritas"
-                  >
-                    <MenuItem value="all">Semua</MenuItem>
-                    <MenuItem value="low">Rendah</MenuItem>
-                    <MenuItem value="medium">Sedang</MenuItem>
-                    <MenuItem value="high">Tinggi</MenuItem>
-                    <MenuItem value="critical">Kritis</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} md={3}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<Add />}
-                  sx={{ height: '56px' }}
-                >
-                  Buat Perintah Kerja
+                <Button fullWidth variant="outlined" onClick={() => refetch()} disabled={loading}>
+                  Refresh
                 </Button>
               </Grid>
             </Grid>
           </CardContent>
         </Card>
 
-        {/* Work Orders Table */}
+        {/* Table */}
         <Card>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -422,234 +237,193 @@ export default function WorkOrderManagement() {
           ) : (
             <>
               <TableContainer>
-                <Table>
+                <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>No. WO</TableCell>
-                      <TableCell>Jenis</TableCell>
-                      <TableCell>Prioritas</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Teknisi</TableCell>
-                      <TableCell>Lokasi</TableCell>
-                      <TableCell>Jadwal</TableCell>
-                      <TableCell align="right">Aksi</TableCell>
+                      <TableCell>No</TableCell>
+                      <TableCell>Pelanggan</TableCell>
+                      <TableCell>Tim Teknisi</TableCell>
+                      <TableCell align="center">Status</TableCell>
+                      <TableCell align="center">Disetujui</TableCell>
+                      <TableCell>Catatan</TableCell>
+                      <TableCell>Dibuat</TableCell>
+                      <TableCell align="center">Aksi</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {workOrders.map((workOrder: WorkOrder) => (
-                      <TableRow key={workOrder._id} hover>
+                    {paginated.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                          <Typography color="text.secondary">Tidak ada data work order</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : paginated.map((wo, idx) => (
+                      <TableRow key={wo._id} hover>
+                        <TableCell>{(page - 1) * rowsPerPage + idx + 1}</TableCell>
                         <TableCell>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {workOrder.workOrderNumber}
+                          <Typography variant="body2" fontWeight={600}>
+                            {wo.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>
+                          {wo.tim && wo.tim.length > 0 ? (
+                            wo.tim.map((t: any) => (
+                              <Chip key={t._id} label={t.namaLengkap} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
+                            ))
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">Belum ditugaskan</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
                           <Chip
-                            label={getTypeLabel(workOrder.type)}
+                            icon={getStatusIcon(wo.status)}
+                            label={STATUS_LABELS[wo.status] || wo.status}
+                            color={STATUS_COLORS[wo.status] || 'default'}
                             size="small"
-                            color="primary"
-                            variant="outlined"
                           />
                         </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={getPriorityLabel(workOrder.priority)}
-                            size="small"
-                            color={getPriorityColor(workOrder.priority) as any}
-                          />
+                        <TableCell align="center">
+                          {wo.disetujui === true ? (
+                            <Chip label="Disetujui" color="success" size="small" icon={<ThumbUp />} />
+                          ) : wo.disetujui === false ? (
+                            <Chip label="Ditolak" color="error" size="small" icon={<ThumbDown />} />
+                          ) : (
+                            <Chip label="Menunggu" color="default" size="small" />
+                          )}
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {getStatusIcon(workOrder.status)}
-                            <Chip
-                              label={getStatusLabel(workOrder.status)}
-                              size="small"
-                              color={getStatusColor(workOrder.status) as any}
-                            />
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {workOrder.assignedTechnicianId?.namaLengkap || 'Belum ditugaskan'}
+                          <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 150, display: 'block' }}>
+                            {wo.catatan || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <LocationOn sx={{ fontSize: 16 }} />
-                            <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {workOrder.location?.address}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {new Date(workOrder.scheduledDate).toLocaleDateString('id-ID')}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {new Date(workOrder.scheduledDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                          <Typography variant="caption">
+                            {wo.createdAt ? new Date(wo.createdAt).toLocaleDateString('id-ID') : '-'}
                           </Typography>
                         </TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            onClick={(e) => handleMenuOpen(e, workOrder)}
-                            size="small"
-                          >
+                        <TableCell align="center">
+                          <IconButton size="small" onClick={(e) => handleMenuOpen(e, wo)}>
                             <MoreVert />
                           </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
-                    {workOrders.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                          <Typography color="text.secondary">
-                            Tidak ada data work order
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
 
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                <Pagination
-                  count={pagination?.totalPages || 1}
-                  page={page}
-                  onChange={(_, newPage) => setPage(newPage)}
-                  color="primary"
-                />
-              </Box>
+              {totalPages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                  <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                </Box>
+              )}
             </>
           )}
         </Card>
       </Box>
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={handleViewDetails}>
-          <Visibility sx={{ mr: 1 }} />
-          Lihat Detail
+      {/* Context Menu */}
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <MenuItem onClick={handleOpenDetail}>
+          <Visibility sx={{ mr: 1 }} fontSize="small" /> Lihat Detail
         </MenuItem>
-        <MenuItem onClick={handleStartWork}>
-          <Build sx={{ mr: 1 }} />
-          Mulai Kerja
+        <MenuItem onClick={handleOpenStatusUpdate}>
+          <Build sx={{ mr: 1 }} fontSize="small" /> Update Status
         </MenuItem>
-        <MenuItem onClick={handleCompleteWork}>
-          <CheckCircle sx={{ mr: 1 }} />
-          Selesai
+        <Divider />
+        <MenuItem onClick={() => handleApprove(true)} disabled={approving}>
+          <ThumbUp sx={{ mr: 1 }} fontSize="small" color="success" /> Setujui
         </MenuItem>
-        <MenuItem>
-          <Navigation sx={{ mr: 1 }} />
-          Navigasi GPS
-        </MenuItem>
-        <MenuItem>
-          <QrCode sx={{ mr: 1 }} />
-          Scan QR Code
+        <MenuItem onClick={() => handleApprove(false)} disabled={approving}>
+          <ThumbDown sx={{ mr: 1 }} fontSize="small" color="error" /> Tolak
         </MenuItem>
       </Menu>
 
-      {/* Work Order Detail Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Detail Perintah Kerja
-          {selectedWorkOrder && ` - ${selectedWorkOrder.workOrderNumber}`}
-        </DialogTitle>
+      {/* Detail Dialog */}
+      <Dialog open={openDetail} onClose={() => setOpenDetail(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Detail Work Order</DialogTitle>
         <DialogContent>
-          {selectedWorkOrder && (
-            <Box>
-              {/* Progress Stepper */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Status Progress
+          {selectedWO && (
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">Pelanggan</Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  {selectedWO.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}
                 </Typography>
-                <Stepper activeStep={getCurrentStep(selectedWorkOrder.status)} orientation="horizontal">
-                  {steps.map((label) => (
-                    <Step key={label}>
-                      <StepLabel>{label}</StepLabel>
-                    </Step>
-                  ))}
-                </Stepper>
-              </Box>
-
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>
-                    Informasi Perintah Kerja
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Typography><strong>Jenis:</strong> {getTypeLabel(selectedWorkOrder.type)}</Typography>
-                    <Typography><strong>Prioritas:</strong> {getPriorityLabel(selectedWorkOrder.priority)}</Typography>
-                    <Typography><strong>Status:</strong> {getStatusLabel(selectedWorkOrder.status)}</Typography>
-                    <Typography><strong>Teknisi:</strong> {selectedWorkOrder.assignedTechnicianId?.namaLengkap || 'Belum ditugaskan'}</Typography>
-                    <Typography><strong>Pelanggan:</strong> {selectedWorkOrder.customerName || '-'}</Typography>
-                    <Typography><strong>Deskripsi:</strong> {selectedWorkOrder.description}</Typography>
-                    <Typography><strong>Lokasi:</strong> {selectedWorkOrder.location?.address}</Typography>
-                    <Typography><strong>Jadwal:</strong> {new Date(selectedWorkOrder.scheduledDate).toLocaleString('id-ID')}</Typography>
-                    <Typography><strong>Durasi Estimasi:</strong> {selectedWorkOrder.estimatedDuration} menit</Typography>
-                    {selectedWorkOrder.actualDuration && (
-                      <Typography><strong>Durasi Aktual:</strong> {selectedWorkOrder.actualDuration} menit</Typography>
-                    )}
-                    {selectedWorkOrder.completedAt && (
-                      <Typography><strong>Tanggal Selesai:</strong> {new Date(selectedWorkOrder.completedAt).toLocaleString('id-ID')}</Typography>
-                    )}
-                  </Box>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  {selectedWorkOrder.notes && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="h6" gutterBottom>
-                        Catatan
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedWorkOrder.notes}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {selectedWorkOrder.adminNotes && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="h6" gutterBottom>
-                        Catatan Admin
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedWorkOrder.adminNotes}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Activity Log */}
-                  {selectedWorkOrder.activityLog && selectedWorkOrder.activityLog.length > 0 && (
-                    <Box>
-                      <Typography variant="h6" gutterBottom>
-                        Log Aktivitas
-                      </Typography>
-                      <List dense>
-                        {selectedWorkOrder.activityLog.map((log: any, index: number) => (
-                          <ListItem key={index} sx={{ px: 0 }}>
-                            <ListItemText
-                              primary={log.details}
-                              secondary={`${log.performedBy?.userName || 'System'} - ${new Date(log.timestamp).toLocaleString('id-ID')}`}
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Box>
-                  )}
-                </Grid>
+                <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                <Chip label={STATUS_LABELS[selectedWO.status] || selectedWO.status} color={STATUS_COLORS[selectedWO.status] || 'default'} size="small" sx={{ mb: 1 }} />
+                <br />
+                <Typography variant="subtitle2" color="text.secondary">Disetujui</Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  {selectedWO.disetujui === true ? 'Ya' : selectedWO.disetujui === false ? 'Tidak' : 'Belum ditentukan'}
+                </Typography>
+                <Typography variant="subtitle2" color="text.secondary">Catatan</Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>{selectedWO.catatan || '-'}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Total Biaya RAB</Typography>
+                <Typography variant="body1">
+                  {selectedWO.rabId?.totalBiaya
+                    ? `Rp ${Number(selectedWO.rabId.totalBiaya).toLocaleString('id-ID')}`
+                    : '-'}
+                </Typography>
               </Grid>
-            </Box>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">Tim Teknisi</Typography>
+                {selectedWO.tim && selectedWO.tim.length > 0 ? (
+                  selectedWO.tim.map((t: any) => (
+                    <Box key={t._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Person fontSize="small" />
+                      <Typography variant="body2">{t.namaLengkap} — {t.email}</Typography>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">Belum ada tim ditugaskan</Typography>
+                )}
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>Dibuat</Typography>
+                <Typography variant="body1">
+                  {selectedWO.createdAt ? new Date(selectedWO.createdAt).toLocaleString('id-ID') : '-'}
+                </Typography>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>Diperbarui</Typography>
+                <Typography variant="body1">
+                  {selectedWO.updatedAt ? new Date(selectedWO.updatedAt).toLocaleString('id-ID') : '-'}
+                </Typography>
+              </Grid>
+            </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Tutup</Button>
-          <Button variant="contained" startIcon={<Navigation />}>
-            Navigasi GPS
+          <Button onClick={() => setOpenDetail(false)}>Tutup</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Update Status Dialog */}
+      <Dialog open={openStatusDialog} onClose={() => setOpenStatusDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Update Status Work Order</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
+            <InputLabel>Status Baru</InputLabel>
+            <Select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} label="Status Baru">
+              {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                <MenuItem key={val} value={val}>{label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            fullWidth
+            label="Catatan (opsional)"
+            value={catatan}
+            onChange={(e) => setCatatan(e.target.value)}
+            multiline
+            rows={3}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenStatusDialog(false)}>Batal</Button>
+          <Button
+            variant="contained"
+            onClick={handleUpdateStatus}
+            disabled={!newStatus || updatingStatus}
+          >
+            {updatingStatus ? <CircularProgress size={20} /> : 'Simpan'}
           </Button>
         </DialogActions>
       </Dialog>

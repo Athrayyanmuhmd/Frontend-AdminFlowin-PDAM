@@ -25,6 +25,7 @@ import {
   DialogTitle,
   DialogContent,
   IconButton as MuiIconButton,
+  Pagination,
 } from '@mui/material';
 import {
   Search,
@@ -50,6 +51,8 @@ export default function SurveyDataManagement() {
 
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
 
   // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -80,6 +83,9 @@ export default function SurveyDataManagement() {
       item.idKoneksiData?.alamat?.toLowerCase().includes(query)
     );
   }, [surveyData, searchQuery]);
+
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const paginatedData = filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const openImageViewer = (url: string) => {
     setViewerImage(url);
@@ -135,7 +141,7 @@ export default function SurveyDataManagement() {
               fullWidth
               placeholder='Cari Nama Pelanggan, Alamat, atau Teknisi...'
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position='start'>
@@ -161,22 +167,22 @@ export default function SurveyDataManagement() {
                 </Typography>
               </Box>
             ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Alamat / Pelanggan</TableCell>
-                      <TableCell>Teknisi</TableCell>
-                      <TableCell>Diameter Pipa</TableCell>
-                      <TableCell>Jumlah Penghuni</TableCell>
-                      <TableCell>Standar</TableCell>
-                      <TableCell>Tanggal Survey</TableCell>
-                      <TableCell align='center'>Aksi</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(filteredData) &&
-                      filteredData.map((item: any) => (
+              <>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Alamat / Pelanggan</TableCell>
+                        <TableCell>Teknisi</TableCell>
+                        <TableCell>Diameter Pipa</TableCell>
+                        <TableCell>Jumlah Penghuni</TableCell>
+                        <TableCell>Standar</TableCell>
+                        <TableCell>Tanggal Survey</TableCell>
+                        <TableCell align='center'>Aksi</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedData.map((item: any) => (
                         <TableRow key={item._id} hover>
                           <TableCell>
                             <Typography variant='body2' fontWeight='bold'>
@@ -236,9 +242,15 @@ export default function SurveyDataManagement() {
                           </TableCell>
                         </TableRow>
                       ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {totalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                  </Box>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
