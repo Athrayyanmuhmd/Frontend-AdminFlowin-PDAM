@@ -142,6 +142,31 @@ export default function BillingManagement() {
     }
   };
 
+  // Format periode dari epoch ms atau YYYY-MM string
+  const formatPeriode = (periode: string) => {
+    if (!periode) return '-';
+    const num = Number(periode);
+    if (!isNaN(num) && num > 1000000000000) {
+      const d = new Date(num);
+      return d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+    }
+    // YYYY-MM format
+    const parts = periode.split('-');
+    if (parts.length === 2) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+      return d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+    }
+    return periode;
+  };
+
+  // Format tanggal dari epoch ms atau ISO string
+  const formatTanggal = (tgl: string | null) => {
+    if (!tgl) return '-';
+    const num = Number(tgl);
+    const d = !isNaN(num) && num > 1000000000000 ? new Date(num) : new Date(tgl);
+    return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID');
+  };
+
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'Settlement': return 'Lunas';
@@ -464,7 +489,7 @@ export default function BillingManagement() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {bill.periode}
+                        {formatPeriode(bill.periode)}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -484,7 +509,7 @@ export default function BillingManagement() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {bill.tenggatWaktu ? new Date(bill.tenggatWaktu).toLocaleDateString('id-ID') : '-'}
+                        {formatTanggal(bill.tenggatWaktu)}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -572,11 +597,11 @@ export default function BillingManagement() {
                   <Typography><strong>Pelanggan:</strong> {selectedBilling.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}</Typography>
                   <Typography><strong>No. Meteran:</strong> {selectedBilling.idMeteran?.nomorMeteran || '-'}</Typography>
                   <Typography><strong>No. Akun:</strong> {selectedBilling.idMeteran?.nomorAkun || '-'}</Typography>
-                  <Typography><strong>Periode:</strong> {selectedBilling.periode}</Typography>
+                  <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.periode)}</Typography>
                   <Typography><strong>Pemakaian:</strong> {selectedBilling.totalPemakaian} m³</Typography>
                   <Typography><strong>Biaya Air:</strong> Rp {(selectedBilling.biaya || 0).toLocaleString('id-ID')}</Typography>
                   <Typography><strong>Biaya Beban:</strong> Rp {(selectedBilling.biayaBeban || 0).toLocaleString('id-ID')}</Typography>
-                  <Typography><strong>Jatuh Tempo:</strong> {selectedBilling.tenggatWaktu ? new Date(selectedBilling.tenggatWaktu).toLocaleDateString('id-ID') : '-'}</Typography>
+                  <Typography><strong>Jatuh Tempo:</strong> {formatTanggal(selectedBilling.tenggatWaktu)}</Typography>
                 </Box>
               </Grid>
 

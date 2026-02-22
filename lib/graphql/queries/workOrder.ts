@@ -91,7 +91,6 @@ export const GET_WORK_ORDER_BY_ID = gql`
         namaLengkap
         email
         noHP
-        spesialisasi
       }
       status
       disetujui

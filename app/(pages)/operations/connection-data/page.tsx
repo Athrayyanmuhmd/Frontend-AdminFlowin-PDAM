@@ -110,16 +110,10 @@ export default function ConnectionDataManagement() {
   }, [searchQuery, adminVerifyFilter]);
 
   const getVerificationStatus = (data: any) => {
-    if (data.isAllProcedureDone) {
-      return { label: 'Selesai', color: 'success' as const };
+    if (data.statusVerifikasi === true) {
+      return { label: 'Terverifikasi', color: 'success' as const };
     }
-    if (data.isVerifiedByTechnician) {
-      return { label: 'Verifikasi Teknisi', color: 'info' as const };
-    }
-    if (data.isVerifiedByData) {
-      return { label: 'Verifikasi Admin', color: 'warning' as const };
-    }
-    return { label: 'Pending', color: 'default' as const };
+    return { label: 'Pending', color: 'warning' as const };
   };
 
   const handleViewDetail = (id: string) => {
@@ -298,19 +292,19 @@ export default function ConnectionDataManagement() {
                             <TableCell>
                               <Box>
                                 <Typography variant='body2' fontWeight='bold'>
-                                  {data.userId?.namaLengkap || 'N/A'}
+                                  {data.idPelanggan?.namaLengkap || 'N/A'}
                                 </Typography>
                                 <Typography
                                   variant='caption'
                                   color='text.secondary'
                                 >
-                                  {data.userId?.email || 'N/A'}
+                                  {data.idPelanggan?.email || 'N/A'}
                                 </Typography>
                               </Box>
                             </TableCell>
                             <TableCell>
                               <Typography variant='body2'>
-                                {data.nik}
+                                {data.NIK}
                               </Typography>
                               <Typography
                                 variant='caption'
@@ -336,16 +330,16 @@ export default function ConnectionDataManagement() {
                             </TableCell>
                             <TableCell>{data.luasBangunan} m²</TableCell>
                             <TableCell>
-                              {data.assignedTechnicianId ? (
+                              {data.idPelanggan?.noHP ? (
                                 <Box>
                                   <Typography variant='body2' fontWeight='bold'>
-                                    {data.assignedTechnicianId.namaLengkap}
+                                    {data.idPelanggan.namaLengkap}
                                   </Typography>
                                   <Typography
                                     variant='caption'
                                     color='text.secondary'
                                   >
-                                    {data.assignedTechnicianId.phone}
+                                    {data.idPelanggan.noHP}
                                   </Typography>
                                 </Box>
                               ) : (
@@ -363,7 +357,7 @@ export default function ConnectionDataManagement() {
                                 color={status.color}
                                 size='small'
                                 icon={
-                                  data.isAllProcedureDone ? (
+                                  data.statusVerifikasi ? (
                                     <CheckCircle />
                                   ) : (
                                     <HourglassEmpty />
