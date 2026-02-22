@@ -72,36 +72,6 @@ import {
 } from '../../../lib/graphql/hooks/useCustomers';
 
 
-const mockAccounts: CustomerAccount[] = [
-  {
-    id: '1',
-    customerId: '1',
-    accountNumber: 'ACC-001-2024',
-    meterNumber: 'MTR-001-2024',
-    connectionType: 'existing',
-    serviceStatus: 'active',
-    tariffCategory: '2A2',
-    installationDate: new Date('2023-01-15'),
-    lastReading: new Date('2024-01-01'),
-    currentReading: 1250,
-    previousReading: 1200,
-    consumption: 50,
-  },
-  {
-    id: '2',
-    customerId: '2',
-    accountNumber: 'ACC-002-2024',
-    meterNumber: 'MTR-002-2024',
-    connectionType: 'new',
-    serviceStatus: 'active',
-    tariffCategory: 'komersial',
-    installationDate: new Date('2023-02-20'),
-    lastReading: new Date('2024-01-01'),
-    currentReading: 2500,
-    previousReading: 2300,
-    consumption: 200,
-  },
-];
 
 export default function CustomerManagement() {
   const router = useRouter();
@@ -117,7 +87,7 @@ export default function CustomerManagement() {
   const { deleteCustomer: deleteCustomerMutation } = useDeleteCustomer();
 
   // ==================== Local State ====================
-  const [accounts, setAccounts] = useState<CustomerAccount[]>(mockAccounts);
+  const [accounts, setAccounts] = useState<CustomerAccount[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');

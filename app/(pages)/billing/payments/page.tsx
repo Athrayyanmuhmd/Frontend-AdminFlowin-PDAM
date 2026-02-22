@@ -64,41 +64,6 @@ interface PaymentData {
   notes?: string;
 }
 
-const mockPayments: PaymentData[] = [
-  {
-    id: '1',
-    billingId: 'BILL-001',
-    accountNumber: 'ACC-001-2024',
-    customerName: 'Ahmad Rizki',
-    amount: 125000,
-    paymentMethod: 'GoPay',
-    paymentDate: new Date('2024-01-15'),
-    status: 'success',
-    transactionId: 'TRX-20240115-001',
-  },
-  {
-    id: '2',
-    billingId: 'BILL-002',
-    accountNumber: 'ACC-002-2024',
-    customerName: 'Siti Nurhaliza',
-    amount: 800000,
-    paymentMethod: 'Transfer Bank',
-    paymentDate: new Date('2024-01-14'),
-    status: 'success',
-    transactionId: 'TRX-20240114-002',
-  },
-  {
-    id: '3',
-    billingId: 'BILL-003',
-    accountNumber: 'ACC-003-2024',
-    customerName: 'PT. Maju Jaya',
-    amount: 480000,
-    paymentMethod: 'Virtual Account',
-    paymentDate: new Date('2024-01-13'),
-    status: 'pending',
-    transactionId: 'TRX-20240113-003',
-  },
-];
 
 export default function PaymentsPage() {
   // ==================== GraphQL Query ====================

@@ -37,14 +37,21 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
-import {
-  verifyConnectionDataByAdmin,
-  verifyConnectionDataByTechnician,
-  completeAllProcedure,
-  ConnectionData,
-} from '../../../../services/connectionData.service';
+import { ConnectionData } from '../../../../services/connectionData.service';
 import AssignTechnicianDialog from '../../../../components/AssignTechnicianDialog';
 import { useGetConnectionData } from '../../../../../lib/graphql/hooks/useConnectionData';
+import { useMutation } from '@apollo/client/react';
+import { gql } from '@apollo/client';
+
+const VERIFY_KONEKSI_DATA = gql`
+  mutation VerifyKoneksiData($id: ID!, $verified: Boolean!, $catatan: String) {
+    verifyKoneksiData(id: $id, verified: $verified, catatan: $catatan) {
+      _id
+      statusVerifikasi
+      catatan
+    }
+  }
+`;
 
 export default function ConnectionDataDetail() {
   const params = useParams();
@@ -70,6 +77,8 @@ export default function ConnectionDataDetail() {
 
   // ✅ GraphQL Query - Replace REST API
   const { connectionData: graphqlData, loading: graphqlLoading, error: graphqlError, refetch } = useGetConnectionData(id);
+
+  const [verifyKoneksiDataMutation] = useMutation(VERIFY_KONEKSI_DATA);
 
   // Transform and set data when GraphQL loads
   useEffect(() => {
@@ -118,21 +127,18 @@ export default function ConnectionDataDetail() {
 
   const handleVerifyAdmin = async () => {
     if (!data) return;
-
     setActionLoading(true);
     setError('');
     setSuccess('');
-
     try {
-      const response = await verifyConnectionDataByAdmin(data._id);
-
-      if (response.status === 200) {
-        setSuccess('Data berhasil diverifikasi oleh admin');
-        await fetchData(); // Refresh data
-      }
+      await verifyKoneksiDataMutation({
+        variables: { id: data._id, verified: true, catatan: 'Diverifikasi oleh Admin' },
+      });
+      setSuccess('Data berhasil diverifikasi oleh admin');
+      setData(prev => prev ? { ...prev, isVerifiedByData: true, statusVerifikasi: true } : prev);
+      refetch();
     } catch (err: any) {
-      console.error('Error verifying by admin:', err);
-      setError(err.response?.data?.message || 'Gagal melakukan verifikasi');
+      setError(err.message || 'Gagal melakukan verifikasi');
     } finally {
       setActionLoading(false);
     }
@@ -140,21 +146,18 @@ export default function ConnectionDataDetail() {
 
   const handleVerifyTechnician = async () => {
     if (!data) return;
-
     setActionLoading(true);
     setError('');
     setSuccess('');
-
     try {
-      const response = await verifyConnectionDataByTechnician(data._id);
-
-      if (response.status === 200) {
-        setSuccess('Data berhasil diverifikasi oleh teknisi');
-        await fetchData(); // Refresh data
-      }
+      await verifyKoneksiDataMutation({
+        variables: { id: data._id, verified: true, catatan: 'Diverifikasi oleh Teknisi' },
+      });
+      setSuccess('Data berhasil diverifikasi oleh teknisi');
+      setData(prev => prev ? { ...prev, isVerifiedByTechnician: true } : prev);
+      refetch();
     } catch (err: any) {
-      console.error('Error verifying by technician:', err);
-      setError(err.response?.data?.message || 'Gagal melakukan verifikasi');
+      setError(err.message || 'Gagal melakukan verifikasi');
     } finally {
       setActionLoading(false);
     }
@@ -162,21 +165,18 @@ export default function ConnectionDataDetail() {
 
   const handleCompleteProcedure = async () => {
     if (!data) return;
-
     setActionLoading(true);
     setError('');
     setSuccess('');
-
     try {
-      const response = await completeAllProcedure(data._id);
-
-      if (response.status === 200) {
-        setSuccess('Semua prosedur berhasil diselesaikan');
-        await fetchData(); // Refresh data
-      }
+      await verifyKoneksiDataMutation({
+        variables: { id: data._id, verified: true, catatan: 'Semua prosedur selesai' },
+      });
+      setSuccess('Semua prosedur berhasil diselesaikan');
+      setData(prev => prev ? { ...prev, isAllProcedureDone: true } : prev);
+      refetch();
     } catch (err: any) {
-      console.error('Error completing procedure:', err);
-      setError(err.response?.data?.message || 'Gagal menyelesaikan prosedur');
+      setError(err.message || 'Gagal menyelesaikan prosedur');
     } finally {
       setActionLoading(false);
     }

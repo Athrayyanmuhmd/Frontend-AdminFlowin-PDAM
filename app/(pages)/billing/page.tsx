@@ -39,7 +39,6 @@ import {
   CircularProgress,
   Snackbar,
   Divider,
-  Chip,
 } from '@mui/material';
 import {
   Search,
@@ -139,6 +138,11 @@ export default function BillingManagement() {
     collected: d.totalLunas,
   }));
 
+  // Tentukan rentang bulan berdasarkan filterPeriod
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed
+
   // Client-side filter & paginate
   const filtered = allTagihan.filter((bill: any) => {
     const namaLengkap = bill.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '';
@@ -149,7 +153,28 @@ export default function BillingManagement() {
       nomorMeteran.toLowerCase().includes(searchTerm.toLowerCase()) ||
       nomorAkun.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = filterStatus === 'all' || bill.statusPembayaran === filterStatus;
-    return matchSearch && matchStatus;
+
+    // Filter berdasarkan periode tagihan
+    let matchPeriod = true;
+    if (filterPeriod !== 'all' && bill.periode) {
+      const num = Number(bill.periode);
+      const periodeDate = !isNaN(num) && num > 1_000_000_000_000
+        ? new Date(num)
+        : new Date(bill.periode);
+      if (!isNaN(periodeDate.getTime())) {
+        const billYear = periodeDate.getFullYear();
+        const billMonth = periodeDate.getMonth();
+        if (filterPeriod === 'current') {
+          matchPeriod = billYear === currentYear && billMonth === currentMonth;
+        } else if (filterPeriod === 'last') {
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+          const lastYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+          matchPeriod = billYear === lastYear && billMonth === lastMonth;
+        }
+      }
+    }
+
+    return matchSearch && matchStatus && matchPeriod;
   });
 
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
