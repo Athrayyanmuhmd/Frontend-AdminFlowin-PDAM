@@ -358,9 +358,11 @@ const technicianMenuItems: MenuItem[] = [
 interface AdminSidebarProps {
   open: boolean;
   onToggle: () => void;
+  onClose?: () => void;
+  isMobile?: boolean;
 }
 
-export default function AdminSidebar({ open, onToggle }: AdminSidebarProps) {
+export default function AdminSidebar({ open, onToggle, onClose, isMobile = false }: AdminSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { hasPermission, userRole } = useAdmin();
@@ -379,6 +381,8 @@ export default function AdminSidebar({ open, onToggle }: AdminSidebarProps) {
       );
     } else if (item.path) {
       router.push(item.path);
+      // Auto-close sidebar on mobile after navigation
+      if (isMobile && onClose) onClose();
     }
   };
 
@@ -438,9 +442,11 @@ export default function AdminSidebar({ open, onToggle }: AdminSidebarProps) {
 
   return (
     <Drawer
-      variant='persistent'
+      variant={isMobile ? 'temporary' : 'persistent'}
       anchor='left'
       open={open}
+      onClose={onClose}
+      ModalProps={{ keepMounted: true }} // Better mobile performance
       sx={{
         width: open ? 280 : 0,
         flexShrink: 0,
