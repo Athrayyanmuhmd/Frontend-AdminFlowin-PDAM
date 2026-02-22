@@ -118,41 +118,41 @@ const COLORS = ['#4caf50', '#ff9800', '#2196f3', '#f44336'];
 /**
  * Mapper Function: Convert backend Meteran to frontend SmartMeter interface
  * Backend fields: nomorMeteran, nomorAkun, idKelompokPelanggan, idKoneksiData
- * IoT fields (battery, connectivity) filled with defaults — hardware not yet integrated
+ * Note: IoT fields (battery, connectivity, status real-time) belum terintegrasi hardware.
+ * Status ditampilkan sebagai 'online' default sampai data IoT tersedia.
  */
 function mapBackendToSmartMeter(meteranList: any[]): SmartMeter[] {
-  return meteranList.map((meteran, index) => {
-    const customerName = meteran.idKoneksiData?.userId?.namaLengkap || 'Pelanggan Unknown';
+  return meteranList.map((meteran) => {
+    const customerName = meteran.idKoneksiData?.idPelanggan?.namaLengkap || 'Pelanggan Unknown';
     const address = meteran.idKoneksiData?.alamat || 'Alamat tidak tersedia';
-    const latitude = meteran.idKoneksiData?.latitude || (-5.5483 + (Math.random() - 0.5) * 0.1);
-    const longitude = meteran.idKoneksiData?.longitude || (95.3238 + (Math.random() - 0.5) * 0.1);
-
-    const onlineStatus = index % 5 === 0 ? 'offline' : (index % 10 === 0 ? 'maintenance' : 'online');
+    const latitude = meteran.idKoneksiData?.koordinat?.latitude || -5.5483;
+    const longitude = meteran.idKoneksiData?.koordinat?.longitude || 95.3238;
 
     return {
       id: meteran._id,
       serialNumber: meteran.nomorMeteran,
-      customerId: meteran.idKoneksiData?.userId?._id || '',
+      customerId: meteran.idKoneksiData?.idPelanggan?._id || '',
       customerName,
       location: { address, latitude, longitude },
-      status: onlineStatus as SmartMeter['status'],
+      // Status default 'online' — akan diupdate saat IoT terintegrasi
+      status: 'online' as SmartMeter['status'],
       connectivity: {
-        type: (['wifi', 'cellular', 'lora'] as const)[index % 3],
-        signalStrength: onlineStatus === 'online' ? (70 + Math.floor(Math.random() * 30)) : 0,
-        lastSeen: new Date(Date.now() - (onlineStatus === 'online' ? Math.random() * 300000 : Math.random() * 3600000)).toISOString(),
+        type: 'cellular' as const,
+        signalStrength: 0, // Data belum tersedia dari IoT
+        lastSeen: meteran.updatedAt || new Date().toISOString(),
       },
       battery: {
-        level: 60 + Math.floor(Math.random() * 40),
-        voltage: 3.3 + Math.random() * 0.4,
-        lastReplaced: new Date(Date.now() - Math.random() * 180 * 24 * 3600000).toISOString(),
+        level: 0, // Data belum tersedia dari IoT
+        voltage: 0,
+        lastReplaced: '-',
       },
       readings: {
-        current: meteran.totalPemakaian || 0,
-        previous: (meteran.totalPemakaian || 0) - (meteran.pemakaianBelumTerbayar || 0),
+        current: meteran.pemakaianBelumTerbayar || 0,
+        previous: 0,
         usage: meteran.pemakaianBelumTerbayar || 0,
-        timestamp: new Date().toISOString(),
+        timestamp: meteran.updatedAt || new Date().toISOString(),
       },
-      alerts: onlineStatus === 'offline' ? ['Device offline'] : (Math.random() > 0.8 ? ['High usage detected'] : []),
+      alerts: [],
     };
   });
 }
@@ -231,6 +231,16 @@ export default function SmartMeterManagement() {
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
+      </AdminLayout>
+    );
+  }
+
+  if (graphqlError) {
+    return (
+      <AdminLayout title="Manajemen Meteran Pintar">
+        <Alert severity="error" sx={{ mt: 2 }}>
+          Gagal memuat data meteran: {graphqlError.message}
+        </Alert>
       </AdminLayout>
     );
   }

@@ -210,7 +210,7 @@ export interface DashboardKPI {
   unit: string;
   target?: number;
   trend: 'up' | 'down' | 'stable';
-  changePercentage: number;
+  changePercentage?: number;
   status: 'good' | 'warning' | 'critical';
   lastUpdated: Date;
 }

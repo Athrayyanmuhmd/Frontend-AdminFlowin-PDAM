@@ -98,7 +98,7 @@ export const GET_TAGIHAN_BY_METERAN = gql`
   }
 `;
 
-// Legacy queries (keeping for backward compatibility)
+// Main billing list query - uses real backend schema
 export const GET_BILLINGS = gql`
   query GetBillings {
     getAllTagihan {
@@ -107,33 +107,55 @@ export const GET_BILLINGS = gql`
         _id
         nomorMeteran
         nomorAkun
-        idPengguna {
-          _id
-          namaLengkap
-          email
+        idKoneksiData {
+          idPelanggan {
+            _id
+            namaLengkap
+            email
+          }
         }
       }
       periode
+      totalPemakaian
+      biaya
+      biayaBeban
       totalBiaya
       statusPembayaran
       tanggalPembayaran
       metodePembayaran
+      tenggatWaktu
+      menunggak
+      denda
+      catatan
       createdAt
     }
   }
 `;
 
+// Billing stats from real backend schema
 export const GET_BILLING_STATS = gql`
   query GetBillingStats {
-    billingStats {
+    getRingkasanStatusTagihan {
       totalTagihan
-      tagihanLunas
-      tagihanBelumLunas
-      tagihanJatuhTempo
-      totalPendapatan
-      pendapatanBulanIni
-      tunggakan
-      rataRataPembayaran
+      totalLunas
+      totalTunggakan
+      totalPending
+      nilaiTotal
+      nilaiLunas
+      nilaiTunggakan
+    }
+  }
+`;
+
+// Chart data for billing trend
+export const GET_BILLING_CHART = gql`
+  query GetBillingChart {
+    getLaporanKeuanganBulanan {
+      bulan
+      totalTagihan
+      totalLunas
+      jumlahTagihan
+      jumlahLunas
     }
   }
 `;

@@ -69,7 +69,7 @@ const FALLBACK_COLOR = '#607D8B';
 export default function OperationalReports() {
   const [currentTab, setCurrentTab] = useState(0);
 
-  const { data: kpiData, loading: loadingKpi } = useQuery(GET_KPI_OPERASIONAL, { fetchPolicy: 'network-only' });
+  const { data: kpiData, loading: loadingKpi, error: errorKpi } = useQuery(GET_KPI_OPERASIONAL, { fetchPolicy: 'network-only' });
   const { data: woData, loading: loadingWo } = useQuery(GET_RINGKASAN_WORK_ORDER, { fetchPolicy: 'network-only' });
   const { data: laporanData, loading: loadingLaporan } = useQuery(GET_RINGKASAN_LAPORAN, { fetchPolicy: 'network-only' });
 
@@ -98,6 +98,16 @@ export default function OperationalReports() {
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
           <CircularProgress />
         </Box>
+      </AdminLayout>
+    );
+  }
+
+  if (errorKpi) {
+    return (
+      <AdminLayout title="Laporan Operasional">
+        <Alert severity="error" sx={{ mt: 2 }}>
+          Gagal memuat data laporan operasional: {errorKpi.message}
+        </Alert>
       </AdminLayout>
     );
   }

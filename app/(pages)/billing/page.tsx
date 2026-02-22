@@ -34,6 +34,8 @@ import {
   Tooltip,
   Pagination,
   LinearProgress,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Search,
@@ -52,16 +54,7 @@ import {
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
-import { GET_BILLINGS, GET_BILLING_STATS } from '@/lib/graphql/queries/billing';
-
-const revenueData = [
-  { month: 'Jan', revenue: 125000000, bills: 1250, collected: 115000000 },
-  { month: 'Feb', revenue: 135000000, bills: 1300, collected: 128000000 },
-  { month: 'Mar', revenue: 145000000, bills: 1400, collected: 140000000 },
-  { month: 'Apr', revenue: 138000000, bills: 1350, collected: 135000000 },
-  { month: 'Mei', revenue: 155000000, bills: 1500, collected: 150000000 },
-  { month: 'Jun', revenue: 165000000, bills: 1600, collected: 160000000 },
-];
+import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART } from '@/lib/graphql/queries/billing';
 
 export default function BillingManagement() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,21 +68,41 @@ export default function BillingManagement() {
 
   // GraphQL queries
   const { data, loading, error } = useQuery(GET_BILLINGS, {
-    variables: {
-      filter: {
-        ...(filterStatus !== 'all' && { status: filterStatus }),
-        ...(searchTerm && { search: searchTerm }),
-        page,
-        limit: rowsPerPage,
-      },
-    },
+    fetchPolicy: 'network-only',
   });
 
-  const { data: statsData } = useQuery(GET_BILLING_STATS);
+  const { data: statsData } = useQuery(GET_BILLING_STATS, {
+    fetchPolicy: 'network-only',
+  });
 
-  const billing = data?.billings?.data || [];
-  const pagination = data?.billings?.pagination;
-  const billingStats = statsData?.billingStats;
+  const { data: chartData } = useQuery(GET_BILLING_CHART, {
+    fetchPolicy: 'network-only',
+  });
+
+  const allTagihan = data?.getAllTagihan || [];
+  const billingStats = statsData?.getRingkasanStatusTagihan;
+  const revenueData = (chartData?.getLaporanKeuanganBulanan || []).map((d: any) => ({
+    month: d.bulan,
+    revenue: d.totalTagihan,
+    bills: d.jumlahTagihan,
+    collected: d.totalLunas,
+  }));
+
+  // Client-side filter & paginate
+  const filtered = allTagihan.filter((bill: any) => {
+    const namaLengkap = bill.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '';
+    const nomorMeteran = bill.idMeteran?.nomorMeteran || '';
+    const nomorAkun = bill.idMeteran?.nomorAkun || '';
+    const matchSearch = !searchTerm ||
+      namaLengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      nomorMeteran.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      nomorAkun.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = filterStatus === 'all' || bill.statusPembayaran === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const totalPages = Math.ceil(filtered.length / rowsPerPage);
+  const billing = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, billing: any) => {
     setAnchorEl(event.currentTarget);
@@ -117,43 +130,64 @@ export default function BillingManagement() {
   };
 
 
+  // Status mapping dari ERD enum: Pending | Settlement | Cancel | Expire | Refund | Chargeback | Fraud
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'success';
-      case 'pending': return 'warning';
-      case 'overdue': return 'error';
-      case 'disputed': return 'info';
+      case 'Settlement': return 'success';
+      case 'Pending': return 'warning';
+      case 'Expire': return 'error';
+      case 'Cancel': return 'default';
+      case 'Refund': return 'info';
       default: return 'default';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'paid': return 'Lunas';
-      case 'pending': return 'Belum Bayar';
-      case 'overdue': return 'Terlambat';
-      case 'disputed': return 'Dispute';
-      default: return status;
+      case 'Settlement': return 'Lunas';
+      case 'Pending': return 'Belum Bayar';
+      case 'Expire': return 'Jatuh Tempo';
+      case 'Cancel': return 'Dibatalkan';
+      case 'Refund': return 'Refund';
+      default: return status || '-';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'paid': return <CheckCircle color="success" />;
-      case 'pending': return <Schedule color="warning" />;
-      case 'overdue': return <Warning color="error" />;
-      case 'disputed': return <Warning color="info" />;
-      default: return <CheckCircle />;
+      case 'Settlement': return <CheckCircle color="success" />;
+      case 'Pending': return <Schedule color="warning" />;
+      case 'Expire': return <Warning color="error" />;
+      default: return <Schedule />;
     }
   };
 
-  const totalRevenue = billingStats?.totalRevenue || 0;
-  const totalPending = billingStats?.totalPending || 0;
-  const totalCollected = (billingStats?.totalRevenue || 0) - (billingStats?.totalPending || 0); // Amount actually collected (paid)
-  const paidBillings = billingStats?.paidBillings || 0;
-  const totalBillings = billingStats?.totalBillings || 1;
+  const totalRevenue = billingStats?.nilaiTotal || 0;
+  const totalCollected = billingStats?.nilaiLunas || 0;
+  const paidBillings = billingStats?.totalLunas || 0;
+  const totalBillings = billingStats?.totalTagihan || 1;
   const collectionRate = totalBillings > 0 ? (paidBillings / totalBillings) * 100 : 0;
-  const overdueAmount = totalPending;
+  const overdueAmount = billingStats?.nilaiTunggakan || 0;
+
+  if (loading) {
+    return (
+      <AdminLayout title="Manajemen Penagihan">
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+          <CircularProgress />
+        </Box>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Manajemen Penagihan">
+        <Alert severity="error" sx={{ mt: 2 }}>
+          Gagal memuat data tagihan: {error.message}
+        </Alert>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Manajemen Penagihan">
@@ -290,7 +324,7 @@ export default function BillingManagement() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="body2">Lunas</Typography>
                       <Typography variant="body2">
-                        {billingStats?.paidBillings || 0} / {billingStats?.totalBillings || 0}
+                        {billingStats?.totalLunas || 0} / {billingStats?.totalTagihan || 0}
                       </Typography>
                     </Box>
                     <LinearProgress
@@ -305,12 +339,12 @@ export default function BillingManagement() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="body2">Belum Bayar</Typography>
                       <Typography variant="body2">
-                        {billingStats?.unpaidBillings || 0} / {billingStats?.totalBillings || 0}
+                        {billingStats?.totalPending || 0} / {billingStats?.totalTagihan || 0}
                       </Typography>
                     </Box>
                     <LinearProgress
                       variant="determinate"
-                      value={totalBillings > 0 ? ((billingStats?.unpaidBillings || 0) / totalBillings) * 100 : 0}
+                      value={totalBillings > 0 ? ((billingStats?.totalPending || 0) / totalBillings) * 100 : 0}
                       color="warning"
                       sx={{ height: 8, borderRadius: 4 }}
                     />
@@ -320,12 +354,12 @@ export default function BillingManagement() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="body2">Terlambat</Typography>
                       <Typography variant="body2">
-                        {billingStats?.overdueBillings || 0} / {billingStats?.totalBillings || 0}
+                        {billingStats?.totalTunggakan || 0} / {billingStats?.totalTagihan || 0}
                       </Typography>
                     </Box>
                     <LinearProgress
                       variant="determinate"
-                      value={totalBillings > 0 ? ((billingStats?.overdueBillings || 0) / totalBillings) * 100 : 0}
+                      value={totalBillings > 0 ? ((billingStats?.totalTunggakan || 0) / totalBillings) * 100 : 0}
                       color="error"
                       sx={{ height: 8, borderRadius: 4 }}
                     />
@@ -365,10 +399,10 @@ export default function BillingManagement() {
                     label="Status"
                   >
                     <MenuItem value="all">Semua</MenuItem>
-                    <MenuItem value="paid">Lunas</MenuItem>
-                    <MenuItem value="pending">Belum Bayar</MenuItem>
-                    <MenuItem value="overdue">Terlambat</MenuItem>
-                    <MenuItem value="disputed">Dispute</MenuItem>
+                    <MenuItem value="Settlement">Lunas</MenuItem>
+                    <MenuItem value="Pending">Belum Bayar</MenuItem>
+                    <MenuItem value="Expire">Jatuh Tempo</MenuItem>
+                    <MenuItem value="Cancel">Dibatalkan</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -418,16 +452,14 @@ export default function BillingManagement() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {billing.map((bill: any) => {
-                  const status = bill.isPaid ? 'paid' : bill.isOverdue ? 'overdue' : 'pending';
-                  return (
+                {billing.map((bill: any) => (
                   <TableRow key={bill._id} hover>
                     <TableCell>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {bill.userId?.fullName || '-'}
+                        {bill.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {bill.meteranId?.noMeteran || '-'}
+                        {bill.idMeteran?.nomorMeteran || bill.idMeteran?.nomorAkun || '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -442,7 +474,7 @@ export default function BillingManagement() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        Rp {(bill.totalTagihan || 0).toLocaleString('id-ID')}
+                        Rp {(bill.totalBiaya || 0).toLocaleString('id-ID')}
                       </Typography>
                       {bill.denda > 0 && (
                         <Typography variant="caption" color="error">
@@ -452,16 +484,16 @@ export default function BillingManagement() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {bill.dueDate ? new Date(bill.dueDate).toLocaleDateString('id-ID') : '-'}
+                        {bill.tenggatWaktu ? new Date(bill.tenggatWaktu).toLocaleDateString('id-ID') : '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {getStatusIcon(status)}
+                        {getStatusIcon(bill.statusPembayaran)}
                         <Chip
-                          label={getStatusLabel(status)}
+                          label={getStatusLabel(bill.statusPembayaran)}
                           size="small"
-                          color={getStatusColor(status) as any}
+                          color={getStatusColor(bill.statusPembayaran) as any}
                         />
                       </Box>
                     </TableCell>
@@ -474,9 +506,8 @@ export default function BillingManagement() {
                       </IconButton>
                     </TableCell>
                   </TableRow>
-                  );
-                })}
-                {billing.length === 0 && (
+                ))}
+                {billing.length === 0 && !loading && (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
@@ -491,7 +522,7 @@ export default function BillingManagement() {
           
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
             <Pagination
-              count={pagination?.totalPages || 1}
+              count={totalPages || 1}
               page={page}
               onChange={(_, newPage) => setPage(newPage)}
               color="primary"
@@ -528,7 +559,7 @@ export default function BillingManagement() {
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           Detail Tagihan
-          {selectedBilling && ` - ${selectedBilling.userId?.fullName || ''}`}
+          {selectedBilling && ` - ${selectedBilling.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || ''}`}
         </DialogTitle>
         <DialogContent>
           {selectedBilling && (
@@ -538,31 +569,35 @@ export default function BillingManagement() {
                   Informasi Tagihan
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Pelanggan:</strong> {selectedBilling.userId?.fullName || '-'}</Typography>
-                  <Typography><strong>No. Meteran:</strong> {selectedBilling.meteranId?.noMeteran || '-'}</Typography>
+                  <Typography><strong>Pelanggan:</strong> {selectedBilling.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}</Typography>
+                  <Typography><strong>No. Meteran:</strong> {selectedBilling.idMeteran?.nomorMeteran || '-'}</Typography>
+                  <Typography><strong>No. Akun:</strong> {selectedBilling.idMeteran?.nomorAkun || '-'}</Typography>
                   <Typography><strong>Periode:</strong> {selectedBilling.periode}</Typography>
                   <Typography><strong>Pemakaian:</strong> {selectedBilling.totalPemakaian} m³</Typography>
-                  <Typography><strong>Biaya Air:</strong> Rp {(selectedBilling.biayaAir || 0).toLocaleString('id-ID')}</Typography>
+                  <Typography><strong>Biaya Air:</strong> Rp {(selectedBilling.biaya || 0).toLocaleString('id-ID')}</Typography>
                   <Typography><strong>Biaya Beban:</strong> Rp {(selectedBilling.biayaBeban || 0).toLocaleString('id-ID')}</Typography>
-                  <Typography><strong>Jatuh Tempo:</strong> {selectedBilling.dueDate ? new Date(selectedBilling.dueDate).toLocaleDateString('id-ID') : '-'}</Typography>
+                  <Typography><strong>Jatuh Tempo:</strong> {selectedBilling.tenggatWaktu ? new Date(selectedBilling.tenggatWaktu).toLocaleDateString('id-ID') : '-'}</Typography>
                 </Box>
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <Typography variant="h6" gutterBottom>
                   Rincian Pembayaran
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Total Tagihan:</strong> Rp {(selectedBilling.totalTagihan || 0).toLocaleString('id-ID')}</Typography>
+                  <Typography><strong>Total Tagihan:</strong> Rp {(selectedBilling.totalBiaya || 0).toLocaleString('id-ID')}</Typography>
                   {selectedBilling.denda > 0 && (
                     <Typography color="error"><strong>Denda:</strong> Rp {selectedBilling.denda.toLocaleString('id-ID')}</Typography>
                   )}
-                  <Typography><strong>Status:</strong> {getStatusLabel(selectedBilling.isPaid ? 'paid' : selectedBilling.isOverdue ? 'overdue' : 'pending')}</Typography>
-                  {selectedBilling.paymentMethod && (
-                    <Typography><strong>Metode Pembayaran:</strong> {selectedBilling.paymentMethod}</Typography>
+                  <Typography><strong>Status:</strong> {getStatusLabel(selectedBilling.statusPembayaran)}</Typography>
+                  {selectedBilling.metodePembayaran && (
+                    <Typography><strong>Metode Pembayaran:</strong> {selectedBilling.metodePembayaran}</Typography>
                   )}
-                  {selectedBilling.paidAt && (
-                    <Typography><strong>Tanggal Bayar:</strong> {new Date(selectedBilling.paidAt).toLocaleDateString('id-ID')}</Typography>
+                  {selectedBilling.tanggalPembayaran && (
+                    <Typography><strong>Tanggal Bayar:</strong> {new Date(selectedBilling.tanggalPembayaran).toLocaleDateString('id-ID')}</Typography>
+                  )}
+                  {selectedBilling.catatan && (
+                    <Typography><strong>Catatan:</strong> {selectedBilling.catatan}</Typography>
                   )}
                 </Box>
               </Grid>

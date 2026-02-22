@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Grid,
   Card,
@@ -51,8 +51,40 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { billingAPI, customerAPI } from '../../../utils/API';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import dayjs from 'dayjs';
+
+const GET_ALL_METERAN = gql`
+  query GetAllMeteranForBilling {
+    getAllMeteran {
+      _id
+      nomorMeteran
+      nomorAkun
+      idKelompokPelanggan {
+        _id
+        namaKelompok
+      }
+      idKoneksiData {
+        idPelanggan {
+          _id
+          namaLengkap
+          email
+        }
+      }
+    }
+  }
+`;
+
+const GENERATE_TAGIHAN = gql`
+  mutation GenerateTagihanBulanan($periode: String!, $idMeteranList: [ID!]!) {
+    generateTagihanBulanan(periode: $periode, idMeteranList: $idMeteranList) {
+      berhasil
+      gagal
+      pesan
+    }
+  }
+`;
 
 const steps = ['Pilih Periode', 'Pilih Akun', 'Review & Generate', 'Hasil'];
 
@@ -62,33 +94,21 @@ interface AccountForBilling {
   customerName: string;
   meterNumber: string;
   tariffCategory: string;
-  lastReading: number;
-  currentReading: number;
-  consumption: number;
-  estimatedAmount: number;
   selected: boolean;
 }
 
 export default function GenerateBills() {
   const [activeStep, setActiveStep] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [previewDialog, setPreviewDialog] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
-    billingPeriod: {
-      start: dayjs().startOf('month'),
-      end: dayjs().endOf('month')
-    },
+    periode: dayjs().format('YYYY-MM'),
     tariffCategory: 'all',
-    accountType: 'all',
-    includeArrears: true,
-    autoSend: false
   });
 
-  const [accountsForBilling, setAccountsForBilling] = useState<AccountForBilling[]>([]);
   const [generationResults, setGenerationResults] = useState({
     total: 0,
     success: 0,
@@ -96,189 +116,86 @@ export default function GenerateBills() {
     errors: [] as string[]
   });
 
-  // Mock data for demonstration
-  const mockAccounts: AccountForBilling[] = [
-    {
-      id: '1',
-      accountNumber: 'ACC-001-2024',
-      customerName: 'Ahmad Rizki',
-      meterNumber: 'MTR-001',
-      tariffCategory: '2A2',
-      lastReading: 1200,
-      currentReading: 1250,
-      consumption: 50,
-      estimatedAmount: 125000,
-      selected: true
-    },
-    {
-      id: '2',
-      accountNumber: 'ACC-002-2024',
-      customerName: 'Siti Nurhaliza',
-      meterNumber: 'MTR-002',
-      tariffCategory: 'komersial',
-      lastReading: 2300,
-      currentReading: 2500,
-      consumption: 200,
-      estimatedAmount: 800000,
-      selected: true
-    },
-    {
-      id: '3',
-      accountNumber: 'ACC-003-2024',
-      customerName: 'PT. Maju Jaya',
-      meterNumber: 'MTR-003',
-      tariffCategory: 'industri',
-      lastReading: 4500,
-      currentReading: 5000,
-      consumption: 500,
-      estimatedAmount: 2250000,
-      selected: false
-    }
-  ];
+  // Fetch real meteran data
+  const { data: meteranData, loading: loadingMeteran } = useQuery(GET_ALL_METERAN, {
+    fetchPolicy: 'network-only',
+    skip: activeStep < 1,
+  });
 
-  useEffect(() => {
-    if (activeStep === 1) {
-      loadAccountsForBilling();
-    }
-  }, [activeStep]);
+  const [generateTagihanMutation, { loading: generating }] = useMutation(GENERATE_TAGIHAN);
 
-  const loadAccountsForBilling = async () => {
-    try {
-      setLoading(true);
-      // For demo, use mock data
-      setAccountsForBilling(mockAccounts);
-    } catch (err: any) {
-      setError('Gagal memuat data akun: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Build accounts list from real meteran data
+  const allAccounts: AccountForBilling[] = (meteranData?.getAllMeteran || []).map((m: any) => ({
+    id: m._id,
+    accountNumber: m.nomorAkun,
+    customerName: m.idKoneksiData?.idPelanggan?.namaLengkap || '-',
+    meterNumber: m.nomorMeteran,
+    tariffCategory: m.idKelompokPelanggan?.namaKelompok || '-',
+    selected: selectedIds.has(m._id),
+  }));
 
-  const handleInputChange = (field: string, value: any) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
-  };
+  const filteredAccounts = allAccounts.filter((a) =>
+    formData.tariffCategory === 'all' || a.tariffCategory === formData.tariffCategory
+  );
+
+  const selectedAccounts = filteredAccounts.filter((a) => selectedIds.has(a.id));
 
   const handleAccountToggle = (accountId: string) => {
-    setAccountsForBilling(prev =>
-      prev.map(account =>
-        account.id === accountId
-          ? { ...account, selected: !account.selected }
-          : account
-      )
-    );
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(accountId) ? next.delete(accountId) : next.add(accountId);
+      return next;
+    });
   };
 
   const handleSelectAll = () => {
-    const allSelected = accountsForBilling.every(account => account.selected);
-    setAccountsForBilling(prev =>
-      prev.map(account => ({ ...account, selected: !allSelected }))
-    );
+    if (selectedIds.size === filteredAccounts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAccounts.map((a) => a.id)));
+    }
   };
 
   const validateStep = (step: number): boolean => {
     switch (step) {
-      case 0:
-        return !!(formData.billingPeriod.start && formData.billingPeriod.end);
-      case 1:
-        return accountsForBilling.some(account => account.selected);
-      case 2:
-        return true;
-      default:
-        return false;
+      case 0: return !!formData.periode;
+      case 1: return selectedIds.size > 0;
+      case 2: return true;
+      default: return false;
     }
   };
 
   const handleNext = () => {
     if (validateStep(activeStep)) {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      setActiveStep((prev) => prev + 1);
     } else {
       setError('Mohon lengkapi semua field yang diperlukan');
     }
   };
 
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
-  };
+  const handleBack = () => setActiveStep((prev) => prev - 1);
 
   const handleGenerateBills = async () => {
     try {
-      setLoading(true);
-      setGenerationProgress(0);
-
-      const selectedAccounts = accountsForBilling.filter(account => account.selected);
-      const total = selectedAccounts.length;
-      let success = 0;
-      let failed = 0;
-      const errors: string[] = [];
-
-      for (let i = 0; i < selectedAccounts.length; i++) {
-        const account = selectedAccounts[i];
-
-        try {
-          // Simulate API call for each bill generation
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          const billData = {
-            accountId: account.id,
-            billingPeriod: formData.billingPeriod,
-            meterReading: {
-              previous: account.lastReading,
-              current: account.currentReading
-            },
-            tariffCategory: account.tariffCategory
-          };
-
-          // await billingAPI.generateBill(billData);
-          success++;
-        } catch (err: any) {
-          failed++;
-          errors.push(`${account.accountNumber}: ${err.message}`);
-        }
-
-        setGenerationProgress(((i + 1) / total) * 100);
-      }
-
-      setGenerationResults({ total, success, failed, errors });
+      setGenerationProgress(10);
+      const idMeteranList = Array.from(selectedIds);
+      const result = await generateTagihanMutation({
+        variables: { periode: formData.periode, idMeteranList },
+      });
+      setGenerationProgress(100);
+      const res = result.data?.generateTagihanBulanan;
+      setGenerationResults({
+        total: idMeteranList.length,
+        success: res?.berhasil ?? idMeteranList.length,
+        failed: res?.gagal ?? 0,
+        errors: res?.pesan ? [res.pesan] : [],
+      });
       setActiveStep(3);
-
-      if (success > 0) {
-        setSuccess(`Berhasil generate ${success} tagihan dari ${total} akun`);
-      }
-
+      setSuccess(`Generate tagihan selesai untuk periode ${formData.periode}`);
     } catch (err: any) {
-      setError('Gagal generate tagihan: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
+      setError('Gagal generate tagihan: ' + err.message);
     }
   };
-
-  const getTariffLabel = (tariff: string) => {
-    switch (tariff) {
-      case '2A2': return 'Rumah Tangga 2A2';
-      case '2A3': return 'Rumah Tangga 2A3';
-      case 'komersial': return 'Komersial';
-      case 'industri': return 'Industri';
-      case 'sosial': return 'Sosial';
-      default: return tariff;
-    }
-  };
-
-  const selectedAccounts = accountsForBilling.filter(account => account.selected);
-  const totalEstimatedAmount = selectedAccounts.reduce((sum, account) => sum + account.estimatedAmount, 0);
 
   const renderStepContent = (step: number) => {
     switch (step) {
@@ -294,52 +211,27 @@ export default function GenerateBills() {
               </Grid>
 
               <Grid item xs={12} md={6}>
+                {/* MUI v6 DatePicker API: gunakan slotProps, bukan renderInput */}
                 <DatePicker
-                  label="Tanggal Mulai"
-                  value={formData.billingPeriod.start}
-                  onChange={(date) => handleInputChange('billingPeriod.start', date)}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="Tanggal Akhir"
-                  value={formData.billingPeriod.end}
-                  onChange={(date) => handleInputChange('billingPeriod.end', date)}
-                  renderInput={(params) => <TextField {...params} fullWidth required />}
+                  label="Periode Tagihan (Bulan)"
+                  views={['year', 'month']}
+                  value={dayjs(formData.periode + '-01')}
+                  onChange={(date) =>
+                    setFormData((prev) => ({ ...prev, periode: date ? date.format('YYYY-MM') : prev.periode }))
+                  }
+                  slotProps={{ textField: { fullWidth: true, required: true } }}
                 />
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Filter Tarif</InputLabel>
+                  <InputLabel>Filter Kelompok Pelanggan</InputLabel>
                   <Select
                     value={formData.tariffCategory}
-                    onChange={(e) => handleInputChange('tariffCategory', e.target.value)}
-                    label="Filter Tarif"
+                    onChange={(e) => setFormData((prev) => ({ ...prev, tariffCategory: e.target.value }))}
+                    label="Filter Kelompok Pelanggan"
                   >
-                    <MenuItem value="all">Semua Tarif</MenuItem>
-                    <MenuItem value="2A2">Rumah Tangga 2A2</MenuItem>
-                    <MenuItem value="2A3">Rumah Tangga 2A3</MenuItem>
-                    <MenuItem value="komersial">Komersial</MenuItem>
-                    <MenuItem value="industri">Industri</MenuItem>
-                    <MenuItem value="sosial">Sosial</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Status Akun</InputLabel>
-                  <Select
-                    value={formData.accountType}
-                    onChange={(e) => handleInputChange('accountType', e.target.value)}
-                    label="Status Akun"
-                  >
-                    <MenuItem value="all">Semua Akun</MenuItem>
-                    <MenuItem value="active">Hanya Aktif</MenuItem>
-                    <MenuItem value="new">Sambungan Baru</MenuItem>
+                    <MenuItem value="all">Semua Kelompok</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -347,7 +239,7 @@ export default function GenerateBills() {
               <Grid item xs={12}>
                 <Paper sx={{ p: 2, bgcolor: 'info.light', color: 'info.contrastText' }}>
                   <Typography variant="body2">
-                    💡 <strong>Info:</strong> Sistem akan mengambil pembacaan meteran terakhir untuk perhitungan konsumsi.
+                    <strong>Info:</strong> Sistem akan membuat tagihan baru berdasarkan data pemakaian meteran pada periode yang dipilih.
                     Pastikan data pembacaan meteran sudah up-to-date.
                   </Typography>
                 </Paper>
@@ -363,88 +255,79 @@ export default function GenerateBills() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Calculate color="primary" />
-                  Pilih Akun untuk Generate Tagihan
+                  Pilih Meteran untuk Generate Tagihan
                 </Typography>
-                <Button onClick={handleSelectAll} variant="outlined">
-                  {accountsForBilling.every(account => account.selected) ? 'Batalkan Semua' : 'Pilih Semua'}
+                <Button onClick={handleSelectAll} variant="outlined" disabled={loadingMeteran}>
+                  {selectedIds.size === filteredAccounts.length && filteredAccounts.length > 0 ? 'Batalkan Semua' : 'Pilih Semua'}
                 </Button>
               </Box>
             </Grid>
 
             <Grid item xs={12}>
-              <Card>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={accountsForBilling.length > 0 && accountsForBilling.every(account => account.selected)}
-                            indeterminate={accountsForBilling.some(account => account.selected) && !accountsForBilling.every(account => account.selected)}
-                            onChange={handleSelectAll}
-                          />
-                        </TableCell>
-                        <TableCell>Akun</TableCell>
-                        <TableCell>Pelanggan</TableCell>
-                        <TableCell>Tarif</TableCell>
-                        <TableCell>Konsumsi</TableCell>
-                        <TableCell>Est. Tagihan</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {accountsForBilling.map((account) => (
-                        <TableRow key={account.id} hover>
+              {loadingMeteran ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Card>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
                           <TableCell padding="checkbox">
                             <Checkbox
-                              checked={account.selected}
-                              onChange={() => handleAccountToggle(account.id)}
+                              checked={filteredAccounts.length > 0 && selectedIds.size === filteredAccounts.length}
+                              indeterminate={selectedIds.size > 0 && selectedIds.size < filteredAccounts.length}
+                              onChange={handleSelectAll}
                             />
                           </TableCell>
-                          <TableCell>
-                            <Box>
+                          <TableCell>No. Akun / Meteran</TableCell>
+                          <TableCell>Pelanggan</TableCell>
+                          <TableCell>Kelompok</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredAccounts.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                              <Typography color="text.secondary">Tidak ada data meteran</Typography>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {filteredAccounts.map((account) => (
+                          <TableRow key={account.id} hover>
+                            <TableCell padding="checkbox">
+                              <Checkbox
+                                checked={selectedIds.has(account.id)}
+                                onChange={() => handleAccountToggle(account.id)}
+                              />
+                            </TableCell>
+                            <TableCell>
                               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                                 {account.accountNumber}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {account.meterNumber}
                               </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>{account.customerName}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={getTariffLabel(account.tariffCategory)}
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <WaterDrop color="primary" sx={{ fontSize: 16 }} />
-                              <Typography>{account.consumption} m³</Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <AttachMoney color="success" sx={{ fontSize: 16 }} />
-                              <Typography>Rp {account.estimatedAmount.toLocaleString('id-ID')}</Typography>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Card>
+                            </TableCell>
+                            <TableCell>{account.customerName}</TableCell>
+                            <TableCell>
+                              <Chip label={account.tariffCategory} size="small" color="primary" variant="outlined" />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Card>
+              )}
             </Grid>
 
-            {selectedAccounts.length > 0 && (
+            {selectedIds.size > 0 && (
               <Grid item xs={12}>
                 <Paper sx={{ p: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
                   <Typography variant="subtitle1">
-                    <strong>Ringkasan:</strong> {selectedAccounts.length} akun dipilih •
-                    Total estimasi tagihan: Rp {totalEstimatedAmount.toLocaleString('id-ID')}
+                    <strong>Ringkasan:</strong> {selectedIds.size} meteran dipilih untuk generate tagihan periode {formData.periode}
                   </Typography>
                 </Paper>
               </Grid>
@@ -465,40 +348,33 @@ export default function GenerateBills() {
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>Periode Tagihan</Typography>
-                <Typography><strong>Mulai:</strong> {formData.billingPeriod.start.toLocaleDateString('id-ID')}</Typography>
-                <Typography><strong>Akhir:</strong> {formData.billingPeriod.end.toLocaleDateString('id-ID')}</Typography>
-                <Typography><strong>Filter Tarif:</strong> {formData.tariffCategory === 'all' ? 'Semua' : getTariffLabel(formData.tariffCategory)}</Typography>
-                <Typography><strong>Status Akun:</strong> {formData.accountType === 'all' ? 'Semua' : formData.accountType}</Typography>
+                <Typography><strong>Periode:</strong> {formData.periode}</Typography>
+                <Typography><strong>Kelompok:</strong> {formData.tariffCategory === 'all' ? 'Semua' : formData.tariffCategory}</Typography>
               </Paper>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>Ringkasan Generate</Typography>
-                <Typography><strong>Jumlah Akun:</strong> {selectedAccounts.length}</Typography>
-                <Typography><strong>Total Estimasi:</strong> Rp {totalEstimatedAmount.toLocaleString('id-ID')}</Typography>
-                <Typography><strong>Auto Send:</strong> {formData.autoSend ? 'Ya' : 'Tidak'}</Typography>
+                <Typography><strong>Jumlah Meteran:</strong> {selectedIds.size}</Typography>
+                <Typography><strong>Pelanggan terpilih:</strong> {selectedAccounts.map((a) => a.customerName).slice(0, 3).join(', ')}{selectedIds.size > 3 ? '...' : ''}</Typography>
               </Paper>
             </Grid>
 
             <Grid item xs={12}>
               <Alert severity="warning">
-                <strong>Perhatian:</strong> Proses generate tagihan akan membuat tagihan baru untuk semua akun yang dipilih.
-                Pastikan data pembacaan meteran sudah benar sebelum melanjutkan.
+                <strong>Perhatian:</strong> Proses generate tagihan akan membuat tagihan baru untuk semua meteran yang dipilih pada periode {formData.periode}.
+                Pastikan tagihan untuk periode ini belum pernah digenerate sebelumnya.
               </Alert>
             </Grid>
 
-            {loading && (
+            {generating && (
               <Grid item xs={12}>
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="body2" gutterBottom>
-                    Generating tagihan... {generationProgress.toFixed(0)}%
+                    Sedang generate tagihan...
                   </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={generationProgress}
-                    sx={{ height: 8, borderRadius: 4 }}
-                  />
+                  <LinearProgress sx={{ height: 8, borderRadius: 4 }} />
                 </Paper>
               </Grid>
             )}
@@ -632,6 +508,7 @@ export default function GenerateBills() {
                     variant="outlined"
                     onClick={() => {
                       setActiveStep(0);
+                      setSelectedIds(new Set());
                       setGenerationResults({ total: 0, success: 0, failed: 0, errors: [] });
                     }}
                   >
@@ -648,10 +525,10 @@ export default function GenerateBills() {
                 <Button
                   variant="contained"
                   onClick={handleGenerateBills}
-                  disabled={loading || !validateStep(activeStep)}
-                  startIcon={loading ? <CircularProgress size={20} /> : <Send />}
+                  disabled={generating || !validateStep(activeStep)}
+                  startIcon={generating ? <CircularProgress size={20} /> : <Send />}
                 >
-                  {loading ? 'Generating...' : 'Generate Tagihan'}
+                  {generating ? 'Generating...' : 'Generate Tagihan'}
                 </Button>
               ) : (
                 <Button

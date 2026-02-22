@@ -198,6 +198,7 @@ export default function CustomerManagement() {
 
   const loading = loadingCustomers;
   const error = customerError?.message || null;
+  const [errorDismissed, setErrorDismissed] = useState(false);
 
   const handleAddCustomer = () => {
     router.push('/customers/registration');
@@ -453,13 +454,13 @@ export default function CustomerManagement() {
           Sistem Informasi Pelanggan (SIP)
         </Typography>
 
-        {error && (
+        {error && !errorDismissed && (
           <Alert
-            severity='warning'
+            severity="error"
             sx={{ mb: 2 }}
-            onClose={() => setError(null)}
+            onClose={() => setErrorDismissed(true)}
           >
-            {error}
+            Gagal memuat data pelanggan: {error}
           </Alert>
         )}
 
@@ -792,6 +793,15 @@ export default function CustomerManagement() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {paginatedCustomers.length === 0 && !loading && (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                      <Typography color="text.secondary">
+                        {customers.length === 0 ? 'Belum ada data pelanggan' : 'Tidak ada pelanggan yang sesuai filter'}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>

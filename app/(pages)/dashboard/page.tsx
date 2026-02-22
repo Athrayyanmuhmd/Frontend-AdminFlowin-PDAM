@@ -65,9 +65,7 @@ export default function Dashboard() {
         name: 'Total Pelanggan',
         value: stats.totalPelanggan || 0,
         unit: '',
-        target: 15000,
-        trend: stats.totalPelanggan > 14000 ? 'up' : 'down',
-        changePercentage: 2.3,
+        trend: 'up',
         status: 'good',
         lastUpdated: new Date(),
       },
@@ -76,9 +74,7 @@ export default function Dashboard() {
         name: 'Total Meteran Terpasang',
         value: stats.totalMeteran || 0,
         unit: '',
-        target: stats.totalPelanggan || 0,
         trend: 'up',
-        changePercentage: 1.5,
         status: 'good',
         lastUpdated: new Date(),
       },
@@ -87,10 +83,8 @@ export default function Dashboard() {
         name: 'Work Orders Aktif',
         value: stats.activeWorkOrders || 0,
         unit: '',
-        target: 50,
-        trend: stats.activeWorkOrders < 30 ? 'down' : 'up',
-        changePercentage: -3.1,
-        status: stats.activeWorkOrders < 30 ? 'good' : 'warning',
+        trend: stats.activeWorkOrders > 0 ? 'up' : 'down',
+        status: stats.activeWorkOrders > 30 ? 'warning' : 'good',
         lastUpdated: new Date(),
       },
       {
@@ -98,9 +92,7 @@ export default function Dashboard() {
         name: 'Tagihan Bulan Ini',
         value: stats.totalTagihanBulanIni || 0,
         unit: 'Rp',
-        target: 150000000,
         trend: 'up',
-        changePercentage: 5.2,
         status: 'good',
         lastUpdated: new Date(),
       },
@@ -109,10 +101,8 @@ export default function Dashboard() {
         name: 'Tunggakan Aktif',
         value: stats.tunggakanAktif || 0,
         unit: '',
-        target: 100,
-        trend: stats.tunggakanAktif < 100 ? 'down' : 'up',
-        changePercentage: -2.1,
-        status: stats.tunggakanAktif < 100 ? 'good' : 'warning',
+        trend: stats.tunggakanAktif > 0 ? 'up' : 'down',
+        status: stats.tunggakanAktif > 100 ? 'warning' : 'good',
         lastUpdated: new Date(),
       },
       {
@@ -120,10 +110,8 @@ export default function Dashboard() {
         name: 'Pending Koneksi',
         value: stats.pendingKoneksi || 0,
         unit: '',
-        target: 20,
-        trend: stats.pendingKoneksi < 20 ? 'down' : 'up',
-        changePercentage: -1.5,
-        status: stats.pendingKoneksi < 20 ? 'good' : 'warning',
+        trend: stats.pendingKoneksi > 0 ? 'up' : 'down',
+        status: stats.pendingKoneksi > 20 ? 'warning' : 'good',
         lastUpdated: new Date(),
       },
     ];
@@ -217,7 +205,7 @@ export default function Dashboard() {
                     color={kpi.trend === 'up' ? 'success.main' : 'error.main'}
                     sx={{ fontWeight: 500 }}
                   >
-                    {kpi.changePercentage > 0 ? '+' : ''}{kpi.changePercentage}%
+                    {kpi.trend === 'up' ? 'Naik' : 'Turun'}
                   </Typography>
                 </Box>
 

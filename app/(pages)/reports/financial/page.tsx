@@ -59,15 +59,16 @@ const STATUS_COLOR: Record<string, 'success' | 'warning' | 'error' | 'default'> 
 export default function FinancialReports() {
   const [currentTab, setCurrentTab] = useState(0);
 
-  const { data: bulananData, loading: loadingBulanan } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { fetchPolicy: 'network-only' });
+  const { data: bulananData, loading: loadingBulanan, error: errorBulanan } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { fetchPolicy: 'network-only' });
   const { data: tunggakanData, loading: loadingTunggakan } = useQuery(GET_TUNGGAKAN_PER_KELOMPOK, { fetchPolicy: 'network-only' });
   const { data: tertinggiData, loading: loadingTertinggi } = useQuery(GET_TAGIHAN_TERTINGGI, {
     variables: { limit: 10 },
     fetchPolicy: 'network-only',
   });
-  const { data: ringkasanData, loading: loadingRingkasan } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { fetchPolicy: 'network-only' });
+  const { data: ringkasanData, loading: loadingRingkasan, error: errorRingkasan } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { fetchPolicy: 'network-only' });
 
   const isLoading = loadingBulanan || loadingRingkasan;
+  const queryError = errorBulanan || errorRingkasan;
 
   const bulanan = bulananData?.getLaporanKeuanganBulanan || [];
   const tunggakan = tunggakanData?.getTunggakanPerKelompok || [];
@@ -84,6 +85,16 @@ export default function FinancialReports() {
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
           <CircularProgress />
         </Box>
+      </AdminLayout>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <AdminLayout title="Laporan Keuangan">
+        <Alert severity="error" sx={{ mt: 2 }}>
+          Gagal memuat data laporan keuangan: {queryError.message}
+        </Alert>
       </AdminLayout>
     );
   }

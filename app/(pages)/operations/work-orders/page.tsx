@@ -35,6 +35,7 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  Snackbar,
 } from '@mui/material';
 import {
   Search,
@@ -92,17 +93,34 @@ export default function WorkOrderManagement() {
   const [catatan, setCatatan] = useState('');
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   const { data, loading, error, refetch } = useQuery(GET_WORK_ORDERS, {
     fetchPolicy: 'network-only',
   });
 
   const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_WORK_ORDER_STATUS, {
-    onCompleted: () => { refetch(); setOpenStatusDialog(false); setCatatan(''); },
+    onCompleted: () => {
+      refetch();
+      setOpenStatusDialog(false);
+      setCatatan('');
+      showSnackbar('Status work order berhasil diperbarui');
+    },
+    onError: (err) => showSnackbar('Gagal memperbarui status: ' + err.message, 'error'),
   });
 
   const [approveWO, { loading: approving }] = useMutation(APPROVE_WORK_ORDER, {
-    onCompleted: () => { refetch(); setAnchorEl(null); },
+    onCompleted: (data) => {
+      refetch();
+      setAnchorEl(null);
+      const disetujui = data?.approveWorkOrder?.disetujui;
+      showSnackbar(disetujui ? 'Work order berhasil disetujui' : 'Work order ditolak');
+    },
+    onError: (err) => showSnackbar('Gagal memproses approval: ' + err.message, 'error'),
   });
 
   const allWO: any[] = data?.getAllWorkOrders || [];
@@ -428,6 +446,22 @@ export default function WorkOrderManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </AdminLayout>
   );
 }
