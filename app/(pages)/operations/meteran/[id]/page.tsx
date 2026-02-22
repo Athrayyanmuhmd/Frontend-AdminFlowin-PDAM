@@ -82,11 +82,11 @@ export default function MeteranDetail() {
     } : null,
     connectionDataId: meteranData.idKoneksiData ? {
       _id: meteranData.idKoneksiData._id,
-      nik: '', // Not available in schema
+      nik: meteranData.idKoneksiData.NIK || '',
       alamat: meteranData.idKoneksiData.alamat,
     } : null,
-    totalPemakaian: 0, // Not in schema
-    pemakaianBelumTerbayar: 0, // Not in schema
+    totalPemakaian: meteranData.totalPemakaian || 0,
+    pemakaianBelumTerbayar: meteranData.pemakaianBelumTerbayar || 0,
     jatuhTempo: undefined,
     createdAt: meteranData.createdAt,
     updatedAt: meteranData.updatedAt,

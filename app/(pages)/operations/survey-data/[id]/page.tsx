@@ -29,7 +29,6 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
-import { SurveyData } from '../../../../services/surveyData.service';
 import { useGetSurveyData } from '../../../../../lib/graphql/hooks/useSurveyData';
 
 export default function SurveyDataDetail() {
@@ -41,12 +40,32 @@ export default function SurveyDataDetail() {
   // ✅ GraphQL Query - Replace REST API
   const { surveyData: graphqlSurvey, loading, error: graphqlError, refetch } = useGetSurveyData(id);
 
-  // Transform GraphQL data to match SurveyData interface
+  // Transform GraphQL data — map semua field ke nama yang dipakai di render
   const data = graphqlSurvey ? {
     _id: graphqlSurvey._id,
-    connectionDataId: graphqlSurvey.idKoneksiData?._id || '',
-    technicianId: graphqlSurvey.idTeknisi?._id || '',
-    urlJaringan: graphqlSurvey.urlJaringan,
+    // Nested objects untuk header subtitle
+    connectionDataId: graphqlSurvey.idKoneksiData ? {
+      _id: graphqlSurvey.idKoneksiData._id,
+      nik: graphqlSurvey.idKoneksiData.NIK || graphqlSurvey.idKoneksiData.alamat || '',
+      userId: graphqlSurvey.idKoneksiData.idPelanggan ? {
+        namaLengkap: graphqlSurvey.idKoneksiData.idPelanggan.namaLengkap,
+      } : { namaLengkap: '—' },
+    } : { _id: '', nik: '', userId: { namaLengkap: '—' } },
+    // Teknisi
+    technicianId: graphqlSurvey.idTeknisi ? {
+      _id: graphqlSurvey.idTeknisi._id,
+      namaLengkap: graphqlSurvey.idTeknisi.namaLengkap,
+      email: graphqlSurvey.idTeknisi.email,
+    } : null,
+    // URL foto — pakai nama field GraphQL langsung
+    jaringanUrl: graphqlSurvey.urlJaringan || '',
+    posisiBakUrl: graphqlSurvey.urlPosisiBak || '',
+    posisiMeteranUrl: graphqlSurvey.posisiMeteran || '',
+    // Koordinat — GraphQL pakai latitude/longitude, render pakai .lat/.long
+    koordinat: graphqlSurvey.koordinat ? {
+      lat: graphqlSurvey.koordinat.latitude,
+      long: graphqlSurvey.koordinat.longitude,
+    } : null,
     diameterPipa: graphqlSurvey.diameterPipa,
     jumlahPenghuni: graphqlSurvey.jumlahPenghuni,
     standar: graphqlSurvey.standar,
@@ -89,7 +108,7 @@ export default function SurveyDataDetail() {
   };
 
   const openGoogleMaps = () => {
-    if (data?.koordinat) {
+    if (data?.koordinat?.lat != null && data?.koordinat?.long != null) {
       const url = `https://www.google.com/maps?q=${data.koordinat.lat},${data.koordinat.long}`;
       window.open(url, '_blank');
     }
@@ -140,7 +159,7 @@ export default function SurveyDataDetail() {
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant='h4'>Detail Survei</Typography>
             <Typography variant='body2' color='text.secondary'>
-              NIK: {data.connectionDataId.nik} -{' '}
+              {data.connectionDataId.nik ? `NIK: ${data.connectionDataId.nik} — ` : ''}
               {data.connectionDataId.userId.namaLengkap}
             </Typography>
           </Box>
@@ -212,19 +231,25 @@ export default function SurveyDataDetail() {
                 <Typography variant='body2' color='text.secondary'>
                   Koordinat Lokasi:
                 </Typography>
-                <Typography variant='body1'>
-                  Lat: {data.koordinat.lat}
-                  <br />
-                  Long: {data.koordinat.long}
-                </Typography>
-                <Button
-                  size='small'
-                  startIcon={<LocationOn />}
-                  onClick={openGoogleMaps}
-                  sx={{ mt: 1 }}
-                >
-                  Buka di Google Maps
-                </Button>
+                {data.koordinat?.lat != null ? (
+                  <>
+                    <Typography variant='body1'>
+                      Lat: {data.koordinat.lat}
+                      <br />
+                      Long: {data.koordinat.long}
+                    </Typography>
+                    <Button
+                      size='small'
+                      startIcon={<LocationOn />}
+                      onClick={openGoogleMaps}
+                      sx={{ mt: 1 }}
+                    >
+                      Buka di Google Maps
+                    </Button>
+                  </>
+                ) : (
+                  <Typography variant='body1' color='text.secondary'>Tidak tersedia</Typography>
+                )}
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>

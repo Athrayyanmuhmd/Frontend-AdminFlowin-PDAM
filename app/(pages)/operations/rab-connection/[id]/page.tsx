@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -82,7 +82,7 @@ export default function RabConnectionDetail() {
     updatedAt: rabData.updatedAt,
   } : null;
 
-  const error = graphqlError?.message || '';
+  const [error, setError] = useState(graphqlError?.message || '');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -143,8 +143,8 @@ export default function RabConnectionDetail() {
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant='h4'>Detail RAB</Typography>
             <Typography variant='body2' color='text.secondary'>
-              NIK: {data.connectionDataId.nik} -{' '}
-              {data.connectionDataId.userId.namaLengkap}
+              {data.connectionDataId?.nik ? `NIK: ${data.connectionDataId.nik} — ` : ''}
+              {data.connectionDataId?.userId?.namaLengkap || '—'}
             </Typography>
           </Box>
           <Chip

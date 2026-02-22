@@ -62,6 +62,59 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
   }
 `;
 
+export const CREATE_RAB_CONNECTION = gql`
+  mutation CreateRABConnection(
+    $idKoneksiData: ID!
+    $totalBiaya: Float!
+    $urlRab: String!
+    $catatan: String
+  ) {
+    createRABConnection(
+      idKoneksiData: $idKoneksiData
+      totalBiaya: $totalBiaya
+      urlRab: $urlRab
+      catatan: $catatan
+    ) {
+      _id
+      idKoneksiData { _id }
+      totalBiaya
+      statusPembayaran
+      urlRab
+      createdAt
+    }
+  }
+`;
+
+export const UPDATE_RAB_CONNECTION = gql`
+  mutation UpdateRABConnection(
+    $id: ID!
+    $totalBiaya: Float
+    $urlRab: String
+    $catatan: String
+    $statusPembayaran: EnumPaymentStatus
+  ) {
+    updateRABConnection(
+      id: $id
+      totalBiaya: $totalBiaya
+      urlRab: $urlRab
+      catatan: $catatan
+      statusPembayaran: $statusPembayaran
+    ) {
+      _id
+      totalBiaya
+      statusPembayaran
+      urlRab
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_RAB_CONNECTION = gql`
+  mutation DeleteRABConnection($id: ID!) {
+    deleteRABConnection(id: $id)
+  }
+`;
+
 export const GET_PENDING_RAB = gql`
   query GetPendingRAB {
     getPendingRAB {

@@ -43,6 +43,7 @@ export const GET_SURVEY_DATA_BY_ID = gql`
       _id
       idKoneksiData {
         _id
+        NIK
         alamat
         idPelanggan {
           _id
@@ -71,5 +72,75 @@ export const GET_SURVEY_DATA_BY_ID = gql`
       createdAt
       updatedAt
     }
+  }
+`;
+
+export const CREATE_SURVEI = gql`
+  mutation CreateSurvei(
+    $idKoneksiData: ID!
+    $idTeknisi: ID!
+    $urlJaringan: String!
+    $diameterPipa: Float!
+    $urlPosisiBak: String!
+    $posisiMeteran: String!
+    $jumlahPenghuni: String!
+    $standar: Boolean!
+    $catatan: String
+    $koordinat: GeolocationInput
+  ) {
+    createSurvei(
+      idKoneksiData: $idKoneksiData
+      idTeknisi: $idTeknisi
+      urlJaringan: $urlJaringan
+      diameterPipa: $diameterPipa
+      urlPosisiBak: $urlPosisiBak
+      posisiMeteran: $posisiMeteran
+      jumlahPenghuni: $jumlahPenghuni
+      standar: $standar
+      catatan: $catatan
+      koordinat: $koordinat
+    ) {
+      _id
+      idKoneksiData { _id }
+      idTeknisi { _id namaLengkap }
+      urlJaringan
+      createdAt
+    }
+  }
+`;
+
+export const UPDATE_SURVEI = gql`
+  mutation UpdateSurvei(
+    $id: ID!
+    $urlJaringan: String
+    $diameterPipa: Float
+    $urlPosisiBak: String
+    $posisiMeteran: String
+    $jumlahPenghuni: String
+    $standar: Boolean
+    $catatan: String
+    $koordinat: GeolocationInput
+  ) {
+    updateSurvei(
+      id: $id
+      urlJaringan: $urlJaringan
+      diameterPipa: $diameterPipa
+      urlPosisiBak: $urlPosisiBak
+      posisiMeteran: $posisiMeteran
+      jumlahPenghuni: $jumlahPenghuni
+      standar: $standar
+      catatan: $catatan
+      koordinat: $koordinat
+    ) {
+      _id
+      urlJaringan
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_SURVEI = gql`
+  mutation DeleteSurvei($id: ID!) {
+    deleteSurvei(id: $id)
   }
 `;

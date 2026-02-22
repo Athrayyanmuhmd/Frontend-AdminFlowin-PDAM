@@ -43,6 +43,9 @@ export const GET_METERAN_BY_ID = gql`
       _id
       nomorMeteran
       nomorAkun
+      statusAktif
+      pemakaianBelumTerbayar
+      totalPemakaian
       idKelompokPelanggan {
         _id
         namaKelompok
@@ -52,6 +55,7 @@ export const GET_METERAN_BY_ID = gql`
       }
       idKoneksiData {
         _id
+        NIK
         alamat
         statusVerifikasi
         idPelanggan {

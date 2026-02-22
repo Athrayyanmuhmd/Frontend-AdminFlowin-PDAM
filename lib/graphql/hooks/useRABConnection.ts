@@ -5,11 +5,14 @@
  * Custom Hooks - RAB Connection Operations with GraphQL
  */
 
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import {
   GET_ALL_RAB_CONNECTIONS,
   GET_RAB_CONNECTION_BY_ID,
   GET_PENDING_RAB,
+  CREATE_RAB_CONNECTION,
+  UPDATE_RAB_CONNECTION,
+  DELETE_RAB_CONNECTION,
 } from '../queries/rabConnection';
 
 // ==================== QUERIES ====================
@@ -53,4 +56,28 @@ export function useGetPendingRAB() {
     error,
     refetch,
   };
+}
+
+// ==================== MUTATIONS ====================
+
+export function useCreateRABConnection() {
+  const [mutate, { loading, error }] = useMutation(CREATE_RAB_CONNECTION, {
+    refetchQueries: [{ query: GET_ALL_RAB_CONNECTIONS }],
+  });
+
+  return { createRABConnection: mutate, loading, error };
+}
+
+export function useUpdateRABConnection() {
+  const [mutate, { loading, error }] = useMutation(UPDATE_RAB_CONNECTION);
+
+  return { updateRABConnection: mutate, loading, error };
+}
+
+export function useDeleteRABConnection() {
+  const [mutate, { loading, error }] = useMutation(DELETE_RAB_CONNECTION, {
+    refetchQueries: [{ query: GET_ALL_RAB_CONNECTIONS }],
+  });
+
+  return { deleteRABConnection: mutate, loading, error };
 }
