@@ -85,16 +85,20 @@ export default function ConnectionDataDetail() {
     if (graphqlData) {
       const transformedData: ConnectionData = {
         _id: graphqlData._id,
-        userId: graphqlData.idPelanggan?._id || '',
-        namaLengkap: graphqlData.idPelanggan?.namaLengkap || '',
-        email: graphqlData.idPelanggan?.email || '',
-        noHP: graphqlData.idPelanggan?.noHP || '',
-        NIK: graphqlData.NIK,
-        NIKUrl: graphqlData.NIKUrl,
-        noKK: graphqlData.noKK,
-        KKUrl: graphqlData.KKUrl,
-        IMB: graphqlData.IMB,
-        IMBUrl: graphqlData.IMBUrl,
+        // Map idPelanggan object to userId object (matches interface shape)
+        userId: graphqlData.idPelanggan ? {
+          _id: graphqlData.idPelanggan._id,
+          namaLengkap: graphqlData.idPelanggan.namaLengkap,
+          email: graphqlData.idPelanggan.email,
+          noHP: graphqlData.idPelanggan.noHP,
+        } : null,
+        // Map ERD uppercase fields to lowercase interface fields
+        nik: graphqlData.NIK || '',
+        nikUrl: graphqlData.NIKUrl || '',
+        noKK: graphqlData.noKK || '',
+        kkUrl: graphqlData.KKUrl || '',
+        noImb: graphqlData.IMB || '',
+        imbUrl: graphqlData.IMBUrl || '',
         alamat: graphqlData.alamat,
         kelurahan: graphqlData.kelurahan,
         kecamatan: graphqlData.kecamatan,
@@ -246,7 +250,7 @@ export default function ConnectionDataDetail() {
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant='h4'>Detail Data Sambungan</Typography>
             <Typography variant='body2' color='text.secondary'>
-              NIK: {data.nik}
+              {data.nik ? `NIK: ${data.nik}` : 'Data Sambungan'}
             </Typography>
           </Box>
           {data.isAllProcedureDone ? (
@@ -334,8 +338,8 @@ export default function ConnectionDataDetail() {
                   </Button>
                 )}
 
-              {/* Create Survey Button - Show for technician if verified and no survey yet */}
-              {userRole === 'technician' &&
+              {/* Create Survey Button - Show for admin or technician if verified and no survey yet */}
+              {(userRole === 'technician' || userRole === 'admin') &&
                 data.isVerifiedByData &&
                 !data.surveiId && (
                   <Button
@@ -367,8 +371,8 @@ export default function ConnectionDataDetail() {
                 </Button>
               )}
 
-              {/* Create RAB Button - Show for technician if survey exists and no RAB yet */}
-              {userRole === 'technician' &&
+              {/* Create RAB Button - Show for admin or technician if survey exists and no RAB yet */}
+              {(userRole === 'technician' || userRole === 'admin') &&
                 data.surveiId &&
                 !data.rabConnectionId && (
                   <Button
@@ -486,14 +490,14 @@ export default function ConnectionDataDetail() {
                   Nomor HP
                 </Typography>
                 <Typography variant='body1'>
-                  {data.userId?.phone || 'N/A'}
+                  {data.userId?.noHP || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
                   NIK
                 </Typography>
-                <Typography variant='body1'>{data.nik}</Typography>
+                <Typography variant='body1'>{data.nik || '—'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>
@@ -558,9 +562,10 @@ export default function ConnectionDataDetail() {
                   <Button
                     size='small'
                     variant='outlined'
+                    disabled={!data.nikUrl}
                     onClick={() => openDocumentViewer(data.nikUrl, 'Foto KTP')}
                   >
-                    Lihat Dokumen
+                    {data.nikUrl ? 'Lihat Dokumen' : 'Belum Upload'}
                   </Button>
                 </Paper>
               </Grid>
@@ -575,9 +580,10 @@ export default function ConnectionDataDetail() {
                   <Button
                     size='small'
                     variant='outlined'
+                    disabled={!data.kkUrl}
                     onClick={() => openDocumentViewer(data.kkUrl, 'Foto KK')}
                   >
-                    Lihat Dokumen
+                    {data.kkUrl ? 'Lihat Dokumen' : 'Belum Upload'}
                   </Button>
                 </Paper>
               </Grid>
@@ -592,9 +598,10 @@ export default function ConnectionDataDetail() {
                   <Button
                     size='small'
                     variant='outlined'
+                    disabled={!data.imbUrl}
                     onClick={() => openDocumentViewer(data.imbUrl, 'Foto IMB')}
                   >
-                    Lihat Dokumen
+                    {data.imbUrl ? 'Lihat Dokumen' : 'Belum Upload'}
                   </Button>
                 </Paper>
               </Grid>
@@ -622,7 +629,7 @@ export default function ConnectionDataDetail() {
                       {data.assignedTechnicianId.email}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      {data.assignedTechnicianId.phone}
+                      {data.assignedTechnicianId.noHP}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
