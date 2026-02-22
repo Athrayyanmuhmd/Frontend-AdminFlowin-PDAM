@@ -11,6 +11,9 @@ export const GET_ALL_METERAN = gql`
       _id
       nomorMeteran
       nomorAkun
+      statusAktif
+      pemakaianBelumTerbayar
+      totalPemakaian
       idKelompokPelanggan {
         _id
         namaKelompok
