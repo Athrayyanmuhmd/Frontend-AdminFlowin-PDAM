@@ -115,3 +115,66 @@ export const GET_METERAN_STATS = gql`
     }
   }
 `;
+
+// ==================== MUTATIONS ====================
+
+export const CREATE_METERAN = gql`
+  mutation CreateMeteran(
+    $idKelompokPelanggan: ID!
+    $nomorMeteran: String!
+    $nomorAkun: String!
+    $idKoneksiData: ID
+  ) {
+    createMeteran(
+      idKelompokPelanggan: $idKelompokPelanggan
+      nomorMeteran: $nomorMeteran
+      nomorAkun: $nomorAkun
+      idKoneksiData: $idKoneksiData
+    ) {
+      _id
+      nomorMeteran
+      nomorAkun
+      statusAktif
+      idKelompokPelanggan {
+        _id
+        namaKelompok
+      }
+      createdAt
+    }
+  }
+`;
+
+export const UPDATE_METERAN = gql`
+  mutation UpdateMeteran(
+    $id: ID!
+    $idKelompokPelanggan: ID
+    $nomorMeteran: String
+    $nomorAkun: String
+    $idKoneksiData: ID
+    $statusAktif: Boolean
+  ) {
+    updateMeteran(
+      id: $id
+      idKelompokPelanggan: $idKelompokPelanggan
+      nomorMeteran: $nomorMeteran
+      nomorAkun: $nomorAkun
+      idKoneksiData: $idKoneksiData
+      statusAktif: $statusAktif
+    ) {
+      _id
+      nomorMeteran
+      nomorAkun
+      statusAktif
+      idKelompokPelanggan {
+        _id
+        namaKelompok
+      }
+    }
+  }
+`;
+
+export const DELETE_METERAN = gql`
+  mutation DeleteMeteran($id: ID!) {
+    deleteMeteran(id: $id)
+  }
+`;

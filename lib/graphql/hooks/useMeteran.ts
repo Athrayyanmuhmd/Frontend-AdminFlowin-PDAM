@@ -1,17 +1,19 @@
-// @ts-nocheck
 'use client';
 
 /**
  * Custom Hooks - Meteran (Smart Water Meter) Operations with GraphQL
  */
 
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import {
   GET_ALL_METERAN,
   GET_METERAN_BY_ID,
   GET_METERAN_BY_PELANGGAN,
   GET_HISTORY_USAGE_BY_METERAN,
   GET_METERAN_STATS,
+  CREATE_METERAN,
+  UPDATE_METERAN,
+  DELETE_METERAN,
 } from '../queries/meteran';
 
 // ==================== QUERIES ====================
@@ -22,7 +24,7 @@ export function useGetAllMeteran() {
   });
 
   return {
-    meteran: data?.getAllMeteran || [],
+    meteran: (data as any)?.getAllMeteran || [],
     loading,
     error,
     refetch,
@@ -37,7 +39,7 @@ export function useGetMeteran(id: string) {
   });
 
   return {
-    meteran: data?.getMeteran,
+    meteran: (data as any)?.getMeteran,
     loading,
     error,
     refetch,
@@ -52,7 +54,7 @@ export function useGetMeteranByPelanggan(idPelanggan: string) {
   });
 
   return {
-    meteran: data?.getMeteranByPelanggan || [],
+    meteran: (data as any)?.getMeteranByPelanggan || [],
     loading,
     error,
   };
@@ -66,7 +68,7 @@ export function useGetHistoryUsage(nomorMeteran: string) {
   });
 
   return {
-    historyUsage: data?.getHistoryUsageByMeteran || [],
+    historyUsage: (data as any)?.getHistoryUsageByMeteran || [],
     loading,
     error,
     refetch,
@@ -79,8 +81,31 @@ export function useGetMeteranStats() {
   });
 
   return {
-    stats: data?.getDashboardStats,
+    stats: (data as any)?.getDashboardStats,
     loading,
     error,
   };
+}
+
+// ==================== MUTATIONS ====================
+
+export function useCreateMeteran() {
+  const [createMeteran, { loading, error }] = useMutation(CREATE_METERAN, {
+    refetchQueries: [{ query: GET_ALL_METERAN }],
+  });
+  return { createMeteran, loading, error };
+}
+
+export function useUpdateMeteran() {
+  const [updateMeteran, { loading, error }] = useMutation(UPDATE_METERAN, {
+    refetchQueries: [{ query: GET_ALL_METERAN }],
+  });
+  return { updateMeteran, loading, error };
+}
+
+export function useDeleteMeteran() {
+  const [deleteMeteran, { loading, error }] = useMutation(DELETE_METERAN, {
+    refetchQueries: [{ query: GET_ALL_METERAN }],
+  });
+  return { deleteMeteran, loading, error };
 }

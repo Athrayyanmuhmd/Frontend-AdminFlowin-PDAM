@@ -261,6 +261,7 @@ export default function WorkOrderManagement() {
                     <TableRow>
                       <TableCell>No</TableCell>
                       <TableCell>Pelanggan</TableCell>
+                      <TableCell>Sumber</TableCell>
                       <TableCell>Tim Teknisi</TableCell>
                       <TableCell align="center">Status</TableCell>
                       <TableCell align="center">Disetujui</TableCell>
@@ -272,7 +273,7 @@ export default function WorkOrderManagement() {
                   <TableBody>
                     {paginated.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                        <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                           <Typography color="text.secondary">Tidak ada data work order</Typography>
                         </TableCell>
                       </TableRow>
@@ -281,8 +282,23 @@ export default function WorkOrderManagement() {
                         <TableCell>{(page - 1) * rowsPerPage + idx + 1}</TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600}>
-                            {wo.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}
+                            {wo.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap ||
+                             wo.idLaporan?.idPengguna?.namaLengkap || '-'}
                           </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {wo.idLaporan ? (
+                            <Tooltip title={`${wo.idLaporan.namaLaporan || 'Laporan'}: ${wo.idLaporan.masalah || ''}`}>
+                              <Chip
+                                label={wo.idLaporan.jenisLaporan?.replace(/([A-Z])/g, ' $1').trim() || 'Laporan'}
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Chip label="Operasional" size="small" color="primary" variant="outlined" />
+                          )}
                         </TableCell>
                         <TableCell>
                           {wo.tim && wo.tim.length > 0 ? (

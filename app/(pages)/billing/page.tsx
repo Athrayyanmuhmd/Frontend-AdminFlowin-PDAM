@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import {
   Grid,
   Card,
@@ -36,6 +37,9 @@ import {
   LinearProgress,
   Alert,
   CircularProgress,
+  Snackbar,
+  Divider,
+  Chip,
 } from '@mui/material';
 import {
   Search,
@@ -51,10 +55,39 @@ import {
   Schedule,
   Download,
   Print,
+  Autorenew,
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
 import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART } from '@/lib/graphql/queries/billing';
+
+const UPDATE_STATUS_PEMBAYARAN = gql`
+  mutation UpdateStatusPembayaran($id: ID!, $status: EnumPaymentStatus!) {
+    updateStatusPembayaran(id: $id, status: $status) {
+      _id
+      statusPembayaran
+      tanggalPembayaran
+    }
+  }
+`;
+
+const GENERATE_TAGIHAN_BULANAN = gql`
+  mutation GenerateTagihanBulanan($periode: String!, $idMeteranList: [ID!]!) {
+    generateTagihanBulanan(periode: $periode, idMeteranList: $idMeteranList) {
+      berhasil
+      gagal
+      pesan
+    }
+  }
+`;
+
+const GET_ALL_METERAN_IDS = gql`
+  query GetAllMeteranIds {
+    getAllMeteran {
+      _id
+    }
+  }
+`;
 
 export default function BillingManagement() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,21 +96,39 @@ export default function BillingManagement() {
   const [selectedBilling, setSelectedBilling] = useState<any | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
+  const [generatePeriode, setGeneratePeriode] = useState(
+    new Date().toISOString().slice(0, 7) // default: bulan ini YYYY-MM
+  );
+  const [generateResult, setGenerateResult] = useState<{berhasil: number; gagal: number; pesan: string} | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState<{open: boolean; message: string; severity: 'success'|'error'}>({
+    open: false, message: '', severity: 'success',
+  });
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
 
   // GraphQL queries
-  const { data, loading, error } = useQuery(GET_BILLINGS, {
+  const { data, loading, error, refetch } = useQuery(GET_BILLINGS, {
     fetchPolicy: 'network-only',
   });
 
-  const { data: statsData } = useQuery(GET_BILLING_STATS, {
+  const { data: statsData, refetch: refetchStats } = useQuery(GET_BILLING_STATS, {
     fetchPolicy: 'network-only',
   });
 
   const { data: chartData } = useQuery(GET_BILLING_CHART, {
     fetchPolicy: 'network-only',
   });
+
+  const { data: meteranData } = useQuery(GET_ALL_METERAN_IDS, {
+    fetchPolicy: 'cache-first',
+  });
+
+  // Mutations
+  const [updateStatusPembayaran] = useMutation(UPDATE_STATUS_PEMBAYARAN);
+  const [generateTagihanBulanan] = useMutation(GENERATE_TAGIHAN_BULANAN);
 
   const allTagihan = data?.getAllTagihan || [];
   const billingStats = statsData?.getRingkasanStatusTagihan;
@@ -120,13 +171,55 @@ export default function BillingManagement() {
   };
 
   const handleGenerateBills = () => {
-    // Implement generate bills functionality
+    setGenerateResult(null);
+    setOpenGenerateDialog(true);
     handleMenuClose();
   };
 
+  const handleConfirmGenerate = async () => {
+    const allMeteranIds = (meteranData?.getAllMeteran || []).map((m: any) => m._id);
+    if (allMeteranIds.length === 0) {
+      setSnackbar({ open: true, message: 'Tidak ada meteran terdaftar', severity: 'error' });
+      setOpenGenerateDialog(false);
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const result = await generateTagihanBulanan({
+        variables: { periode: generatePeriode, idMeteranList: allMeteranIds },
+      });
+      setGenerateResult(result.data.generateTagihanBulanan);
+      refetch();
+      refetchStats();
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Gagal generate tagihan', severity: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleProcessPayment = () => {
-    // Implement process payment functionality
+    setOpenPaymentDialog(true);
     handleMenuClose();
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!selectedBilling) return;
+    setActionLoading(true);
+    try {
+      await updateStatusPembayaran({
+        variables: { id: selectedBilling._id, status: 'Settlement' },
+      });
+      setSnackbar({ open: true, message: 'Status pembayaran berhasil diperbarui', severity: 'success' });
+      setOpenPaymentDialog(false);
+      setOpenDialog(false);
+      refetch();
+      refetchStats();
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Gagal memproses pembayaran', severity: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
 
@@ -451,7 +544,8 @@ export default function BillingManagement() {
                 <Button
                   fullWidth
                   variant="contained"
-                  startIcon={<Add />}
+                  startIcon={<Autorenew />}
+                  onClick={handleGenerateBills}
                   sx={{ height: '56px' }}
                 >
                   Generate
@@ -631,9 +725,111 @@ export default function BillingManagement() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Tutup</Button>
-          <Button variant="contained">Proses Pembayaran</Button>
+          {selectedBilling?.statusPembayaran === 'Pending' && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<Payment />}
+              onClick={handleProcessPayment}
+            >
+              Proses Pembayaran
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
+
+      {/* Dialog: Generate Tagihan Bulanan */}
+      <Dialog open={openGenerateDialog} onClose={() => { if (!actionLoading) { setOpenGenerateDialog(false); setGenerateResult(null); } }} maxWidth="sm" fullWidth>
+        <DialogTitle>Generate Tagihan Bulanan</DialogTitle>
+        <DialogContent>
+          {!generateResult ? (
+            <Box sx={{ pt: 1 }}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Sistem akan membuat tagihan untuk <strong>semua meteran aktif</strong> pada periode yang dipilih.
+                Tagihan yang sudah ada pada periode tersebut akan dilewati.
+              </Alert>
+              <TextField
+                fullWidth
+                label="Periode (Bulan - Tahun)"
+                type="month"
+                value={generatePeriode}
+                onChange={(e) => setGeneratePeriode(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Total meteran terdaftar: {meteranData?.getAllMeteran?.length || 0}
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ pt: 1 }}>
+              <Alert severity={generateResult.gagal === 0 ? 'success' : 'warning'} sx={{ mb: 2 }}>
+                {generateResult.pesan}
+              </Alert>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Chip label={`Berhasil: ${generateResult.berhasil}`} color="success" />
+                <Chip label={`Dilewati/Gagal: ${generateResult.gagal}`} color={generateResult.gagal > 0 ? 'warning' : 'default'} />
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setOpenGenerateDialog(false); setGenerateResult(null); }} disabled={actionLoading}>
+            {generateResult ? 'Tutup' : 'Batal'}
+          </Button>
+          {!generateResult && (
+            <Button
+              variant="contained"
+              onClick={handleConfirmGenerate}
+              disabled={actionLoading || !generatePeriode}
+              startIcon={actionLoading ? <CircularProgress size={18} /> : <Autorenew />}
+            >
+              {actionLoading ? 'Memproses...' : 'Generate Tagihan'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: Konfirmasi Proses Pembayaran Manual */}
+      <Dialog open={openPaymentDialog} onClose={() => { if (!actionLoading) setOpenPaymentDialog(false); }} maxWidth="xs" fullWidth>
+        <DialogTitle>Konfirmasi Pembayaran Manual</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Tindakan ini menandai tagihan sebagai <strong>Lunas (Settlement)</strong> secara manual.
+            Gunakan hanya jika pembayaran sudah terkonfirmasi di luar sistem.
+          </Alert>
+          {selectedBilling && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography><strong>Pelanggan:</strong> {selectedBilling.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}</Typography>
+              <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.periode)}</Typography>
+              <Typography><strong>Jumlah:</strong> Rp {(selectedBilling.totalBiaya || 0).toLocaleString('id-ID')}</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPaymentDialog(false)} disabled={actionLoading}>Batal</Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleConfirmPayment}
+            disabled={actionLoading}
+            startIcon={actionLoading ? <CircularProgress size={18} /> : <CheckCircle />}
+          >
+            {actionLoading ? 'Memproses...' : 'Konfirmasi Lunas'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </AdminLayout>
   );
 }
