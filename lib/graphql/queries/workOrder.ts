@@ -17,6 +17,18 @@ export const GET_WORK_ORDERS = gql`
         _id
         totalBiaya
       }
+      idLaporan {
+        _id
+        namaLaporan
+        masalah
+        jenisLaporan
+        status
+        alamat
+        idPengguna {
+          namaLengkap
+          noHP
+        }
+      }
       idPenyelesaianLaporan {
         _id
         tanggalSelesai

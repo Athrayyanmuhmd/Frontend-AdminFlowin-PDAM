@@ -170,6 +170,14 @@ const adminMenuItems: MenuItem[] = [
         roles: ['admin'],
       },
       {
+        id: 'laporan',
+        title: 'Laporan Pelanggan',
+        icon: <Report />,
+        path: '/operations/laporan',
+        permission: 'workorders:read',
+        roles: ['admin'],
+      },
+      {
         id: 'work-orders',
         title: 'Perintah Kerja',
         icon: <Build />,

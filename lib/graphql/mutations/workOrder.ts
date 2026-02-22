@@ -72,3 +72,24 @@ export const DELETE_WORK_ORDER = gql`
     }
   }
 `;
+
+export const CREATE_WORK_ORDER_FROM_LAPORAN = gql`
+  mutation CreateWorkOrderFromLaporan($idLaporan: ID!, $teknisiIds: [ID!]!, $catatan: String) {
+    createWorkOrderFromLaporan(idLaporan: $idLaporan, teknisiIds: $teknisiIds, catatan: $catatan) {
+      _id
+      idLaporan {
+        _id
+        namaLaporan
+        masalah
+        jenisLaporan
+      }
+      tim {
+        _id
+        namaLengkap
+      }
+      status
+      catatan
+      createdAt
+    }
+  }
+`;

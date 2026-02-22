@@ -81,3 +81,88 @@ export const GET_RINGKASAN_LAPORAN = gql`
     }
   }
 `;
+
+// Laporan Pelanggan (Customer Reports/Complaints)
+export const GET_ALL_LAPORAN = gql`
+  query GetAllLaporan {
+    getAllLaporan {
+      _id
+      namaLaporan
+      masalah
+      alamat
+      jenisLaporan
+      status
+      catatan
+      imageUrl
+      koordinat {
+        latitude
+        longitude
+      }
+      idPengguna {
+        _id
+        namaLengkap
+        noHP
+        email
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_LAPORAN_BY_STATUS = gql`
+  query GetLaporanByStatus($status: EnumWorkStatusPelanggan!) {
+    getLaporanByStatus(status: $status) {
+      _id
+      namaLaporan
+      masalah
+      alamat
+      jenisLaporan
+      status
+      idPengguna {
+        _id
+        namaLengkap
+        noHP
+      }
+      createdAt
+    }
+  }
+`;
+
+export const GET_LAPORAN_BY_ID = gql`
+  query GetLaporan($id: ID!) {
+    getLaporan(id: $id) {
+      _id
+      namaLaporan
+      masalah
+      alamat
+      jenisLaporan
+      status
+      catatan
+      imageUrl
+      koordinat {
+        latitude
+        longitude
+      }
+      idPengguna {
+        _id
+        namaLengkap
+        noHP
+        email
+        address
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_LAPORAN_STATUS = gql`
+  mutation UpdateLaporanStatus($id: ID!, $status: EnumWorkStatusPelanggan!) {
+    updateLaporanStatus(id: $id, status: $status) {
+      _id
+      status
+      updatedAt
+    }
+  }
+`;
