@@ -27,7 +27,10 @@ import {
   Assessment,
   Receipt,
   Warning,
+  Download,
+  Print,
 } from '@mui/icons-material';
+import { Button, Stack } from '@mui/material';
 import {
   LineChart,
   Line,
@@ -56,6 +59,18 @@ const STATUS_COLOR: Record<string, 'success' | 'warning' | 'error' | 'default'> 
   Cancel: 'error',
 };
 
+function exportCSV(filename: string, headers: string[], rows: (string | number)[][]) {
+  const bom = '\uFEFF';
+  const csvContent = bom + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function FinancialReports() {
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -78,6 +93,26 @@ export default function FinancialReports() {
   const collectionRate = ringkasan && ringkasan.nilaiTotal > 0
     ? ((ringkasan.nilaiLunas / ringkasan.nilaiTotal) * 100).toFixed(1)
     : '0.0';
+
+  const handleExportBulanan = () => {
+    const headers = ['Bulan', 'Total Tagihan (Rp)', 'Tagihan Lunas (Rp)', 'Jumlah Tagihan', 'Jumlah Lunas'];
+    const rows = bulanan.map((r: any) => [r.bulan, r.totalTagihan, r.totalLunas, r.jumlahTagihan, r.jumlahLunas]);
+    exportCSV(`laporan-keuangan-bulanan-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handleExportTunggakan = () => {
+    const headers = ['Kelompok Pelanggan', 'Jumlah Tunggakan', 'Total Nilai (Rp)'];
+    const rows = tunggakan.map((r: any) => [r.namaKelompok, r.jumlahTunggakan, r.totalTunggakan]);
+    exportCSV(`tunggakan-per-kelompok-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handleExportTertinggi = () => {
+    const headers = ['No', 'Nomor Meteran', 'Nomor Akun', 'Kelompok', 'Periode', 'Total Biaya (Rp)', 'Status'];
+    const rows = tertinggi.map((r: any, i: number) => [i + 1, r.nomorMeteran, r.nomorAkun, r.namaKelompok, r.periode, r.totalBiaya, r.statusPembayaran]);
+    exportCSV(`tagihan-tertinggi-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handlePrint = () => window.print();
 
   if (isLoading) {
     return (
@@ -102,9 +137,29 @@ export default function FinancialReports() {
   return (
     <AdminLayout title="Laporan Keuangan">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
-          Laporan Keuangan
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+            Laporan Keuangan
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Download />}
+              onClick={currentTab === 0 ? handleExportBulanan : currentTab === 1 ? handleExportTunggakan : handleExportTertinggi}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Print />}
+              onClick={handlePrint}
+            >
+              Print
+            </Button>
+          </Stack>
+        </Box>
 
         {/* Kartu Ringkasan */}
         <Grid container spacing={3} sx={{ mb: 4 }}>

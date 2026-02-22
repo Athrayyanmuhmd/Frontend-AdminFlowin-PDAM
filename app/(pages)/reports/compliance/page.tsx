@@ -29,7 +29,10 @@ import {
   Speed,
   Assessment,
   Science,
+  Download,
+  Print,
 } from '@mui/icons-material';
+import { Button, Stack } from '@mui/material';
 import {
   LineChart,
   Line,
@@ -109,6 +112,18 @@ function isWaterParamCompliant(p: typeof WATER_QUALITY_PARAMS[0]) {
   return p.nilai >= p.min && p.nilai <= p.max;
 }
 
+function exportCSV(filename: string, headers: string[], rows: (string | number)[][]) {
+  const bom = '\uFEFF';
+  const csvContent = bom + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ComplianceReports() {
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -172,6 +187,39 @@ export default function ComplianceReports() {
 
   const paramCompliant = WATER_QUALITY_PARAMS.filter(isWaterParamCompliant).length;
 
+  const handleExportKualitasAir = () => {
+    const headers = ['Parameter', 'Nilai', 'Satuan', 'Baku Mutu', 'Status'];
+    const rows = WATER_QUALITY_PARAMS.map(p => [
+      p.parameter,
+      p.nilai,
+      p.unit,
+      p.standar,
+      isWaterParamCompliant(p) ? 'Sesuai' : 'Tidak Sesuai',
+    ]);
+    exportCSV(`kualitas-air-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handleExportSLA = () => {
+    if (!slaMetrics.length) return;
+    const headers = ['Metrik SLA', 'Target', 'Aktual', 'Satuan', 'Status'];
+    const rows = slaMetrics.map(m => [m.metrik, m.target, m.aktual, m.unit, getStatusLabel(m.status)]);
+    exportCSV(`sla-operasional-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handleExportRegulasi = () => {
+    const headers = ['Regulasi', 'Topik', 'Compliance (%)', 'Audit Terakhir', 'Status'];
+    const rows = REGULASI.map(r => [r.regulasi, r.topik, r.compliance, r.auditTerakhir, getStatusLabel(r.status)]);
+    exportCSV(`kepatuhan-regulasi-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handleExportTren = () => {
+    const headers = ['Bulan', 'Kualitas Air (%)', 'SLA Layanan (%)', 'Regulasi (%)'];
+    const rows = COMPLIANCE_HISTORY.map(r => [r.bulan, r.kualitasAir, r.sla, r.regulasi]);
+    exportCSV(`tren-kepatuhan-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handlePrint = () => window.print();
+
   if (loadingKpi) {
     return (
       <AdminLayout title="Laporan Kepatuhan">
@@ -185,9 +233,34 @@ export default function ComplianceReports() {
   return (
     <AdminLayout title="Laporan Kepatuhan">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
-          Laporan Kepatuhan & Regulasi
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+            Laporan Kepatuhan & Regulasi
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Download />}
+              onClick={
+                currentTab === 0 ? handleExportKualitasAir
+                : currentTab === 1 ? handleExportSLA
+                : currentTab === 2 ? handleExportRegulasi
+                : handleExportTren
+              }
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Print />}
+              onClick={handlePrint}
+            >
+              Print
+            </Button>
+          </Stack>
+        </Box>
 
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>

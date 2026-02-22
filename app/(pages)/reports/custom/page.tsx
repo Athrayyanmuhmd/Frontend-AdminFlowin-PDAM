@@ -36,12 +36,15 @@ import {
   Alert,
   CircularProgress,
   IconButton,
+  Stack,
 } from '@mui/material';
 import {
   Add,
   Delete,
   PlayArrow,
   Assessment,
+  Download,
+  Print,
 } from '@mui/icons-material';
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
@@ -53,6 +56,74 @@ import {
   GET_LAPORAN_KEUANGAN_BULANAN,
   GET_TUNGGAKAN_PER_KELOMPOK,
 } from '@/lib/graphql/queries/reports';
+
+function exportCSV(filename: string, headers: string[], rows: (string | number)[][]) {
+  const bom = '\uFEFF';
+  const csvContent = bom + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getExportData(reportId: string | null, data: any): { headers: string[]; rows: (string | number)[][] } | null {
+  if (!reportId || !data) return null;
+  if (reportId === 'kpi_operasional') {
+    return {
+      headers: ['Indikator', 'Nilai', 'Satuan'],
+      rows: [
+        ['Total Meteran Terpasang', data.totalMeteranTerpasang, 'unit'],
+        ['Total Pelanggan', data.totalPelanggan, 'orang'],
+        ['Work Order Aktif', data.totalWorkOrderAktif, 'WO'],
+        ['Work Order Selesai', data.totalWorkOrderSelesai, 'WO'],
+        ['Laporan Masuk', data.totalLaporanMasuk, 'laporan'],
+        ['Laporan Selesai', data.totalLaporanSelesai, 'laporan'],
+        ['Total Teknisi', data.totalTeknisi, 'orang'],
+        ['Tingkat Penyelesaian Laporan', `${data.tingkatPenyelesaianLaporan}%`, ''],
+      ],
+    };
+  }
+  if (reportId === 'work_order' || reportId === 'laporan_pelanggan') {
+    const rows: any[] = data;
+    const total = rows.reduce((s: number, r: any) => s + r.jumlah, 0);
+    return {
+      headers: ['Status', 'Jumlah', 'Persentase'],
+      rows: rows.map((r: any) => [r.status, r.jumlah, total > 0 ? `${((r.jumlah / total) * 100).toFixed(1)}%` : '0%']),
+    };
+  }
+  if (reportId === 'ringkasan_tagihan') {
+    return {
+      headers: ['Keterangan', 'Nilai'],
+      rows: [
+        ['Total Tagihan', data.totalTagihan],
+        ['Tagihan Lunas', data.totalLunas],
+        ['Tagihan Tunggakan', data.totalTunggakan],
+        ['Tagihan Pending', data.totalPending],
+        ['Nilai Total Tagihan (Rp)', data.nilaiTotal],
+        ['Nilai Sudah Lunas (Rp)', data.nilaiLunas],
+        ['Nilai Tunggakan (Rp)', data.nilaiTunggakan],
+      ],
+    };
+  }
+  if (reportId === 'laporan_bulanan') {
+    const rows: any[] = data;
+    return {
+      headers: ['Bulan', 'Total Tagihan (Rp)', 'Sudah Lunas (Rp)', 'Jumlah Tagihan', 'Jumlah Lunas'],
+      rows: rows.map((r: any) => [r.bulan, r.totalTagihan, r.totalLunas, r.jumlahTagihan, r.jumlahLunas]),
+    };
+  }
+  if (reportId === 'tunggakan_kelompok') {
+    const rows: any[] = data;
+    return {
+      headers: ['Kelompok Pelanggan', 'Jumlah Tunggakan', 'Total Nilai (Rp)'],
+      rows: rows.map((r: any) => [r.namaKelompok, r.jumlahTunggakan, r.totalTunggakan]),
+    };
+  }
+  return null;
+}
 
 // Kategori laporan yang tersedia
 const REPORT_CATEGORIES = [
@@ -284,6 +355,13 @@ export default function CustomReports() {
 
   const selectedMeta = REPORT_CATEGORIES.find(r => r.id === generatedReport);
 
+  const handleExportCustom = () => {
+    const exportData = getExportData(generatedReport, data);
+    if (!exportData) return;
+    const filename = `laporan-${generatedReport}-${new Date().toISOString().slice(0,10)}.csv`;
+    exportCSV(filename, exportData.headers, exportData.rows);
+  };
+
   return (
     <AdminLayout title="Laporan Kustom">
       <Box sx={{ mb: 3 }}>
@@ -392,12 +470,32 @@ export default function CustomReports() {
                         {selectedMeta?.deskripsi}
                       </Typography>
                     </Box>
-                    <Chip
-                      label={`Kategori: ${kategoriLabel[selectedMeta?.kategori || '']}`}
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                    />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip
+                        label={`Kategori: ${kategoriLabel[selectedMeta?.kategori || '']}`}
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                      />
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Download />}
+                        onClick={handleExportCustom}
+                        disabled={!data || loading}
+                      >
+                        CSV
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Print />}
+                        onClick={() => window.print()}
+                        disabled={!data || loading}
+                      >
+                        Print
+                      </Button>
+                    </Stack>
                   </Box>
 
                   <Divider sx={{ mb: 2 }} />

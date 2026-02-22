@@ -28,7 +28,10 @@ import {
   People,
   WaterDrop,
   Assignment,
+  Download,
+  Print,
 } from '@mui/icons-material';
+import { Button, Stack } from '@mui/material';
 import {
   BarChart,
   Bar,
@@ -66,6 +69,18 @@ const LAPORAN_COLORS: Record<string, string> = {
 
 const FALLBACK_COLOR = '#607D8B';
 
+function exportCSV(filename: string, headers: string[], rows: (string | number)[][]) {
+  const bom = '\uFEFF';
+  const csvContent = bom + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function OperationalReports() {
   const [currentTab, setCurrentTab] = useState(0);
 
@@ -76,6 +91,38 @@ export default function OperationalReports() {
   const kpi = kpiData?.getKpiOperasional;
   const ringkasanWO: any[] = woData?.getRingkasanWorkOrder || [];
   const ringkasanLaporan: any[] = laporanData?.getRingkasanLaporan || [];
+
+  const handleExportKPI = () => {
+    if (!kpi) return;
+    const headers = ['Indikator', 'Nilai', 'Satuan'];
+    const rows = [
+      ['Total Meteran Terpasang', kpi.totalMeteranTerpasang, 'unit'],
+      ['Total Pelanggan', kpi.totalPelanggan, 'orang'],
+      ['Work Order Aktif', kpi.totalWorkOrderAktif, 'WO'],
+      ['Work Order Selesai', kpi.totalWorkOrderSelesai, 'WO'],
+      ['Laporan Masuk', kpi.totalLaporanMasuk, 'laporan'],
+      ['Laporan Selesai', kpi.totalLaporanSelesai, 'laporan'],
+      ['Total Teknisi', kpi.totalTeknisi, 'orang'],
+      ['Tingkat Penyelesaian Laporan', `${kpi.tingkatPenyelesaianLaporan}%`, ''],
+    ];
+    exportCSV(`kpi-operasional-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handleExportWO = () => {
+    const headers = ['Status', 'Jumlah', 'Persentase'];
+    const total = ringkasanWO.reduce((s: number, r: any) => s + r.jumlah, 0);
+    const rows = ringkasanWO.map((r: any) => [r.status, r.jumlah, total > 0 ? `${((r.jumlah / total) * 100).toFixed(1)}%` : '0%']);
+    exportCSV(`ringkasan-work-order-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handleExportLaporan = () => {
+    const headers = ['Status', 'Jumlah', 'Persentase'];
+    const total = ringkasanLaporan.reduce((s: number, r: any) => s + r.jumlah, 0);
+    const rows = ringkasanLaporan.map((r: any) => [r.status, r.jumlah, total > 0 ? `${((r.jumlah / total) * 100).toFixed(1)}%` : '0%']);
+    exportCSV(`ringkasan-laporan-pelanggan-${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const handlePrint = () => window.print();
 
   const kpiCards = kpi
     ? [
@@ -115,9 +162,29 @@ export default function OperationalReports() {
   return (
     <AdminLayout title="Laporan Operasional">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
-          Laporan Operasional
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+            Laporan Operasional
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Download />}
+              onClick={currentTab === 0 ? handleExportKPI : currentTab === 1 ? handleExportWO : handleExportLaporan}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Print />}
+              onClick={handlePrint}
+            >
+              Print
+            </Button>
+          </Stack>
+        </Box>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={currentTab} onChange={(_, v) => setCurrentTab(v)}>
