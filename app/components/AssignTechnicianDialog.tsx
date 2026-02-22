@@ -17,11 +17,13 @@ import {
   Typography,
   Box,
 } from '@mui/material';
-import { getAllTechnicians, Technician } from '../services/technician.service';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { GET_ALL_TEKNISI } from '../../lib/graphql/queries/technicians';
 import {
-  assignTechnician,
-  unassignTechnician,
-} from '../services/connectionData.service';
+  ASSIGN_TEKNISI_TO_KONEKSI,
+  UNASSIGN_TEKNISI_FROM_KONEKSI,
+  GET_CONNECTION_DATA_BY_ID,
+} from '../../lib/graphql/queries/connectionData';
 
 interface AssignTechnicianDialogProps {
   open: boolean;
@@ -40,71 +42,59 @@ export default function AssignTechnicianDialog({
   currentTechnicianName,
   onSuccess,
 }: AssignTechnicianDialogProps) {
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: teknisiData, loading } = useQuery(GET_ALL_TEKNISI, {
+    skip: !open,
+    fetchPolicy: 'network-only',
+  });
+
+  const technicians = teknisiData?.getAllTeknisi || [];
+
+  const [assignMutate, { loading: assigning }] = useMutation(ASSIGN_TEKNISI_TO_KONEKSI, {
+    refetchQueries: [{ query: GET_CONNECTION_DATA_BY_ID, variables: { id: connectionDataId } }],
+    onCompleted: () => {
+      onSuccess();
+      onClose();
+    },
+    onError: (err) => {
+      setError(err.message || 'Gagal assign teknisi');
+    },
+  });
+
+  const [unassignMutate, { loading: unassigning }] = useMutation(UNASSIGN_TEKNISI_FROM_KONEKSI, {
+    refetchQueries: [{ query: GET_CONNECTION_DATA_BY_ID, variables: { id: connectionDataId } }],
+    onCompleted: () => {
+      onSuccess();
+      onClose();
+    },
+    onError: (err) => {
+      setError(err.message || 'Gagal hapus assignment teknisi');
+    },
+  });
+
+  const submitting = assigning || unassigning;
 
   useEffect(() => {
     if (open) {
-      fetchTechnicians();
       setSelectedTechnicianId(currentTechnicianId || '');
       setError(null);
     }
   }, [open, currentTechnicianId]);
 
-  const fetchTechnicians = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getAllTechnicians();
-      // Handle both array and wrapped responses
-      const techniciansData = Array.isArray(response.data)
-        ? response.data
-        : response.data?.data || [];
-      setTechnicians(techniciansData);
-    } catch (err: any) {
-      console.error('Error fetching technicians:', err);
-      setError(err.response?.data?.message || 'Failed to load technicians');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!selectedTechnicianId) {
-      setError('Please select a technician');
+      setError('Pilih teknisi terlebih dahulu');
       return;
     }
-
-    setSubmitting(true);
     setError(null);
-    try {
-      await assignTechnician(connectionDataId, selectedTechnicianId);
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      console.error('Error assigning technician:', err);
-      setError(err.response?.data?.message || 'Failed to assign technician');
-    } finally {
-      setSubmitting(false);
-    }
+    await assignMutate({ variables: { id: connectionDataId, technicianId: selectedTechnicianId } });
   };
 
   const handleUnassign = async () => {
-    setSubmitting(true);
     setError(null);
-    try {
-      await unassignTechnician(connectionDataId);
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      console.error('Error unassigning technician:', err);
-      setError(err.response?.data?.message || 'Failed to unassign technician');
-    } finally {
-      setSubmitting(false);
-    }
+    await unassignMutate({ variables: { id: connectionDataId } });
   };
 
   const handleClose = () => {
@@ -169,9 +159,9 @@ export default function AssignTechnicianDialog({
               <MenuItem value=''>
                 <em>-- Pilih Teknisi --</em>
               </MenuItem>
-              {technicians.map(technician => (
-                <MenuItem key={technician._id} value={technician._id}>
-                  {technician.fullName} - {technician.email}
+              {technicians.map((teknisi: any) => (
+                <MenuItem key={teknisi._id} value={teknisi._id}>
+                  {teknisi.namaLengkap} - {teknisi.email}
                 </MenuItem>
               ))}
             </Select>
@@ -187,7 +177,7 @@ export default function AssignTechnicianDialog({
             color='error'
             variant='outlined'
           >
-            {submitting ? 'Removing...' : 'Hapus Assignment'}
+            {unassigning ? 'Menghapus...' : 'Hapus Assignment'}
           </Button>
         )}
         <Box sx={{ flex: 1 }} />
@@ -200,7 +190,7 @@ export default function AssignTechnicianDialog({
           variant='contained'
           color='primary'
         >
-          {submitting ? <CircularProgress size={24} /> : 'Assign'}
+          {assigning ? <CircularProgress size={24} /> : 'Assign'}
         </Button>
       </DialogActions>
     </Dialog>

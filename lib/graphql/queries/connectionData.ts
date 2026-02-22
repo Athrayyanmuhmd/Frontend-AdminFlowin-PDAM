@@ -54,8 +54,52 @@ export const GET_CONNECTION_DATA_BY_ID = gql`
       kecamatan
       luasBangunan
       statusVerifikasi
+      idTeknisi {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
+      assignedAt
+      assignedBy {
+        _id
+        namaLengkap
+        email
+      }
       createdAt
       updatedAt
+    }
+  }
+`;
+
+export const ASSIGN_TEKNISI_TO_KONEKSI = gql`
+  mutation AssignTeknisiToKoneksi($id: ID!, $technicianId: ID!) {
+    assignTeknisiToKoneksi(id: $id, technicianId: $technicianId) {
+      _id
+      idTeknisi {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
+      assignedAt
+      assignedBy {
+        _id
+        namaLengkap
+      }
+    }
+  }
+`;
+
+export const UNASSIGN_TEKNISI_FROM_KONEKSI = gql`
+  mutation UnassignTeknisiFromKoneksi($id: ID!) {
+    unassignTeknisiFromKoneksi(id: $id) {
+      _id
+      idTeknisi {
+        _id
+        namaLengkap
+      }
+      assignedAt
     }
   }
 `;

@@ -107,6 +107,19 @@ export default function ConnectionDataDetail() {
         isVerifiedByData: graphqlData.statusVerifikasi,
         isVerifiedByTechnician: false, // Not available in GraphQL
         isAllProcedureDone: false, // Not available in GraphQL
+        // Map assign fields
+        assignedTechnicianId: graphqlData.idTeknisi ? {
+          _id: graphqlData.idTeknisi._id,
+          namaLengkap: graphqlData.idTeknisi.namaLengkap,
+          email: graphqlData.idTeknisi.email,
+          noHP: graphqlData.idTeknisi.noHP,
+        } : null,
+        assignedAt: graphqlData.assignedAt || null,
+        assignedBy: graphqlData.assignedBy ? {
+          _id: graphqlData.assignedBy._id,
+          namaLengkap: graphqlData.assignedBy.namaLengkap,
+          email: graphqlData.assignedBy.email,
+        } : null,
         createdAt: graphqlData.createdAt,
         updatedAt: graphqlData.updatedAt,
       };
