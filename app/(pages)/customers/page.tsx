@@ -71,60 +71,6 @@ import {
   useDeleteCustomer,
 } from '../../../lib/graphql/hooks/useCustomers';
 
-// Mock data untuk demo
-const mockCustomers: User[] = [
-  {
-    id: '1',
-    nik: '1101010101010001',
-    name: 'Ahmad Rizki',
-    email: 'ahmad.rizki@email.com',
-    phone: '081234567890',
-    address: 'Jl. Teuku Umar No. 123, Banda Aceh',
-    customerType: 'rumah_tangga',
-    accountStatus: 'active',
-    registrationDate: new Date('2023-01-15'),
-    lastLogin: new Date('2024-01-15'),
-    location: {
-      latitude: 5.5483,
-      longitude: 95.3238,
-      address: 'Jl. Teuku Umar No. 123, Banda Aceh',
-    },
-  },
-  {
-    id: '2',
-    nik: '1101010101010002',
-    name: 'Siti Nurhaliza',
-    email: 'siti.nurhaliza@email.com',
-    phone: '081234567891',
-    address: 'Jl. Cut Nyak Dien No. 456, Banda Aceh',
-    customerType: 'komersial',
-    accountStatus: 'active',
-    registrationDate: new Date('2023-02-20'),
-    lastLogin: new Date('2024-01-14'),
-    location: {
-      latitude: 5.5483,
-      longitude: 95.3238,
-      address: 'Jl. Cut Nyak Dien No. 456, Banda Aceh',
-    },
-  },
-  {
-    id: '3',
-    nik: '1101010101010003',
-    name: 'PT. Maju Jaya',
-    email: 'info@majujaya.com',
-    phone: '0651-123456',
-    address: 'Jl. Industri No. 789, Banda Aceh',
-    customerType: 'industri',
-    accountStatus: 'active',
-    registrationDate: new Date('2023-03-10'),
-    lastLogin: new Date('2024-01-13'),
-    location: {
-      latitude: 5.5483,
-      longitude: 95.3238,
-      address: 'Jl. Industri No. 789, Banda Aceh',
-    },
-  },
-];
 
 const mockAccounts: CustomerAccount[] = [
   {

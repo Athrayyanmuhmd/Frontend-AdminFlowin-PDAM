@@ -18,12 +18,9 @@ import {
   MenuItem,
   Alert,
   Divider,
-  Paper,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
   Chip,
   IconButton,
@@ -33,6 +30,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from '@mui/material';
 import {
   CheckCircle,
@@ -43,12 +41,32 @@ import {
   LocationOn,
   Person,
   Assignment,
-  Add,
-  Delete,
   SaveAlt,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '../../../../layouts/AdminLayout';
+import { useMutation } from '@apollo/client/react';
+import { gql } from '@apollo/client';
+import { useGetAllKelompokPelanggan } from '../../../../../lib/graphql/hooks/useKelompokPelanggan';
+
+const CREATE_METERAN = gql`
+  mutation CreateMeteran(
+    $idKelompokPelanggan: ID!
+    $nomorMeteran: String!
+    $nomorAkun: String!
+  ) {
+    createMeteran(
+      idKelompokPelanggan: $idKelompokPelanggan
+      nomorMeteran: $nomorMeteran
+      nomorAkun: $nomorAkun
+    ) {
+      _id
+      nomorMeteran
+      nomorAkun
+      statusAktif
+    }
+  }
+`;
 
 const steps = ['Informasi Meteran', 'Konfigurasi', 'Instalasi', 'Verifikasi'];
 
@@ -60,6 +78,7 @@ interface MeterRegistration {
   model: string;
   yearManufactured: string;
   capacity: string;
+  idKelompokPelanggan: string;
 
   // Customer & Location
   customerId: string;
@@ -93,6 +112,10 @@ interface MeterRegistration {
 export default function SmartMeterRegistrationPage() {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
+  const [submitError, setSubmitError] = useState('');
+  const [createMeteran, { loading: submitting }] = useMutation(CREATE_METERAN);
+  const { kelompokPelanggan } = useGetAllKelompokPelanggan();
+
   const [formData, setFormData] = useState<MeterRegistration>({
     meterSerialNumber: '',
     meterType: 'digital',
@@ -100,6 +123,7 @@ export default function SmartMeterRegistrationPage() {
     model: '',
     yearManufactured: new Date().getFullYear().toString(),
     capacity: '20',
+    idKelompokPelanggan: '',
 
     customerId: '',
     customerName: '',
@@ -155,6 +179,7 @@ export default function SmartMeterRegistrationPage() {
         if (!formData.meterSerialNumber) newErrors.meterSerialNumber = 'Serial number wajib diisi';
         if (!formData.manufacturer) newErrors.manufacturer = 'Manufacturer wajib diisi';
         if (!formData.model) newErrors.model = 'Model wajib diisi';
+        if (!formData.idKelompokPelanggan) newErrors.idKelompokPelanggan = 'Kelompok pelanggan wajib dipilih';
         break;
       case 1:
         if (!formData.simCardNumber && formData.communicationType !== 'LoRa') {
@@ -172,20 +197,31 @@ export default function SmartMeterRegistrationPage() {
   };
 
   const handleTestConnection = async () => {
+    if (!formData.meterSerialNumber) {
+      setTestConnectionStatus('error');
+      return;
+    }
     setTestConnectionStatus('testing');
-    // Simulate API call
+    // Test koneksi simulasi - IoT hardware belum terintegrasi
     setTimeout(() => {
-      const success = Math.random() > 0.3;
-      setTestConnectionStatus(success ? 'success' : 'error');
-    }, 2000);
+      setTestConnectionStatus('success');
+    }, 1500);
   };
 
-  const handleSubmit = () => {
-    if (validateStep(activeStep)) {
-      // Submit to API
-      console.log('Submitting meter registration:', formData);
-      alert('Meteran berhasil didaftarkan!');
+  const handleSubmit = async () => {
+    if (!validateStep(activeStep)) return;
+    setSubmitError('');
+    try {
+      await createMeteran({
+        variables: {
+          idKelompokPelanggan: formData.idKelompokPelanggan,
+          nomorMeteran: formData.meterSerialNumber,
+          nomorAkun: formData.accountNumber || `ACC-${Date.now()}`,
+        },
+      });
       router.push('/monitoring/smart-meters');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Gagal mendaftarkan meteran');
     }
   };
 
@@ -284,6 +320,28 @@ export default function SmartMeterRegistrationPage() {
                   <MenuItem value="40">40 m³/h</MenuItem>
                   <MenuItem value="50">50 m³/h</MenuItem>
                 </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required error={!!errors.idKelompokPelanggan}>
+                <InputLabel>Kelompok Pelanggan / Tarif</InputLabel>
+                <Select
+                  value={formData.idKelompokPelanggan}
+                  onChange={(e) => handleChange('idKelompokPelanggan', e.target.value)}
+                  label="Kelompok Pelanggan / Tarif"
+                >
+                  {(kelompokPelanggan as any[]).map((k: any) => (
+                    <MenuItem key={k._id} value={k._id}>
+                      {k.namaKelompok} - {k.kodeKelompok}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.idKelompokPelanggan && (
+                  <Typography variant="caption" color="error" sx={{ ml: 2, mt: 0.5 }}>
+                    {errors.idKelompokPelanggan}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
 
@@ -761,6 +819,12 @@ export default function SmartMeterRegistrationPage() {
 
             {renderStepContent(activeStep)}
 
+            {submitError && (
+              <Alert severity="error" sx={{ mt: 2 }} onClose={() => setSubmitError('')}>
+                {submitError}
+              </Alert>
+            )}
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
               <Button
                 disabled={activeStep === 0}
@@ -781,9 +845,10 @@ export default function SmartMeterRegistrationPage() {
                   <Button
                     variant="contained"
                     onClick={handleSubmit}
-                    startIcon={<SaveAlt />}
+                    disabled={submitting}
+                    startIcon={submitting ? <CircularProgress size={18} /> : <SaveAlt />}
                   >
-                    Daftarkan Meteran
+                    {submitting ? 'Mendaftarkan...' : 'Daftarkan Meteran'}
                   </Button>
                 ) : (
                   <Button
