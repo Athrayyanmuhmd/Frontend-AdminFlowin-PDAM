@@ -22,7 +22,24 @@ import {
   Warning,
   Refresh,
 } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@mui/material';
+
+const DashboardLineChart = dynamic(
+  () => import('../../components/charts/DashboardLineChart'),
+  {
+    ssr: false,
+    loading: () => <Skeleton variant="rectangular" width="100%" height={280} sx={{ borderRadius: 1 }} />,
+  }
+);
+
+const DashboardPieChart = dynamic(
+  () => import('../../components/charts/DashboardPieChart'),
+  {
+    ssr: false,
+    loading: () => <Skeleton variant="circular" width={200} height={200} sx={{ mx: 'auto' }} />,
+  }
+);
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DashboardKPI } from '../../types/admin.types';
@@ -250,31 +267,7 @@ export default function Dashboard() {
                 </Box>
               ) : (
                 <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={konsumsiChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="bulan" />
-                      <YAxis
-                        tickFormatter={(v) => `${(v / 1000000).toFixed(0)}jt`}
-                      />
-                      <RechartsTooltip
-                        formatter={(value: any, name: string) => [
-                          name === 'totalTagihan'
-                            ? `Rp ${Number(value).toLocaleString('id-ID')}`
-                            : `${value} tagihan`,
-                          name === 'totalTagihan' ? 'Total Pendapatan' : 'Jumlah Tagihan',
-                        ]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="totalTagihan"
-                        stroke="#2196F3"
-                        strokeWidth={3}
-                        dot={{ r: 4 }}
-                        name="totalTagihan"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <DashboardLineChart data={konsumsiChartData} />
                 </Box>
               )}
             </CardContent>
@@ -296,35 +289,7 @@ export default function Dashboard() {
                 </Box>
               ) : (
                 <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={distribusiChartData}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={55}
-                        outerRadius={100}
-                        paddingAngle={4}
-                        dataKey="jumlahMeteran"
-                        nameKey="namaKelompok"
-                      >
-                        {distribusiChartData.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip
-                        formatter={(value: any, name: string) => [
-                          `${Number(value).toLocaleString('id-ID')} meteran`,
-                          name,
-                        ]}
-                      />
-                      <Legend
-                        formatter={(value) => (
-                          <span style={{ fontSize: 12 }}>{value}</span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <DashboardPieChart data={distribusiChartData} />
                 </Box>
               )}
             </CardContent>
