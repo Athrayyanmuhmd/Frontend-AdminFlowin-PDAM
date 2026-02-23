@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Drawer,
@@ -388,6 +388,20 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
   const menuItems =
     userRole === 'technician' ? technicianMenuItems : adminMenuItems;
 
+  // Auto-expand the parent group whose child matches the current route
+  useEffect(() => {
+    const parentWithActiveChild = menuItems.find(item =>
+      item.children?.some(child => child.path && pathname.startsWith(child.path))
+    );
+    if (parentWithActiveChild) {
+      setExpandedItems(prev =>
+        prev.includes(parentWithActiveChild.id)
+          ? prev
+          : [...prev, parentWithActiveChild.id]
+      );
+    }
+  }, [pathname, menuItems]);
+
   const handleItemClick = (item: MenuItem) => {
     if (item.children) {
       setExpandedItems(prev =>
@@ -414,6 +428,10 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
 
     const isExpanded = expandedItems.includes(item.id);
     const isActive = item.path === pathname;
+    const isChildActive = !item.path && item.children?.some(
+      child => child.path && pathname.startsWith(child.path)
+    );
+    const isHighlighted = isActive || isChildActive;
 
     return (
       <React.Fragment key={item.id}>
@@ -422,15 +440,21 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             onClick={() => handleItemClick(item)}
             sx={{
               pl: 2 + level * 2,
-              backgroundColor: isActive ? 'primary.main' : 'transparent',
+              backgroundColor: isActive
+                ? 'primary.main'
+                : isChildActive
+                ? 'primary.50'
+                : 'transparent',
               color: isActive ? 'primary.contrastText' : 'inherit',
+              borderLeft: isChildActive && !isActive ? '3px solid' : 'none',
+              borderColor: 'primary.main',
               '&:hover': {
                 backgroundColor: isActive ? 'primary.dark' : 'action.hover',
               },
             }}
           >
             <ListItemIcon
-              sx={{ color: isActive ? 'primary.contrastText' : 'inherit' }}
+              sx={{ color: isActive ? 'primary.contrastText' : isChildActive ? 'primary.main' : 'inherit' }}
             >
               {item.icon}
             </ListItemIcon>
@@ -438,7 +462,8 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               primary={item.title}
               primaryTypographyProps={{
                 fontSize: level > 0 ? '0.875rem' : '1rem',
-                fontWeight: isActive ? 600 : 400,
+                fontWeight: isHighlighted ? 600 : 400,
+                color: isChildActive && !isActive ? 'primary.main' : 'inherit',
               }}
             />
             {item.children && (isExpanded ? <ExpandLess /> : <ExpandMore />)}

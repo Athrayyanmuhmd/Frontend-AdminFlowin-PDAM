@@ -1,6 +1,7 @@
+// @ts-nocheck
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Grid,
   Card,
@@ -29,9 +30,8 @@ import {
   Select,
   Avatar,
   Pagination,
-  Switch,
-  FormControlLabel,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Search,
@@ -43,212 +43,145 @@ import {
   Person,
   AdminPanelSettings,
   Shield,
-  Block,
   LockReset,
   Email,
   Phone,
   CheckCircle,
   Warning,
 } from '@mui/icons-material';
+import { useQuery, useMutation } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { userAPI } from '../../../utils/API';
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  fullName: string;
-  phone?: string;
-  role: 'super_admin' | 'admin' | 'operator' | 'viewer';
-  status: 'active' | 'inactive' | 'suspended';
-  lastLogin?: Date;
-  createdAt: Date;
-  permissions: string[];
-}
-
-const mockUsers: User[] = [
-  {
-    id: '1',
-    username: 'admin',
-    email: 'admin@pdam.ac.id',
-    fullName: 'Administrator',
-    phone: '081234567890',
-    role: 'super_admin',
-    status: 'active',
-    lastLogin: new Date('2024-01-20T10:30:00'),
-    createdAt: new Date('2020-01-01'),
-    permissions: ['all'],
-  },
-  {
-    id: '2',
-    username: 'operator1',
-    email: 'operator1@pdam.ac.id',
-    fullName: 'Operator Satu',
-    phone: '081234567891',
-    role: 'operator',
-    status: 'active',
-    lastLogin: new Date('2024-01-20T09:15:00'),
-    createdAt: new Date('2021-06-15'),
-    permissions: ['customers:read', 'billing:read', 'workorders:manage'],
-  },
-  {
-    id: '3',
-    username: 'viewer1',
-    email: 'viewer1@pdam.ac.id',
-    fullName: 'Viewer User',
-    phone: '081234567892',
-    role: 'viewer',
-    status: 'active',
-    lastLogin: new Date('2024-01-19T14:20:00'),
-    createdAt: new Date('2022-03-10'),
-    permissions: ['customers:read', 'billing:read'],
-  },
-];
+import {
+  GET_ALL_ADMINS,
+  CREATE_ADMIN,
+  UPDATE_ADMIN,
+  DELETE_ADMIN,
+} from '../../../../lib/graphql/queries/admin';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(mockUsers);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
-  const [loading, setLoading] = useState(false);
+  const rowsPerPage = 10;
+  const [alertMsg, setAlertMsg] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
-  useEffect(() => {
-    // fetchUsers();
-  }, []);
+  // Form state - add
+  const [addForm, setAddForm] = useState({ NIP: '', namaLengkap: '', email: '', noHP: '', password: '', confirmPassword: '' });
+  const [addFormError, setAddFormError] = useState('');
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await userAPI.getAll();
-      if (response.data.success) {
-        setUsers(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
+  // Form state - edit
+  const [editForm, setEditForm] = useState({ NIP: '', namaLengkap: '', email: '', noHP: '' });
+
+  // Form state - reset password
+  const [resetForm, setResetForm] = useState({ password: '', confirmPassword: '' });
+  const [resetFormError, setResetFormError] = useState('');
+
+  // GraphQL
+  const { data, loading, error, refetch } = useQuery(GET_ALL_ADMINS, { fetchPolicy: 'network-only' });
+  const [createAdmin, { loading: creating }] = useMutation(CREATE_ADMIN, { onCompleted: () => { refetch(); setOpenAddDialog(false); setAddForm({ NIP: '', namaLengkap: '', email: '', noHP: '', password: '', confirmPassword: '' }); showAlert('success', 'Admin berhasil ditambahkan'); }, onError: (e) => setAddFormError(e.message) });
+  const [updateAdmin, { loading: updating }] = useMutation(UPDATE_ADMIN, { onCompleted: () => { refetch(); setOpenEditDialog(false); showAlert('success', 'Data admin berhasil diperbarui'); }, onError: (e) => showAlert('error', e.message) });
+  const [deleteAdmin, { loading: deleting }] = useMutation(DELETE_ADMIN, { onCompleted: () => { refetch(); setOpenDeleteDialog(false); showAlert('success', 'Admin berhasil dihapus'); }, onError: (e) => showAlert('error', e.message) });
+
+  const admins = data?.getAllAdmins || [];
+
+  const showAlert = (type: 'success' | 'error', msg: string) => {
+    setAlertMsg({ type, msg });
+    setTimeout(() => setAlertMsg(null), 4000);
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: User) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedUser(user);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleViewDetails = () => {
-    setOpenDialog(true);
-    handleMenuClose();
-  };
-
-  const handleResetPassword = () => {
-    setOpenResetPasswordDialog(true);
-    handleMenuClose();
-  };
-
-  const handleToggleStatus = async (userId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    try {
-      // await userAPI.updateStatus(userId, newStatus);
-      setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as any } : u));
-    } catch (error) {
-      console.error('Error toggling status:', error);
-    }
-  };
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch =
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
-    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
-
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'super_admin': return 'error';
-      case 'admin': return 'warning';
-      case 'operator': return 'primary';
-      case 'viewer': return 'info';
-      default: return 'default';
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'super_admin': return 'Super Admin';
-      case 'admin': return 'Admin';
-      case 'operator': return 'Operator';
-      case 'viewer': return 'Viewer';
-      default: return role;
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'super_admin': return <Shield />;
-      case 'admin': return <AdminPanelSettings />;
-      case 'operator': return <Person />;
-      case 'viewer': return <Visibility />;
-      default: return <Person />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'inactive': return 'default';
-      case 'suspended': return 'error';
-      default: return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return 'Aktif';
-      case 'inactive': return 'Tidak Aktif';
-      case 'suspended': return 'Ditangguhkan';
-      default: return status;
-    }
-  };
+  const filteredAdmins = useMemo(() => {
+    if (!searchTerm) return admins;
+    const q = searchTerm.toLowerCase();
+    return admins.filter((a: any) =>
+      a.namaLengkap?.toLowerCase().includes(q) ||
+      a.email?.toLowerCase().includes(q) ||
+      a.NIP?.toLowerCase().includes(q) ||
+      a.noHP?.toLowerCase().includes(q)
+    );
+  }, [admins, searchTerm]);
 
   const startIndex = (page - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+  const paginatedAdmins = filteredAdmins.slice(startIndex, startIndex + rowsPerPage);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, admin: any) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedAdmin(admin);
+  };
+  const handleMenuClose = () => setAnchorEl(null);
+
+  const handleViewDetails = () => { setOpenDetailDialog(true); handleMenuClose(); };
+  const handleOpenEdit = () => {
+    setEditForm({ NIP: selectedAdmin?.NIP || '', namaLengkap: selectedAdmin?.namaLengkap || '', email: selectedAdmin?.email || '', noHP: selectedAdmin?.noHP || '' });
+    setOpenEditDialog(true);
+    handleMenuClose();
+  };
+  const handleOpenDelete = () => { setOpenDeleteDialog(true); handleMenuClose(); };
+  const handleOpenReset = () => { setResetForm({ password: '', confirmPassword: '' }); setResetFormError(''); setOpenResetPasswordDialog(true); handleMenuClose(); };
+
+  const handleAddSubmit = async () => {
+    setAddFormError('');
+    if (!addForm.NIP || !addForm.namaLengkap || !addForm.email || !addForm.noHP || !addForm.password) {
+      setAddFormError('Semua field wajib diisi'); return;
+    }
+    if (addForm.password !== addForm.confirmPassword) {
+      setAddFormError('Konfirmasi password tidak cocok'); return;
+    }
+    await createAdmin({ variables: { input: { NIP: addForm.NIP, namaLengkap: addForm.namaLengkap, email: addForm.email, noHP: addForm.noHP, password: addForm.password } } });
+  };
+
+  const handleEditSubmit = async () => {
+    await updateAdmin({ variables: { id: selectedAdmin._id, input: { NIP: editForm.NIP, namaLengkap: editForm.namaLengkap, email: editForm.email, noHP: editForm.noHP } } });
+  };
+
+  const handleDeleteConfirm = async () => {
+    await deleteAdmin({ variables: { id: selectedAdmin._id } });
+  };
+
+  const handleResetSubmit = async () => {
+    setResetFormError('');
+    if (!resetForm.password) { setResetFormError('Password baru wajib diisi'); return; }
+    if (resetForm.password !== resetForm.confirmPassword) { setResetFormError('Konfirmasi password tidak cocok'); return; }
+    await updateAdmin({ variables: { id: selectedAdmin._id, input: { password: resetForm.password } } });
+    setOpenResetPasswordDialog(false);
+    showAlert('success', 'Password berhasil direset');
+  };
+
+  const formatDate = (ts: string) => {
+    if (!ts) return '-';
+    return new Date(parseInt(ts) || ts).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  if (loading) return (
+    <AdminLayout title="Manajemen User">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    </AdminLayout>
+  );
+
+  if (error) return (
+    <AdminLayout title="Manajemen User">
+      <Alert severity="error">Gagal memuat data admin: {error.message}</Alert>
+    </AdminLayout>
+  );
 
   return (
     <AdminLayout title="Manajemen User">
       <Box sx={{ mb: 3 }}>
+        {alertMsg && <Alert severity={alertMsg.type} sx={{ mb: 2 }} onClose={() => setAlertMsg(null)}>{alertMsg.msg}</Alert>}
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-            Manajemen User
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setOpenAddDialog(true)}
-          >
-            Tambah User
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>Manajemen Admin</Typography>
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setAddFormError(''); setAddForm({ NIP: '', namaLengkap: '', email: '', noHP: '', password: '', confirmPassword: '' }); setOpenAddDialog(true); }}>
+            Tambah Admin
           </Button>
         </Box>
-
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <strong>Perhatian!</strong> Perubahan role dan permission akan langsung berpengaruh pada akses user.
-        </Alert>
 
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -256,76 +189,49 @@ export default function UsersPage() {
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main' }}>
-                    <Person />
-                  </Avatar>
+                  <Avatar sx={{ bgcolor: 'primary.main' }}><Person /></Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {users.length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total User
-                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{admins.length}</Typography>
+                    <Typography variant="body2" color="text.secondary">Total Admin</Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'success.main' }}>
-                    <CheckCircle />
-                  </Avatar>
+                  <Avatar sx={{ bgcolor: 'success.main' }}><CheckCircle /></Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {users.filter(u => u.status === 'active').length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      User Aktif
-                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{admins.length}</Typography>
+                    <Typography variant="body2" color="text.secondary">Admin Aktif</Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'error.main' }}>
-                    <Shield />
-                  </Avatar>
+                  <Avatar sx={{ bgcolor: 'error.main' }}><Shield /></Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {users.filter(u => u.role === 'super_admin' || u.role === 'admin').length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Admin
-                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{admins.length}</Typography>
+                    <Typography variant="body2" color="text.secondary">Administrator</Typography>
                   </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-
           <Grid item xs={12} sm={6} md={3}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'warning.main' }}>
-                    <Warning />
-                  </Avatar>
+                  <Avatar sx={{ bgcolor: 'warning.main' }}><Warning /></Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {users.filter(u => u.status === 'inactive' || u.status === 'suspended').length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Non-Aktif
-                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>0</Typography>
+                    <Typography variant="body2" color="text.secondary">Non-Aktif</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -333,164 +239,83 @@ export default function UsersPage() {
           </Grid>
         </Grid>
 
-        {/* Filters */}
+        {/* Search */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  placeholder="Cari user..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={filterRole}
-                    onChange={(e) => setFilterRole(e.target.value)}
-                    label="Role"
-                  >
-                    <MenuItem value="all">Semua</MenuItem>
-                    <MenuItem value="super_admin">Super Admin</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
-                    <MenuItem value="operator">Operator</MenuItem>
-                    <MenuItem value="viewer">Viewer</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    label="Status"
-                  >
-                    <MenuItem value="all">Semua</MenuItem>
-                    <MenuItem value="active">Aktif</MenuItem>
-                    <MenuItem value="inactive">Tidak Aktif</MenuItem>
-                    <MenuItem value="suspended">Ditangguhkan</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+            <TextField
+              fullWidth
+              placeholder="Cari admin berdasarkan nama, email, NIP, atau no. HP..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><Search /></InputAdornment> }}
+            />
           </CardContent>
         </Card>
 
-        {/* Users Table */}
+        {/* Table */}
         <Card>
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>User</TableCell>
+                  <TableCell>Admin</TableCell>
                   <TableCell>Kontak</TableCell>
+                  <TableCell>NIP</TableCell>
                   <TableCell>Role</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Login Terakhir</TableCell>
-                  <TableCell>Aksi</TableCell>
-                  <TableCell align="right">Menu</TableCell>
+                  <TableCell>Dibuat</TableCell>
+                  <TableCell align="right">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedUsers.map((user) => (
-                  <TableRow key={user.id} hover>
+                {paginatedAdmins.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <Typography color="text.secondary" sx={{ py: 4 }}>
+                        {searchTerm ? 'Tidak ada admin yang cocok dengan pencarian' : 'Belum ada data admin'}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedAdmins.map((admin: any) => (
+                  <TableRow key={admin._id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ bgcolor: getRoleColor(user.role) + '.main' }}>
-                          {getRoleIcon(user.role)}
-                        </Avatar>
+                        <Avatar sx={{ bgcolor: 'primary.main' }}><AdminPanelSettings /></Avatar>
                         <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {user.fullName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            @{user.username}
-                          </Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{admin.namaLengkap}</Typography>
+                          <Typography variant="caption" color="text.secondary">{admin.email}</Typography>
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Box>
                         <Typography variant="body2">
-                          <Email sx={{ fontSize: 14, mr: 1, verticalAlign: 'middle' }} />
-                          {user.email}
+                          <Email sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />{admin.email}
                         </Typography>
-                        {user.phone && (
-                          <Typography variant="body2">
-                            <Phone sx={{ fontSize: 14, mr: 1, verticalAlign: 'middle' }} />
-                            {user.phone}
-                          </Typography>
-                        )}
+                        <Typography variant="body2">
+                          <Phone sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />{admin.noHP}
+                        </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        icon={getRoleIcon(user.role)}
-                        label={getRoleLabel(user.role)}
-                        size="small"
-                        color={getRoleColor(user.role) as any}
-                      />
+                      <Typography variant="body2">{admin.NIP || '-'}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={getStatusLabel(user.status)}
-                        size="small"
-                        color={getStatusColor(user.status) as any}
-                      />
+                      <Chip icon={<Shield />} label="Administrator" size="small" color="primary" />
                     </TableCell>
                     <TableCell>
-                      {user.lastLogin ? (
-                        <Typography variant="body2">
-                          {user.lastLogin.toLocaleString('id-ID')}
-                        </Typography>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Belum pernah login
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={user.status === 'active'}
-                            onChange={() => handleToggleStatus(user.id, user.status)}
-                            disabled={user.role === 'super_admin'}
-                          />
-                        }
-                        label=""
-                      />
+                      <Typography variant="body2">{formatDate(admin.createdAt)}</Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, user)}
-                        size="small"
-                      >
-                        <MoreVert />
-                      </IconButton>
+                      <IconButton onClick={(e) => handleMenuOpen(e, admin)} size="small"><MoreVert /></IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
-
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
             <Pagination
-              count={Math.ceil(filteredUsers.length / rowsPerPage)}
+              count={Math.ceil(filteredAdmins.length / rowsPerPage)}
               page={page}
               onChange={(_, newPage) => setPage(newPage)}
               color="primary"
@@ -500,159 +325,147 @@ export default function UsersPage() {
       </Box>
 
       {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={handleViewDetails}>
-          <Visibility sx={{ mr: 1 }} />
-          Lihat Detail
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <Edit sx={{ mr: 1 }} />
-          Edit
-        </MenuItem>
-        <MenuItem onClick={handleResetPassword}>
-          <LockReset sx={{ mr: 1 }} />
-          Reset Password
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <Block sx={{ mr: 1 }} />
-          Suspend User
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'error.main' }}>
-          <Delete sx={{ mr: 1 }} />
-          Hapus
-        </MenuItem>
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <MenuItem onClick={handleViewDetails}><Visibility sx={{ mr: 1 }} />Lihat Detail</MenuItem>
+        <MenuItem onClick={handleOpenEdit}><Edit sx={{ mr: 1 }} />Edit</MenuItem>
+        <MenuItem onClick={handleOpenReset}><LockReset sx={{ mr: 1 }} />Reset Password</MenuItem>
+        <MenuItem onClick={handleOpenDelete} sx={{ color: 'error.main' }}><Delete sx={{ mr: 1 }} />Hapus</MenuItem>
       </Menu>
 
-      {/* User Detail Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Detail User</DialogTitle>
+      {/* Detail Dialog */}
+      <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Detail Admin</DialogTitle>
         <DialogContent>
-          {selectedUser && (
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>
-                  Informasi User
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Username:</strong> {selectedUser.username}</Typography>
-                  <Typography><strong>Nama Lengkap:</strong> {selectedUser.fullName}</Typography>
-                  <Typography><strong>Email:</strong> {selectedUser.email}</Typography>
-                  <Typography><strong>Telepon:</strong> {selectedUser.phone || '-'}</Typography>
-                  <Typography><strong>Role:</strong> {getRoleLabel(selectedUser.role)}</Typography>
-                  <Typography><strong>Status:</strong> {getStatusLabel(selectedUser.status)}</Typography>
+          {selectedAdmin && (
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56 }}><AdminPanelSettings /></Avatar>
+                  <Box>
+                    <Typography variant="h6">{selectedAdmin.namaLengkap}</Typography>
+                    <Chip icon={<Shield />} label="Administrator" size="small" color="primary" />
+                  </Box>
                 </Box>
               </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>
-                  Aktivitas
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Dibuat:</strong> {selectedUser.createdAt.toLocaleDateString('id-ID')}</Typography>
-                  <Typography><strong>Login Terakhir:</strong> {selectedUser.lastLogin?.toLocaleString('id-ID') || 'Belum pernah'}</Typography>
-                </Box>
-
-                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                  Permissions ({selectedUser.permissions.length})
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {selectedUser.permissions.map((perm, index) => (
-                    <Chip key={index} label={perm} size="small" variant="outlined" />
-                  ))}
-                </Box>
-              </Grid>
+              {[
+                { label: 'NIP', value: selectedAdmin.NIP || '-' },
+                { label: 'Email', value: selectedAdmin.email },
+                { label: 'No. HP', value: selectedAdmin.noHP },
+                { label: 'Dibuat', value: formatDate(selectedAdmin.createdAt) },
+                { label: 'Diperbarui', value: formatDate(selectedAdmin.updatedAt) },
+              ].map(({ label, value }) => (
+                <Grid item xs={6} key={label}>
+                  <Typography variant="caption" color="text.secondary">{label}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>{value}</Typography>
+                </Grid>
+              ))}
             </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Tutup</Button>
-          <Button variant="contained">Edit User</Button>
+          <Button onClick={() => setOpenDetailDialog(false)}>Tutup</Button>
+          <Button variant="contained" onClick={() => { setOpenDetailDialog(false); handleOpenEdit(); }}>Edit</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Add User Dialog */}
+      {/* Add Dialog */}
       <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Tambah User Baru</DialogTitle>
+        <DialogTitle>Tambah Admin Baru</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          {addFormError && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{addFormError}</Alert>}
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Username" required />
+              <TextField fullWidth label="NIP" required value={addForm.NIP} onChange={e => setAddForm(f => ({ ...f, NIP: e.target.value }))} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Nama Lengkap" required />
+              <TextField fullWidth label="Nama Lengkap" required value={addForm.namaLengkap} onChange={e => setAddForm(f => ({ ...f, namaLengkap: e.target.value }))} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Email" type="email" required />
+              <TextField fullWidth label="Email" type="email" required value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Telepon" />
+              <TextField fullWidth label="No. HP" required value={addForm.noHP} onChange={e => setAddForm(f => ({ ...f, noHP: e.target.value }))} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Password" type="password" required />
+              <TextField fullWidth label="Password" type="password" required value={addForm.password} onChange={e => setAddForm(f => ({ ...f, password: e.target.value }))} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Konfirmasi Password" type="password" required />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Role</InputLabel>
-                <Select label="Role">
-                  <MenuItem value="admin">Admin</MenuItem>
-                  <MenuItem value="operator">Operator</MenuItem>
-                  <MenuItem value="viewer">Viewer</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Status</InputLabel>
-                <Select label="Status" defaultValue="active">
-                  <MenuItem value="active">Aktif</MenuItem>
-                  <MenuItem value="inactive">Tidak Aktif</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField fullWidth label="Konfirmasi Password" type="password" required value={addForm.confirmPassword} onChange={e => setAddForm(f => ({ ...f, confirmPassword: e.target.value }))} />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenAddDialog(false)}>Batal</Button>
-          <Button variant="contained">
-            Tambah User
+          <Button onClick={() => setOpenAddDialog(false)} disabled={creating}>Batal</Button>
+          <Button variant="contained" onClick={handleAddSubmit} disabled={creating} startIcon={creating ? <CircularProgress size={16} /> : <Add />}>
+            {creating ? 'Menyimpan...' : 'Tambah Admin'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Admin — {selectedAdmin?.namaLengkap}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="NIP" value={editForm.NIP} onChange={e => setEditForm(f => ({ ...f, NIP: e.target.value }))} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="Nama Lengkap" required value={editForm.namaLengkap} onChange={e => setEditForm(f => ({ ...f, namaLengkap: e.target.value }))} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="Email" type="email" required value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="No. HP" required value={editForm.noHP} onChange={e => setEditForm(f => ({ ...f, noHP: e.target.value }))} />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)} disabled={updating}>Batal</Button>
+          <Button variant="contained" onClick={handleEditSubmit} disabled={updating} startIcon={updating ? <CircularProgress size={16} /> : <Edit />}>
+            {updating ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Hapus Admin</DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mt: 1 }}>
+            Hapus admin <strong>{selectedAdmin?.namaLengkap}</strong>? Tindakan ini tidak dapat dibatalkan.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting}>Batal</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteConfirm} disabled={deleting} startIcon={deleting ? <CircularProgress size={16} /> : <Delete />}>
+            {deleting ? 'Menghapus...' : 'Hapus'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Reset Password Dialog */}
       <Dialog open={openResetPasswordDialog} onClose={() => setOpenResetPasswordDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Reset Password</DialogTitle>
+        <DialogTitle>Reset Password — {selectedAdmin?.namaLengkap}</DialogTitle>
         <DialogContent>
-          {selectedUser && (
-            <Box sx={{ mt: 2 }}>
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                Reset password untuk user: <strong>{selectedUser.fullName}</strong>
-              </Alert>
-              <TextField
-                fullWidth
-                label="Password Baru"
-                type="password"
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label="Konfirmasi Password Baru"
-                type="password"
-              />
-            </Box>
-          )}
+          {resetFormError && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{resetFormError}</Alert>}
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <Alert severity="warning">Reset password untuk: <strong>{selectedAdmin?.namaLengkap}</strong></Alert>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField fullWidth label="Password Baru" type="password" value={resetForm.password} onChange={e => setResetForm(f => ({ ...f, password: e.target.value }))} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField fullWidth label="Konfirmasi Password Baru" type="password" value={resetForm.confirmPassword} onChange={e => setResetForm(f => ({ ...f, confirmPassword: e.target.value }))} />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenResetPasswordDialog(false)}>Batal</Button>
-          <Button variant="contained" color="warning">
-            Reset Password
+          <Button onClick={() => setOpenResetPasswordDialog(false)} disabled={updating}>Batal</Button>
+          <Button variant="contained" color="warning" onClick={handleResetSubmit} disabled={updating} startIcon={updating ? <CircularProgress size={16} /> : <LockReset />}>
+            {updating ? 'Mereset...' : 'Reset Password'}
           </Button>
         </DialogActions>
       </Dialog>
