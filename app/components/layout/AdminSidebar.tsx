@@ -37,6 +37,8 @@ import {
   Security,
   Storage,
   Group,
+  AssignmentTurnedIn,
+  Handyman as HandymanIcon,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 
@@ -186,10 +188,26 @@ const adminMenuItems: MenuItem[] = [
         roles: ['admin'],
       },
       {
+        id: 'penyelesaian-laporan',
+        title: 'Penyelesaian Laporan',
+        icon: <AssignmentTurnedIn />,
+        path: '/operations/penyelesaian-laporan',
+        permission: 'workorders:read',
+        roles: ['admin'],
+      },
+      {
         id: 'work-orders',
         title: 'Perintah Kerja',
         icon: <Build />,
         path: '/operations/work-orders',
+        permission: 'workorders:read',
+        roles: ['admin'],
+      },
+      {
+        id: 'pemasangan',
+        title: 'Pemasangan Meter',
+        icon: <HandymanIcon />,
+        path: '/operations/pemasangan',
         permission: 'workorders:read',
         roles: ['admin'],
       },
