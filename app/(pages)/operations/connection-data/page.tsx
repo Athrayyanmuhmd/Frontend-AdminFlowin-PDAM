@@ -78,15 +78,30 @@ export default function ConnectionDataManagement() {
     }
   }, [graphqlError]);
 
-  // Client-side filtering based on statusVerifikasi
+  // Client-side filtering
   const filteredData = useMemo(() => {
     let filtered = [...connectionData];
 
-    // Filter by admin verification
+    // Filter by admin verification (statusVerifikasi)
     if (adminVerifyFilter === 'verified') {
       filtered = filtered.filter((item: any) => item.statusVerifikasi === true);
     } else if (adminVerifyFilter === 'unverified') {
       filtered = filtered.filter((item: any) => item.statusVerifikasi === false);
+    }
+
+    // Filter by technician assignment (idTeknisi presence)
+    if (technicianVerifyFilter === 'verified') {
+      filtered = filtered.filter((item: any) => !!item.idTeknisi);
+    } else if (technicianVerifyFilter === 'pending') {
+      filtered = filtered.filter((item: any) => !item.idTeknisi);
+    }
+
+    // Filter by procedure status (isAllProcedureDone not available in GraphQL,
+    // approximate with statusVerifikasi + idTeknisi both true = done)
+    if (procedureFilter === 'done') {
+      filtered = filtered.filter((item: any) => item.statusVerifikasi === true && !!item.idTeknisi);
+    } else if (procedureFilter === 'pending') {
+      filtered = filtered.filter((item: any) => !item.statusVerifikasi || !item.idTeknisi);
     }
 
     // Search filter
@@ -95,19 +110,20 @@ export default function ConnectionDataManagement() {
       filtered = filtered.filter((item: any) =>
         item.idPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
         item.alamat?.toLowerCase().includes(query) ||
-        item.idPelanggan?.email?.toLowerCase().includes(query)
+        item.idPelanggan?.email?.toLowerCase().includes(query) ||
+        item.NIK?.toLowerCase().includes(query)
       );
     }
 
     return filtered;
-  }, [connectionData, adminVerifyFilter, searchQuery]);
+  }, [connectionData, adminVerifyFilter, technicianVerifyFilter, procedureFilter, searchQuery]);
 
   const error = graphqlError?.message || '';
 
-  // Reset page when search changes
+  // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, adminVerifyFilter]);
+  }, [searchQuery, adminVerifyFilter, technicianVerifyFilter, procedureFilter]);
 
   const getVerificationStatus = (data: any) => {
     if (data.statusVerifikasi === true) {

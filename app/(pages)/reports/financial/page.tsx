@@ -82,7 +82,7 @@ export default function FinancialReports() {
   });
   const { data: ringkasanData, loading: loadingRingkasan, error: errorRingkasan } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { fetchPolicy: 'network-only' });
 
-  const isLoading = loadingBulanan || loadingRingkasan;
+  const isLoading = loadingBulanan || loadingRingkasan || loadingTunggakan || loadingTertinggi;
   const queryError = errorBulanan || errorRingkasan;
 
   const bulanan = bulananData?.getLaporanKeuanganBulanan || [];

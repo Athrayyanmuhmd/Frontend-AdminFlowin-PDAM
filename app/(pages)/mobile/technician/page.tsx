@@ -44,8 +44,10 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import { useQuery, useMutation } from '@apollo/client/react';
+import { useRouter } from 'next/navigation';
 import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
 import { UPDATE_WORK_ORDER_STATUS } from '@/lib/graphql/mutations/workOrder';
+import { useAdmin } from '../../layouts/AdminProvider';
 
 const STATUS_LABELS: Record<string, string> = {
   Ditugaskan: 'Ditugaskan',
@@ -74,6 +76,8 @@ function getStatusIcon(status: string) {
 }
 
 export default function TechnicianMobileApp() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading, user } = useAdmin();
   const [currentTab, setCurrentTab] = useState(0);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -81,6 +85,13 @@ export default function TechnicianMobileApp() {
   const [openUpdate, setOpenUpdate] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [catatan, setCatatan] = useState('');
+
+  // Redirect if not authenticated
+  React.useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/auth/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   const { data, loading, error, refetch } = useQuery(GET_WORK_ORDERS, {
     fetchPolicy: 'network-only',
@@ -297,6 +308,18 @@ export default function TechnicianMobileApp() {
       </Alert>
     </Box>
   );
+
+  // Show loading while auth resolves
+  if (authLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Render nothing while redirecting unauthenticated users
+  if (!isAuthenticated) return null;
 
   return (
     <Box sx={{ pb: 7 }}>

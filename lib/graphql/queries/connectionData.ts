@@ -26,6 +26,11 @@ export const GET_ALL_CONNECTION_DATA = gql`
       kecamatan
       luasBangunan
       statusVerifikasi
+      idTeknisi {
+        _id
+        namaLengkap
+      }
+      assignedAt
       createdAt
       updatedAt
     }

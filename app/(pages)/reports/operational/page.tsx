@@ -139,7 +139,7 @@ export default function OperationalReports() {
       ]
     : [];
 
-  if (loadingKpi) {
+  if (loadingKpi || loadingWo || loadingLaporan) {
     return (
       <AdminLayout title="Laporan Operasional">
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
