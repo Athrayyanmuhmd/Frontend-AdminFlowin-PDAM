@@ -1,7 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -125,7 +127,13 @@ function exportCSV(filename: string, headers: string[], rows: (string | number)[
 }
 
 export default function ComplianceReports() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [currentTab, setCurrentTab] = useState(0);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   const { data: kpiData, loading: loadingKpi } = useQuery(GET_KPI_OPERASIONAL, { fetchPolicy: 'network-only' });
   const { data: woData, loading: loadingWo } = useQuery(GET_RINGKASAN_WORK_ORDER, { fetchPolicy: 'network-only' });

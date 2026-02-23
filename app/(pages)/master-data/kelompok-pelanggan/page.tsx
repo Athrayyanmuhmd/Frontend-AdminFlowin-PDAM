@@ -57,7 +57,11 @@ interface KelompokPelanggan {
 
 export default function KelompokPelangganPage() {
   const router = useRouter();
-  const { userRole } = useAdmin();
+  const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

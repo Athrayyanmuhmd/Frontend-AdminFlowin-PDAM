@@ -66,6 +66,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import { GET_ALL_METERAN } from '@/lib/graphql/queries/meteran';
 
 interface TabPanelProps {
@@ -159,7 +160,12 @@ function mapBackendToSmartMeter(meteranList: any[]): SmartMeter[] {
 
 export default function SmartMeterManagement() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [activeTab, setActiveTab] = useState(0);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
   const [meters, setMeters] = useState<SmartMeter[]>([]);
 
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_METERAN, {

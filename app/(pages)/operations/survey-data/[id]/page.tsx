@@ -34,8 +34,12 @@ import { useGetSurveyData } from '../../../../../lib/graphql/hooks/useSurveyData
 export default function SurveyDataDetail() {
   const params = useParams();
   const router = useRouter();
-  const { userRole } = useAdmin();
+  const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
   const id = params.id as string;
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   // ✅ GraphQL Query - Replace REST API
   const { surveyData: graphqlSurvey, loading, error: graphqlError, refetch } = useGetSurveyData(id);

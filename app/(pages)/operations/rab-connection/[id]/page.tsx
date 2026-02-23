@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
@@ -54,8 +54,12 @@ interface RabConnection {
 export default function RabConnectionDetail() {
   const params = useParams();
   const router = useRouter();
-  const { userRole } = useAdmin();
+  const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
   const id = params.id as string;
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   // ✅ GraphQL Query - Replace REST API
   const { rabConnection: rabData, loading, error: graphqlError, refetch } = useGetRABConnection(id);

@@ -41,9 +41,15 @@ import {
 import AdminLayout from '../../../layouts/AdminLayout';
 import { useQuery } from '@apollo/client/react';
 import { GET_ALL_SURVEY_DATA } from '../../../../lib/graphql/queries/surveyData';
+import { useAdmin } from '../../../layouts/AdminProvider';
 
 export default function SurveyDataManagement() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   // GraphQL Query
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_SURVEY_DATA, {

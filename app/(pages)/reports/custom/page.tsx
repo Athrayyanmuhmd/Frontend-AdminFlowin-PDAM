@@ -1,7 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -337,6 +339,13 @@ function renderReportTable(reportId: ReportId, data: any) {
 }
 
 export default function CustomReports() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [selectedReport, setSelectedReport] = useState<ReportId | null>(null);
   const [generatedReport, setGeneratedReport] = useState<ReportId | null>(null);
   const [filterKategori, setFilterKategori] = useState<string>('all');
