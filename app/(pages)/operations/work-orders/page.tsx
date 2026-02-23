@@ -38,6 +38,8 @@ import {
   Alert,
   Divider,
   Snackbar,
+  Stack,
+  Paper,
 } from '@mui/material';
 import {
   Search,
@@ -51,10 +53,12 @@ import {
   Person,
   ThumbUp,
   ThumbDown,
+  GroupAdd,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
-import { UPDATE_WORK_ORDER_STATUS, APPROVE_WORK_ORDER } from '@/lib/graphql/mutations/workOrder';
+import { GET_ALL_TEKNISI } from '@/lib/graphql/queries/technicians';
+import { UPDATE_WORK_ORDER_STATUS, APPROVE_WORK_ORDER, ASSIGN_WORK_ORDER } from '@/lib/graphql/mutations/workOrder';
 
 const STATUS_LABELS: Record<string, string> = {
   Ditugaskan: 'Ditugaskan',
@@ -98,8 +102,10 @@ export default function WorkOrderManagement() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [openDetail, setOpenDetail] = useState(false);
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [openAssignDialog, setOpenAssignDialog] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [catatan, setCatatan] = useState('');
+  const [selectedTeknisiIds, setSelectedTeknisiIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
@@ -111,6 +117,8 @@ export default function WorkOrderManagement() {
   const { data, loading, error, refetch } = useQuery(GET_WORK_ORDERS, {
     fetchPolicy: 'network-only',
   });
+
+  const { data: teknisiData } = useQuery(GET_ALL_TEKNISI);
 
   const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_WORK_ORDER_STATUS, {
     onCompleted: () => {
@@ -132,12 +140,26 @@ export default function WorkOrderManagement() {
     onError: (err) => showSnackbar('Gagal memproses approval: ' + err.message, 'error'),
   });
 
+  const [assignWorkOrder, { loading: assigning }] = useMutation(ASSIGN_WORK_ORDER, {
+    onCompleted: () => {
+      refetch();
+      setOpenAssignDialog(false);
+      setSelectedTeknisiIds([]);
+      showSnackbar('Tim teknisi berhasil ditugaskan ke work order');
+    },
+    onError: (err) => showSnackbar('Gagal menugaskan teknisi: ' + err.message, 'error'),
+  });
+
   const allWO: any[] = data?.getAllWorkOrders || [];
+  const allTeknisi: any[] = teknisiData?.getAllTeknisi || [];
 
   const filtered = allWO.filter((wo) => {
     const matchStatus = filterStatus === 'all' || wo.status === filterStatus;
     const pelanggan = wo.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '';
-    const matchSearch = !searchTerm || pelanggan.toLowerCase().includes(searchTerm.toLowerCase());
+    const laporanPelanggan = wo.idLaporan?.idPengguna?.namaLengkap || '';
+    const matchSearch = !searchTerm ||
+      pelanggan.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      laporanPelanggan.toLowerCase().includes(searchTerm.toLowerCase());
     return matchStatus && matchSearch;
   });
 
@@ -171,6 +193,13 @@ export default function WorkOrderManagement() {
     handleMenuClose();
   };
 
+  const handleOpenAssign = () => {
+    // Pre-fill dengan tim yang sudah ada
+    setSelectedTeknisiIds(selectedWO?.tim?.map((t: any) => t._id) || []);
+    setOpenAssignDialog(true);
+    handleMenuClose();
+  };
+
   const handleUpdateStatus = () => {
     if (!selectedWO) return;
     updateStatus({
@@ -182,6 +211,13 @@ export default function WorkOrderManagement() {
     if (!selectedWO) return;
     approveWO({ variables: { id: selectedWO._id, disetujui, catatan: '' } });
     setSelectedWO(null);
+  };
+
+  const handleAssign = () => {
+    if (!selectedWO || selectedTeknisiIds.length === 0) return;
+    assignWorkOrder({
+      variables: { id: selectedWO._id, teknisiIds: selectedTeknisiIds },
+    });
   };
 
   if (authLoading || !isAuthenticated) return null;
@@ -313,11 +349,17 @@ export default function WorkOrderManagement() {
                         </TableCell>
                         <TableCell>
                           {wo.tim && wo.tim.length > 0 ? (
-                            wo.tim.map((t: any) => (
-                              <Chip key={t._id} label={t.namaLengkap} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
-                            ))
+                            <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                              {wo.tim.map((t: any) => (
+                                <Chip key={t._id} label={t.namaLengkap} size="small" sx={{ mb: 0.5 }} />
+                              ))}
+                            </Stack>
                           ) : (
-                            <Typography variant="caption" color="text.secondary">Belum ditugaskan</Typography>
+                            <Tooltip title="Klik ⋮ → Tugaskan Teknisi">
+                              <Typography variant="caption" color="warning.main" fontStyle="italic">
+                                Belum ditugaskan
+                              </Typography>
+                            </Tooltip>
                           )}
                         </TableCell>
                         <TableCell align="center">
@@ -373,6 +415,9 @@ export default function WorkOrderManagement() {
         <MenuItem onClick={handleOpenDetail}>
           <Visibility sx={{ mr: 1 }} fontSize="small" /> Lihat Detail
         </MenuItem>
+        <MenuItem onClick={handleOpenAssign}>
+          <GroupAdd sx={{ mr: 1 }} fontSize="small" /> Tugaskan Teknisi
+        </MenuItem>
         <MenuItem onClick={handleOpenStatusUpdate}>
           <Build sx={{ mr: 1 }} fontSize="small" /> Update Status
         </MenuItem>
@@ -394,7 +439,8 @@ export default function WorkOrderManagement() {
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="text.secondary">Pelanggan</Typography>
                 <Typography variant="body1" sx={{ mb: 1 }}>
-                  {selectedWO.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}
+                  {selectedWO.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap ||
+                   selectedWO.idLaporan?.idPengguna?.namaLengkap || '-'}
                 </Typography>
                 <Typography variant="subtitle2" color="text.secondary">Status</Typography>
                 <Chip label={STATUS_LABELS[selectedWO.status] || selectedWO.status} color={STATUS_COLORS[selectedWO.status] || 'default'} size="small" sx={{ mb: 1 }} />
@@ -438,6 +484,101 @@ export default function WorkOrderManagement() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDetail(false)}>Tutup</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Assign Teknisi Dialog */}
+      <Dialog open={openAssignDialog} onClose={() => { setOpenAssignDialog(false); setSelectedTeknisiIds([]); }} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <GroupAdd color="primary" />
+            Tugaskan Teknisi
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedWO && (
+            <Stack spacing={2.5}>
+              {/* Info WO */}
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+                <Typography variant="caption" color="text.secondary">Work Order untuk</Typography>
+                <Typography variant="body2" fontWeight={600}>
+                  {selectedWO.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap ||
+                   selectedWO.idLaporan?.idPengguna?.namaLengkap || 'Tanpa pelanggan'}
+                </Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <Chip
+                    icon={getStatusIcon(selectedWO.status)}
+                    label={STATUS_LABELS[selectedWO.status] || selectedWO.status}
+                    color={STATUS_COLORS[selectedWO.status] || 'default'}
+                    size="small"
+                  />
+                </Box>
+              </Paper>
+
+              {/* Tim saat ini */}
+              {selectedWO.tim && selectedWO.tim.length > 0 && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                    Tim saat ini
+                  </Typography>
+                  <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                    {selectedWO.tim.map((t: any) => (
+                      <Chip key={t._id} label={t.namaLengkap} size="small" color="primary" variant="outlined" sx={{ mb: 0.5 }} />
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+
+              {/* Pilih teknisi */}
+              <FormControl fullWidth size="small">
+                <InputLabel>Pilih Teknisi *</InputLabel>
+                <Select
+                  multiple
+                  value={selectedTeknisiIds}
+                  label="Pilih Teknisi *"
+                  onChange={(e) => setSelectedTeknisiIds(typeof e.target.value === 'string' ? [e.target.value] : e.target.value as string[])}
+                  renderValue={(selected) => (
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                      {(selected as string[]).map((id) => {
+                        const tek = allTeknisi.find((t: any) => t._id === id);
+                        return <Chip key={id} label={tek?.namaLengkap || id} size="small" sx={{ mb: 0.25 }} />;
+                      })}
+                    </Stack>
+                  )}
+                >
+                  {allTeknisi.map((tek: any) => (
+                    <MenuItem key={tek._id} value={tek._id}>
+                      <Box>
+                        <Typography variant="body2" fontWeight={selectedTeknisiIds.includes(tek._id) ? 700 : 400}>
+                          {tek.namaLengkap}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">{tek.divisi} · {tek.email}</Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {selectedTeknisiIds.length > 0 && (
+                <Alert severity="info" sx={{ py: 0.5 }}>
+                  {selectedTeknisiIds.length} teknisi dipilih. Tim lama akan digantikan.
+                </Alert>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setOpenAssignDialog(false); setSelectedTeknisiIds([]); }}>
+            Batal
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={assigning ? <CircularProgress size={16} color="inherit" /> : <GroupAdd />}
+            onClick={handleAssign}
+            disabled={selectedTeknisiIds.length === 0 || assigning}
+          >
+            {assigning ? 'Menugaskan...' : 'Tugaskan'}
+          </Button>
         </DialogActions>
       </Dialog>
 
