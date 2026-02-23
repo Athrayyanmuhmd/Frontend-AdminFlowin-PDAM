@@ -1,7 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
   Grid,
@@ -52,7 +54,7 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
-import { UPDATE_WORK_ORDER_STATUS, APPROVE_WORK_ORDER, ASSIGN_WORK_ORDER } from '@/lib/graphql/mutations/workOrder';
+import { UPDATE_WORK_ORDER_STATUS, APPROVE_WORK_ORDER } from '@/lib/graphql/mutations/workOrder';
 
 const STATUS_LABELS: Record<string, string> = {
   Ditugaskan: 'Ditugaskan',
@@ -83,6 +85,13 @@ function getStatusIcon(status: string) {
 }
 
 export default function WorkOrderManagement() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedWO, setSelectedWO] = useState<any>(null);
@@ -174,6 +183,8 @@ export default function WorkOrderManagement() {
     approveWO({ variables: { id: selectedWO._id, disetujui, catatan: '' } });
     setSelectedWO(null);
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Manajemen Work Order">

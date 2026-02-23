@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { gql } from '@apollo/client';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Box,
   Card,
@@ -52,17 +53,7 @@ import {
 import AdminLayout from '../../../layouts/AdminLayout';
 import { GET_ALL_LAPORAN, GET_LAPORAN_BY_STATUS, UPDATE_LAPORAN_STATUS } from '@/lib/graphql/queries/reports';
 import { CREATE_WORK_ORDER_FROM_LAPORAN } from '@/lib/graphql/mutations/workOrder';
-
-const GET_ALL_TEKNISI = gql`
-  query GetAllTeknisi {
-    getAllTeknisi {
-      _id
-      namaLengkap
-      divisi
-      email
-    }
-  }
-`;
+import { GET_ALL_TEKNISI } from '@/lib/graphql/queries/technicians';
 
 const JENIS_LAPORAN_LABELS: Record<string, string> = {
   AirTidakMengalir: 'Air Tidak Mengalir',
@@ -93,6 +84,13 @@ const JENIS_COLORS: Record<string, 'error' | 'warning' | 'info' | 'default'> = {
 };
 
 export default function LaporanPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedLaporan, setSelectedLaporan] = useState<any>(null);
@@ -162,6 +160,8 @@ export default function LaporanPage() {
   const handleUpdateStatus = (id: string, status: string) => {
     updateStatus({ variables: { id, status } });
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout>
