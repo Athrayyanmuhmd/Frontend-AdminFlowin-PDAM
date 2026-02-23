@@ -18,7 +18,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Tabs,
   Tab,
   CircularProgress,
@@ -43,6 +42,7 @@ import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { GET_CUSTOMER } from '../../../../../lib/graphql/queries/customers';
 import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billing';
+import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -92,59 +92,68 @@ export default function CustomerDetailPage() {
   // Memoized customer data mapping
   const customer = useMemo(() => {
     if (!(customerData as any)?.getPengguna) return null;
-
-    const customerInfo = (customerData as any).getPengguna;
-    console.log('✅ Customer GraphQL data:', customerInfo);
-
+    const c = (customerData as any).getPengguna;
     return {
-      id: customerInfo._id,
-      NIK: customerInfo.nik || 'N/A',
-      namaLengkap: customerInfo.namaLengkap || 'N/A',
-      email: customerInfo.email || 'N/A',
-      noHP: customerInfo.noHP || 'N/A',
-      alamat: customerInfo.address || 'N/A',
-      customerType: customerInfo.customerType || 'rumah_tangga',
-      accountStatus: customerInfo.accountStatus || 'active',
-      registrationDate: new Date(customerInfo.createdAt),
-      meteran: null as any, // Will be populated from separate query if needed
+      id: c._id,
+      NIK: c.nik || 'N/A',
+      namaLengkap: c.namaLengkap || 'N/A',
+      email: c.email || 'N/A',
+      noHP: c.noHP || 'N/A',
+      alamat: c.address || '-',
+      customerType: c.customerType || 'rumah_tangga',
+      accountStatus: c.accountStatus || 'active',
+      isVerified: c.isVerified,
+      registrationDate: new Date(c.createdAt),
     };
   }, [customerData]);
 
-  // GraphQL Query - Get Billing History (only if we have meteranId from customer)
-  // Note: We need meteranId from customer, but customer query doesn't populate meteranId
-  // So we'll keep using REST for billing history for now (backend limitation)
-  const [meteranId, setMeteranId] = useState<string | null>(null);
+  // GraphQL Query - Get Meteran by Pelanggan ID
+  const {
+    data: meteranData,
+    loading: loadingMeteran,
+  } = useQuery(GET_METERAN_BY_PELANGGAN, {
+    variables: { idPelanggan: customerId },
+    skip: !customerId,
+    fetchPolicy: 'network-only',
+  });
 
+  const meteranInfo = useMemo(() => {
+    const list = (meteranData as any)?.getMeteranByPelanggan;
+    if (!list || list.length === 0) return null;
+    // Use the first (or most recent) meter
+    const m = list[0];
+    return {
+      _id: m._id,
+      meterNumber: m.nomorMeteran || 'N/A',
+      accountNumber: m.nomorAkun || 'N/A',
+      tariffCategory: m.idKelompokPelanggan?.namaKelompok || 'N/A',
+      installationDate: m.createdAt ? new Date(m.createdAt) : null,
+      totalUsage: m.totalPemakaian || 0,
+      unpaidUsage: m.pemakaianBelumTerbayar || 0,
+      alamat: m.idKoneksiData?.alamat || '-',
+    };
+  }, [meteranData]);
 
-  useEffect(() => {
-    if (meteranId && tabValue === 1) {
-      fetchHistoryUsage();
-    }
-  }, [meteranId, tabValue, historyFilter]);
+  const meteranId = meteranInfo?._id || null;
 
   // GraphQL Query - Get Billing History by Meteran ID
   const {
     loading: loadingBillings,
     error: billingError,
     data: billingData,
-    refetch: refetchBillings,
   } = useQuery(GET_TAGIHAN_BY_METERAN, {
     variables: { idMeteran: meteranId || '' },
-    skip: !meteranId || tabValue !== 0, // Only fetch when on billing tab and have meteranId
+    skip: !meteranId || tabValue !== 0,
     fetchPolicy: 'network-only',
   });
 
-  // Memoized billing data mapping
   const billings = useMemo(() => {
     if (!(billingData as any)?.getTagihanByMeteran) return [];
-
-    console.log('✅ Billing GraphQL data:', (billingData as any).getTagihanByMeteran);
-
     return (billingData as any).getTagihanByMeteran.map((bill: any) => ({
       id: bill._id,
       period: bill.periode,
-      usage: bill.totalPemakaian,
-      amount: bill.totalBiaya,
+      usage: bill.totalPemakaian || 0,
+      amount: bill.totalBiaya || 0,
       status:
         bill.statusPembayaran === 'Settlement' ||
         bill.statusPembayaran === 'Lunas'
@@ -158,152 +167,65 @@ export default function CustomerDetailPage() {
     }));
   }, [billingData]);
 
-  const fetchHistoryUsage = async () => {
-    if (!meteranInfo) return;
+  useEffect(() => {
+    if (meteranId && tabValue === 1) {
+      fetchHistoryUsage();
+    }
+  }, [meteranId, tabValue, historyFilter]);
 
+  const fetchHistoryUsage = async () => {
+    if (!meteranId || !customerId) return;
     try {
       setLoadingHistory(true);
-      console.log('🔄 Fetching history usage for customer:', customerId);
-      console.log('Filter:', historyFilter);
-
-      const currentMeteranId = meteranInfo.accountNumber; // This is the _id of meteran
-
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/history/getHistory/${customerId}/${currentMeteranId}?filter=${historyFilter}`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/history/getHistory/${customerId}/${meteranId}?filter=${historyFilter}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('admin_token')}`,
           },
         }
       );
-
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ History usage data:', data);
-
         if (data.status === 200 && data.data) {
-          // Map the aggregated data
           const mappedHistory = data.data.map((item: any) => {
             let timeLabel = '';
-
             switch (historyFilter) {
               case 'hari':
                 timeLabel = item._id.time || '-';
                 break;
               case 'minggu':
-                const days = [
-                  'Minggu',
-                  'Senin',
-                  'Selasa',
-                  'Rabu',
-                  'Kamis',
-                  'Jumat',
-                  'Sabtu',
-                ];
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
                 timeLabel = days[item._id.day - 1] || '-';
                 break;
               case 'bulan':
                 timeLabel = `Minggu ${item._id.week}` || '-';
                 break;
               case 'tahun':
-                const months = [
-                  'Jan',
-                  'Feb',
-                  'Mar',
-                  'Apr',
-                  'Mei',
-                  'Jun',
-                  'Jul',
-                  'Agu',
-                  'Sep',
-                  'Okt',
-                  'Nov',
-                  'Des',
-                ];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
                 timeLabel = months[item._id.month - 1] || '-';
                 break;
             }
-
             return {
               time: timeLabel,
               usage: item.totalUsedWater || 0,
               count: item.count || 0,
             };
           });
-
           setHistoryUsage(mappedHistory);
-          console.log('✅ Mapped history usage:', mappedHistory);
         }
-      } else {
-        console.warn('⚠️ History API returned error');
       }
     } catch (error: any) {
-      console.error('❌ Error fetching history usage:', error);
+      console.error('Error fetching history usage:', error);
     } finally {
       setLoadingHistory(false);
     }
   };
 
-  // State untuk menyimpan meteran data yang di-fetch dari REST
-  const [meteranInfo, setMeteranInfo] = useState<any>(null);
-
-  // Update meteran info fetch
-  useEffect(() => {
-    const fetchMeteran = async () => {
-      if (!customer?.id) return;
-
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL}/customer/${customer.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('admin_token')}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data?.meteranId) {
-            const meteranData = data.data.meteranId;
-            setMeteranId(meteranData._id);
-            setMeteranInfo({
-              meterNumber: meteranData.noMeteran || 'N/A',
-              accountNumber: meteranData._id || 'N/A',
-              tariffCategory:
-                meteranData.kelompokPelangganId?.namaKelompok ||
-                meteranData.kelompokPelangganId?.tarif ||
-                'N/A',
-              installationDate: meteranData.createdAt
-                ? new Date(meteranData.createdAt)
-                : null,
-              totalUsage: meteranData.totalPemakaian || 0,
-              unpaidUsage: meteranData.pemakaianBelumTerbayar || 0,
-              dueDate: meteranData.jatuhTempo
-                ? new Date(meteranData.jatuhTempo)
-                : null,
-            });
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error fetching meteran:', error);
-      }
-    };
-
-    if (customer) {
-      fetchMeteran();
-    }
-  }, [customer]);
-
-  if (loading) {
+  if (loading || loadingMeteran) {
     return (
       <AdminLayout title='Detail Pelanggan'>
-        <Box
-          display='flex'
-          justifyContent='center'
-          alignItems='center'
-          minHeight='400px'
-        >
+        <Box display='flex' justifyContent='center' alignItems='center' minHeight='400px'>
           <CircularProgress />
         </Box>
       </AdminLayout>
@@ -317,17 +239,10 @@ export default function CustomerDetailPage() {
           {graphqlError?.message || 'Pelanggan tidak ditemukan'}
         </Alert>
         <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => router.push('/customers')}
-          >
+          <Button startIcon={<ArrowBack />} onClick={() => router.push('/customers')}>
             Kembali ke Daftar Pelanggan
           </Button>
-          <Button
-            startIcon={<Refresh />}
-            variant='outlined'
-            onClick={() => refetchCustomer()}
-          >
+          <Button startIcon={<Refresh />} variant='outlined' onClick={() => refetchCustomer()}>
             Coba Lagi
           </Button>
         </Box>
@@ -338,11 +253,6 @@ export default function CustomerDetailPage() {
   return (
     <AdminLayout title={`Detail Pelanggan - ${customer.namaLengkap}`}>
       <Box sx={{ mb: 3 }}>
-        {graphqlError && (
-          <Alert severity='error' sx={{ mb: 2 }}>
-            {(graphqlError as any).message}
-          </Alert>
-        )}
         {billingError && (
           <Alert severity='warning' sx={{ mb: 2 }}>
             Gagal memuat riwayat tagihan: {(billingError as any).message}
@@ -350,19 +260,9 @@ export default function CustomerDetailPage() {
         )}
 
         {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 3,
-          }}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              startIcon={<ArrowBack />}
-              onClick={() => router.push('/customers')}
-            >
+            <Button startIcon={<ArrowBack />} onClick={() => router.push('/customers')}>
               Kembali
             </Button>
             <Typography variant='h4' component='h1' sx={{ fontWeight: 600 }}>
@@ -372,9 +272,7 @@ export default function CustomerDetailPage() {
           <Button
             variant='contained'
             startIcon={<Edit />}
-            onClick={() =>
-              router.push(`/customers/registration?edit=${customerId}`)
-            }
+            onClick={() => router.push(`/customers/registration?edit=${customerId}`)}
           >
             Edit Pelanggan
           </Button>
@@ -386,30 +284,17 @@ export default function CustomerDetailPage() {
             <Grid container spacing={3}>
               <Grid item xs={12} md={8}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
-                  <Avatar
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      bgcolor: 'primary.main',
-                      fontSize: '2rem',
-                    }}
-                  >
+                  <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: '2rem' }}>
                     {customer.namaLengkap?.charAt(0) || '?'}
                   </Avatar>
                   <Box sx={{ flex: 1 }}>
                     <Typography variant='h5' sx={{ fontWeight: 600, mb: 1 }}>
                       {customer.namaLengkap}
                     </Typography>
-                    <Typography
-                      variant='body2'
-                      color='text.secondary'
-                      sx={{ mb: 2 }}
-                    >
+                    <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                       NIK: {customer.NIK}
                     </Typography>
-                    <Box
-                      sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}
-                    >
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
                       <Chip
                         icon={<Person />}
                         label={
@@ -421,72 +306,29 @@ export default function CustomerDetailPage() {
                         variant='outlined'
                       />
                       <Chip
-                        icon={
-                          customer.accountStatus === 'active' ? (
-                            <CheckCircle />
-                          ) : (
-                            <Warning />
-                          )
-                        }
-                        label={
-                          customer.accountStatus === 'active'
-                            ? 'Aktif'
-                            : 'Tidak Aktif'
-                        }
-                        color={
-                          customer.accountStatus === 'active'
-                            ? 'success'
-                            : 'default'
-                        }
+                        icon={customer.accountStatus === 'active' ? <CheckCircle /> : <Warning />}
+                        label={customer.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                        color={customer.accountStatus === 'active' ? 'success' : 'default'}
                       />
+                      {customer.isVerified && (
+                        <Chip icon={<CheckCircle />} label='Terverifikasi' color='info' size='small' />
+                      )}
                     </Box>
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={6}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            mb: 1,
-                          }}
-                        >
-                          <Phone
-                            sx={{ fontSize: 20, color: 'text.secondary' }}
-                          />
-                          <Typography variant='body2'>
-                            {customer.noHP}
-                          </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Phone sx={{ fontSize: 20, color: 'text.secondary' }} />
+                          <Typography variant='body2'>{customer.noHP}</Typography>
                         </Box>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            mb: 1,
-                          }}
-                        >
-                          <Email
-                            sx={{ fontSize: 20, color: 'text.secondary' }}
-                          />
-                          <Typography variant='body2'>
-                            {customer.email}
-                          </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Email sx={{ fontSize: 20, color: 'text.secondary' }} />
+                          <Typography variant='body2'>{customer.email}</Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 1,
-                          }}
-                        >
-                          <LocationOn
-                            sx={{ fontSize: 20, color: 'text.secondary' }}
-                          />
-                          <Typography variant='body2'>
-                            {customer.alamat}
-                          </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                          <LocationOn sx={{ fontSize: 20, color: 'text.secondary' }} />
+                          <Typography variant='body2'>{customer.alamat}</Typography>
                         </Box>
                       </Grid>
                     </Grid>
@@ -497,132 +339,62 @@ export default function CustomerDetailPage() {
               <Grid item xs={12} md={4}>
                 <Card variant='outlined' sx={{ bgcolor: 'primary.50' }}>
                   <CardContent>
-                    <Typography
-                      variant='h6'
-                      gutterBottom
-                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                    >
+                    <Typography variant='h6' gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <WaterDrop color='primary' />
                       Info Meteran
                     </Typography>
                     <Divider sx={{ my: 1 }} />
                     {meteranInfo ? (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 1.5,
-                        }}
-                      >
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <Box>
-                          <Typography variant='caption' color='text.secondary'>
-                            No. Meteran
-                          </Typography>
-                          <Typography variant='body1' sx={{ fontWeight: 600 }}>
-                            {meteranInfo.meterNumber}
-                          </Typography>
+                          <Typography variant='caption' color='text.secondary'>No. Meteran</Typography>
+                          <Typography variant='body1' sx={{ fontWeight: 600 }}>{meteranInfo.meterNumber}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant='caption' color='text.secondary'>
-                            ID Meteran
-                          </Typography>
-                          <Typography
-                            variant='body2'
-                            sx={{
-                              fontFamily: 'monospace',
-                              fontSize: '0.75rem',
-                            }}
-                          >
+                          <Typography variant='caption' color='text.secondary'>No. Akun</Typography>
+                          <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                             {meteranInfo.accountNumber}
                           </Typography>
                         </Box>
                         <Divider />
                         <Box>
-                          <Typography variant='caption' color='text.secondary'>
-                            Kategori Tarif
-                          </Typography>
-                          <Chip
-                            label={meteranInfo.tariffCategory}
-                            size='small'
-                            color='primary'
-                            sx={{ mt: 0.5 }}
-                          />
+                          <Typography variant='caption' color='text.secondary'>Kategori Tarif</Typography>
+                          <Chip label={meteranInfo.tariffCategory} size='small' color='primary' sx={{ mt: 0.5 }} />
                         </Box>
                         <Box>
-                          <Typography variant='caption' color='text.secondary'>
-                            Total Pemakaian
-                          </Typography>
-                          <Typography
-                            variant='body1'
-                            sx={{ fontWeight: 600, color: 'primary.main' }}
-                          >
+                          <Typography variant='caption' color='text.secondary'>Total Pemakaian</Typography>
+                          <Typography variant='body1' sx={{ fontWeight: 600, color: 'primary.main' }}>
                             {meteranInfo.totalUsage || 0} m³
                           </Typography>
                         </Box>
                         {meteranInfo.unpaidUsage > 0 && (
                           <Box>
-                            <Typography
-                              variant='caption'
-                              color='text.secondary'
-                            >
-                              Belum Terbayar
-                            </Typography>
-                            <Typography
-                              variant='body1'
-                              sx={{ fontWeight: 600, color: 'warning.main' }}
-                            >
+                            <Typography variant='caption' color='text.secondary'>Belum Terbayar</Typography>
+                            <Typography variant='body1' sx={{ fontWeight: 600, color: 'warning.main' }}>
                               {meteranInfo.unpaidUsage} m³
-                            </Typography>
-                          </Box>
-                        )}
-                        {meteranInfo.dueDate && (
-                          <Box>
-                            <Typography
-                              variant='caption'
-                              color='text.secondary'
-                            >
-                              Jatuh Tempo
-                            </Typography>
-                            <Typography
-                              variant='body1'
-                              color={
-                                new Date(meteranInfo.dueDate) < new Date()
-                                  ? 'error.main'
-                                  : 'text.primary'
-                              }
-                            >
-                              {new Date(
-                                meteranInfo.dueDate
-                              ).toLocaleDateString('id-ID')}
                             </Typography>
                           </Box>
                         )}
                         <Divider />
                         {meteranInfo.installationDate && (
                           <Box>
-                            <Typography
-                              variant='caption'
-                              color='text.secondary'
-                            >
-                              Tgl. Instalasi
-                            </Typography>
+                            <Typography variant='caption' color='text.secondary'>Tgl. Instalasi</Typography>
                             <Typography variant='body2'>
-                              {meteranInfo.installationDate.toLocaleDateString(
-                                'id-ID',
-                                {
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric',
-                                }
-                              )}
+                              {meteranInfo.installationDate.toLocaleDateString('id-ID', {
+                                day: 'numeric', month: 'long', year: 'numeric',
+                              })}
                             </Typography>
+                          </Box>
+                        )}
+                        {meteranInfo.alamat && meteranInfo.alamat !== '-' && (
+                          <Box>
+                            <Typography variant='caption' color='text.secondary'>Alamat Instalasi</Typography>
+                            <Typography variant='body2'>{meteranInfo.alamat}</Typography>
                           </Box>
                         )}
                       </Box>
                     ) : (
-                      <Alert severity='info' sx={{ mt: 1 }}>
-                        Belum ada meteran terpasang
-                      </Alert>
+                      <Alert severity='info' sx={{ mt: 1 }}>Belum ada meteran terpasang</Alert>
                     )}
                   </CardContent>
                 </Card>
@@ -634,33 +406,16 @@ export default function CustomerDetailPage() {
         {/* Tabs */}
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs
-              value={tabValue}
-              onChange={(_, newValue) => setTabValue(newValue)}
-            >
-              <Tab
-                icon={<Receipt />}
-                label='Riwayat Tagihan'
-                iconPosition='start'
-              />
-              <Tab
-                icon={<History />}
-                label='Riwayat Pembacaan'
-                iconPosition='start'
-              />
-              <Tab
-                icon={<Settings />}
-                label='Pengaturan Akun'
-                iconPosition='start'
-              />
+            <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+              <Tab icon={<Receipt />} label='Riwayat Tagihan' iconPosition='start' />
+              <Tab icon={<History />} label='Riwayat Pembacaan' iconPosition='start' />
+              <Tab icon={<Settings />} label='Pengaturan Akun' iconPosition='start' />
             </Tabs>
           </Box>
 
           <TabPanel value={tabValue} index={0}>
             {loadingBillings ? (
-              <Box display='flex' justifyContent='center' py={4}>
-                <CircularProgress />
-              </Box>
+              <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
             ) : billings.length > 0 ? (
               <TableContainer>
                 <Table>
@@ -681,67 +436,36 @@ export default function CustomerDetailPage() {
                     {billings.map((billing: any) => (
                       <TableRow key={billing.id}>
                         <TableCell>
-                          <Typography variant='body2' sx={{ fontWeight: 600 }}>
-                            {billing.period}
-                          </Typography>
+                          <Typography variant='body2' sx={{ fontWeight: 600 }}>{billing.period}</Typography>
                         </TableCell>
+                        <TableCell align='right'>{billing.pemakaianAwal.toFixed(2)}</TableCell>
+                        <TableCell align='right'>{billing.pemakaianAkhir.toFixed(2)}</TableCell>
                         <TableCell align='right'>
-                          {billing.pemakaianAwal.toFixed(2)}
-                        </TableCell>
-                        <TableCell align='right'>
-                          {billing.pemakaianAkhir.toFixed(2)}
-                        </TableCell>
-                        <TableCell align='right'>
-                          <Typography
-                            variant='body2'
-                            sx={{ fontWeight: 600, color: 'primary.main' }}
-                          >
+                          <Typography variant='body2' sx={{ fontWeight: 600, color: 'primary.main' }}>
                             {billing.usage.toFixed(2)}
                           </Typography>
                         </TableCell>
                         <TableCell align='right'>
-                          {new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                          }).format(billing.biayaAir)}
+                          {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(billing.biayaAir)}
                         </TableCell>
                         <TableCell align='right'>
-                          {new Intl.NumberFormat('id-ID', {
-                            style: 'currency',
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                          }).format(billing.biayaBeban)}
+                          {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(billing.biayaBeban)}
                         </TableCell>
                         <TableCell align='right'>
                           <Typography variant='body2' sx={{ fontWeight: 600 }}>
-                            {new Intl.NumberFormat('id-ID', {
-                              style: 'currency',
-                              currency: 'IDR',
-                              minimumFractionDigits: 0,
-                            }).format(billing.amount)}
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(billing.amount)}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={
-                              billing.status === 'paid'
-                                ? 'Lunas'
-                                : 'Belum Bayar'
-                            }
-                            color={
-                              billing.status === 'paid' ? 'success' : 'warning'
-                            }
+                            label={billing.status === 'paid' ? 'Lunas' : 'Belum Bayar'}
+                            color={billing.status === 'paid' ? 'success' : 'warning'}
                             size='small'
                           />
                         </TableCell>
                         <TableCell>
                           {billing.paidDate
-                            ? billing.paidDate.toLocaleDateString('id-ID', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })
+                            ? billing.paidDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                             : '-'}
                         </TableCell>
                       </TableRow>
@@ -751,50 +475,28 @@ export default function CustomerDetailPage() {
               </TableContainer>
             ) : (
               <Alert severity='info'>
-                {meteranInfo
-                  ? 'Belum ada riwayat tagihan untuk meteran ini'
-                  : 'Pelanggan belum memiliki meteran'}
+                {meteranInfo ? 'Belum ada riwayat tagihan untuk meteran ini' : 'Pelanggan belum memiliki meteran'}
               </Alert>
             )}
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
             <Box sx={{ mb: 2 }}>
-              <Typography variant='h6' gutterBottom>
-                Riwayat Pemakaian Air
-              </Typography>
+              <Typography variant='h6' gutterBottom>Riwayat Pemakaian Air</Typography>
               <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <Chip
-                  label='Hari Ini'
-                  color={historyFilter === 'hari' ? 'primary' : 'default'}
-                  onClick={() => setHistoryFilter('hari')}
-                  clickable
-                />
-                <Chip
-                  label='Minggu Ini'
-                  color={historyFilter === 'minggu' ? 'primary' : 'default'}
-                  onClick={() => setHistoryFilter('minggu')}
-                  clickable
-                />
-                <Chip
-                  label='Bulan Ini'
-                  color={historyFilter === 'bulan' ? 'primary' : 'default'}
-                  onClick={() => setHistoryFilter('bulan')}
-                  clickable
-                />
-                <Chip
-                  label='Tahun Ini'
-                  color={historyFilter === 'tahun' ? 'primary' : 'default'}
-                  onClick={() => setHistoryFilter('tahun')}
-                  clickable
-                />
+                {(['hari', 'minggu', 'bulan', 'tahun'] as const).map(f => (
+                  <Chip
+                    key={f}
+                    label={f === 'hari' ? 'Hari Ini' : f === 'minggu' ? 'Minggu Ini' : f === 'bulan' ? 'Bulan Ini' : 'Tahun Ini'}
+                    color={historyFilter === f ? 'primary' : 'default'}
+                    onClick={() => setHistoryFilter(f)}
+                    clickable
+                  />
+                ))}
               </Box>
             </Box>
-
             {loadingHistory ? (
-              <Box display='flex' justifyContent='center' py={4}>
-                <CircularProgress />
-              </Box>
+              <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
             ) : historyUsage.length > 0 ? (
               <TableContainer>
                 <Table>
@@ -808,77 +510,43 @@ export default function CustomerDetailPage() {
                       </TableCell>
                       <TableCell align='right'>Pemakaian (Liter)</TableCell>
                       <TableCell align='right'>Jumlah Pembacaan</TableCell>
-                      <TableCell align='right'>
-                        Rata-rata (L/pembacaan)
-                      </TableCell>
+                      <TableCell align='right'>Rata-rata (L/pembacaan)</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {historyUsage.map((item: any, index: number) => (
                       <TableRow key={index}>
-                        <TableCell>
-                          <Typography variant='body2' sx={{ fontWeight: 600 }}>
-                            {item.time}
-                          </Typography>
-                        </TableCell>
+                        <TableCell><Typography variant='body2' sx={{ fontWeight: 600 }}>{item.time}</Typography></TableCell>
                         <TableCell align='right'>
-                          <Typography
-                            variant='body2'
-                            sx={{ fontWeight: 600, color: 'primary.main' }}
-                          >
+                          <Typography variant='body2' sx={{ fontWeight: 600, color: 'primary.main' }}>
                             {item.usage.toFixed(2)} L
                           </Typography>
                         </TableCell>
                         <TableCell align='right'>{item.count}</TableCell>
                         <TableCell align='right'>
-                          {item.count > 0
-                            ? (item.usage / item.count).toFixed(2)
-                            : '0.00'}{' '}
-                          L
+                          {item.count > 0 ? (item.usage / item.count).toFixed(2) : '0.00'} L
                         </TableCell>
                       </TableRow>
                     ))}
                     <TableRow sx={{ bgcolor: 'primary.50' }}>
-                      <TableCell>
-                        <Typography variant='body2' sx={{ fontWeight: 700 }}>
-                          TOTAL
-                        </Typography>
-                      </TableCell>
+                      <TableCell><Typography variant='body2' sx={{ fontWeight: 700 }}>TOTAL</Typography></TableCell>
                       <TableCell align='right'>
-                        <Typography
-                          variant='body2'
-                          sx={{ fontWeight: 700, color: 'primary.main' }}
-                        >
-                          {historyUsage
-                            .reduce((sum, item) => sum + item.usage, 0)
-                            .toFixed(2)}{' '}
-                          L
+                        <Typography variant='body2' sx={{ fontWeight: 700, color: 'primary.main' }}>
+                          {historyUsage.reduce((sum, item) => sum + item.usage, 0).toFixed(2)} L
                         </Typography>
                       </TableCell>
                       <TableCell align='right'>
                         <Typography variant='body2' sx={{ fontWeight: 700 }}>
-                          {historyUsage.reduce(
-                            (sum, item) => sum + item.count,
-                            0
-                          )}
+                          {historyUsage.reduce((sum, item) => sum + item.count, 0)}
                         </Typography>
                       </TableCell>
                       <TableCell align='right'>
                         <Typography variant='body2' sx={{ fontWeight: 700 }}>
                           {(() => {
-                            const totalUsage = historyUsage.reduce(
-                              (sum, item) => sum + item.usage,
-                              0
-                            );
-                            const totalCount = historyUsage.reduce(
-                              (sum, item) => sum + item.count,
-                              0
-                            );
-                            return totalCount > 0
-                              ? (totalUsage / totalCount).toFixed(2)
-                              : '0.00';
-                          })()}{' '}
-                          L
+                            const totalUsage = historyUsage.reduce((sum, item) => sum + item.usage, 0);
+                            const totalCount = historyUsage.reduce((sum, item) => sum + item.count, 0);
+                            return totalCount > 0 ? (totalUsage / totalCount).toFixed(2) : '0.00';
+                          })()} L
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -895,9 +563,7 @@ export default function CustomerDetailPage() {
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
-            <Alert severity='info'>
-              Fitur pengaturan akun akan segera tersedia
-            </Alert>
+            <Alert severity='info'>Fitur pengaturan akun akan segera tersedia</Alert>
           </TabPanel>
         </Card>
       </Box>
