@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -50,6 +50,7 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   useGetAllMeteran,
   useUpdateMeteran,
@@ -59,6 +60,12 @@ import { useGetAllKelompokPelanggan } from '../../../../lib/graphql/hooks/useKel
 
 export default function MeteranListPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(1);
@@ -180,6 +187,8 @@ export default function MeteranListPage() {
       setDeleteLoading(false);
     }
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   if (loading) {
     return (

@@ -62,6 +62,7 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import AdminLayout from '../../layouts/AdminLayout';
+import { useAdmin } from '../../layouts/AdminProvider';
 import { User, CustomerAccount } from '../../types/admin.types';
 import { Checkbox } from '@mui/material';
 import {
@@ -75,6 +76,11 @@ import {
 
 export default function CustomerManagement() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   // ==================== GraphQL Hooks ====================
   const {
@@ -347,6 +353,8 @@ export default function CustomerManagement() {
   const startIndex = (page - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
+
+  if (authLoading || !isAuthenticated) return null;
 
   if (loading) {
     return (

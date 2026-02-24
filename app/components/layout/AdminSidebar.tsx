@@ -41,6 +41,7 @@ import {
   Handyman as HandymanIcon,
   FactCheck,
   VerifiedUser,
+  NotificationsActive,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 
@@ -287,6 +288,13 @@ const adminMenuItems: MenuItem[] = [
         roles: ['admin'],
       },
     ],
+  },
+  {
+    id: 'notifications',
+    title: 'Notifikasi',
+    icon: <NotificationsActive />,
+    path: '/notifications',
+    roles: ['admin'],
   },
   {
     id: 'reports',

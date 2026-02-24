@@ -1,9 +1,11 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
+import { useAdmin } from '../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -89,6 +91,13 @@ const GET_ALL_METERAN_IDS = gql`
 `;
 
 export default function BillingManagement() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPeriod, setFilterPeriod] = useState('current');
@@ -311,6 +320,8 @@ export default function BillingManagement() {
   const totalBillings = billingStats?.totalTagihan || 1;
   const collectionRate = totalBillings > 0 ? (paidBillings / totalBillings) * 100 : 0;
   const overdueAmount = billingStats?.nilaiTunggakan || 0;
+
+  if (authLoading || !isAuthenticated) return null;
 
   if (loading) {
     return (
