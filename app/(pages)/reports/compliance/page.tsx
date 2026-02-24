@@ -228,6 +228,8 @@ export default function ComplianceReports() {
 
   const handlePrint = () => window.print();
 
+  if (authLoading || !isAuthenticated) return null;
+
   if (loadingKpi) {
     return (
       <AdminLayout title="Laporan Kepatuhan">

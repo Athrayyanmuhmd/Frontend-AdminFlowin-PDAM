@@ -118,6 +118,8 @@ export default function SurveyDataDetail() {
     }
   };
 
+  if (authLoading || !isAuthenticated) return null;
+
   if (loading) {
     return (
       <AdminLayout>

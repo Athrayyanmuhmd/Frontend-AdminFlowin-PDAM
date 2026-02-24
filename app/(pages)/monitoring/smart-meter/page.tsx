@@ -166,6 +166,7 @@ export default function SmartMeterManagement() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
+
   const [meters, setMeters] = useState<SmartMeter[]>([]);
 
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_METERAN, {
@@ -250,6 +251,8 @@ export default function SmartMeterManagement() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   const onlineMeters = meters.filter(m => m.status === 'online').length;
   const offlineMeters = meters.filter(m => m.status === 'offline').length;

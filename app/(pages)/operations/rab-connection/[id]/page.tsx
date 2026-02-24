@@ -102,6 +102,8 @@ export default function RabConnectionDetail() {
     }
   };
 
+  if (authLoading || !isAuthenticated) return null;
+
   if (loading) {
     return (
       <AdminLayout>

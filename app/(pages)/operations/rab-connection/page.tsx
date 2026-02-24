@@ -104,6 +104,8 @@ export default function RabConnectionManagement() {
     router.push(`/operations/rab-connection/${id}`);
   };
 
+  if (authLoading || !isAuthenticated) return null;
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',

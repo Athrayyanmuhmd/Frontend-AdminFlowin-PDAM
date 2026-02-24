@@ -371,6 +371,8 @@ export default function CustomReports() {
     exportCSV(filename, exportData.headers, exportData.rows);
   };
 
+  if (authLoading || !isAuthenticated) return null;
+
   return (
     <AdminLayout title="Laporan Kustom">
       <Box sx={{ mb: 3 }}>

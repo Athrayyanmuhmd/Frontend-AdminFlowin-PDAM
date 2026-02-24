@@ -104,6 +104,8 @@ export default function SurveyDataManagement() {
     router.push(`/operations/survey-data/${id}`);
   };
 
+  if (authLoading || !isAuthenticated) return null;
+
   return (
     <AdminLayout>
       <Box sx={{ p: 3 }}>
