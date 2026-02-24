@@ -39,6 +39,8 @@ import {
   Group,
   AssignmentTurnedIn,
   Handyman as HandymanIcon,
+  FactCheck,
+  VerifiedUser,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 
@@ -208,6 +210,22 @@ const adminMenuItems: MenuItem[] = [
         title: 'Pemasangan Meter',
         icon: <HandymanIcon />,
         path: '/operations/pemasangan',
+        permission: 'workorders:read',
+        roles: ['admin'],
+      },
+      {
+        id: 'pengawasan-pemasangan',
+        title: 'Pengawasan Pemasangan',
+        icon: <FactCheck />,
+        path: '/operations/pengawasan-pemasangan',
+        permission: 'workorders:read',
+        roles: ['admin'],
+      },
+      {
+        id: 'pengawasan-setelah-pemasangan',
+        title: 'Pengawasan Pasca Pasang',
+        icon: <VerifiedUser />,
+        path: '/operations/pengawasan-setelah-pemasangan',
         permission: 'workorders:read',
         roles: ['admin'],
       },
