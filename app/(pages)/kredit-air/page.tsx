@@ -112,7 +112,6 @@ const KreditAirPage: React.FC = () => {
           },
         }
       );
-      console.log(response.data.data);
       setKreditData(response.data.data);
     } catch (error) {
       console.error("Error fetching kredit air data:", error);
@@ -145,7 +144,6 @@ const KreditAirPage: React.FC = () => {
 
   const handleSave = async () => {
     // Implement save functionality here
-    console.log("Save button clicked", formData);
     // Add API call to save the new Kredit Air data
     try {
       await API.post("/waterCredit/createWaterCredit", formData, {

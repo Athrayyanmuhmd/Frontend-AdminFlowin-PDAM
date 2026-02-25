@@ -79,8 +79,6 @@ export default function CustomerRegistration() {
   useEffect(() => {
     if (!graphqlCustomer || !isEditMode) return;
 
-    console.log('📥 GraphQL Customer Data:', graphqlCustomer);
-
     // Pre-populate form with existing data from GraphQL
     setFormData({
       nik: graphqlCustomer.nik || '',
@@ -97,13 +95,6 @@ export default function CustomerRegistration() {
       accountStatus: graphqlCustomer.accountStatus || 'active',
     });
 
-    console.log('✅ Form pre-populated from GraphQL:', {
-      nik: graphqlCustomer.nik,
-      name: graphqlCustomer.namaLengkap,
-      email: graphqlCustomer.email,
-      phone: graphqlCustomer.noHP,
-      address: graphqlCustomer.address,
-    });
   }, [graphqlCustomer, isEditMode]);
 
   const handleInputChange = (field: string, value: any) => {
@@ -191,11 +182,6 @@ export default function CustomerRegistration() {
         accountStatus: formData.accountStatus,
       };
 
-      console.log(
-        isEditMode ? '📝 GraphQL Update:' : '📤 GraphQL Create:',
-        inputData
-      );
-
       let result;
       if (isEditMode && editId) {
         // Update existing customer via GraphQL
@@ -205,7 +191,6 @@ export default function CustomerRegistration() {
             input: inputData,
           },
         });
-        console.log('✅ Customer updated via GraphQL:', result);
         setSuccess(
           shouldRedirect
             ? `Pelanggan berhasil diperbarui! Mengalihkan...`
@@ -218,7 +203,6 @@ export default function CustomerRegistration() {
             input: inputData,
           },
         });
-        console.log('✅ Customer created via GraphQL:', result);
         setSuccess(
           `Pelanggan berhasil didaftarkan! ID: ${(result.data as any)?.createPelanggan?._id}`
         );

@@ -2,7 +2,11 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['localhost', 'pdam-tirtadaroy.ac.id'],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'pdam-tirtadaroy.ac.id' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+    ],
   },
   reactStrictMode: true,
   compiler: {
@@ -25,14 +29,6 @@ const nextConfig: NextConfig = {
               'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
           },
         ],
-      },
-    ];
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
       },
     ];
   },

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AdminUser, Permission, Notification } from '../types/admin.types';
 import {
   loginAdmin,
@@ -78,12 +78,33 @@ function AdminProviderInner({ children }: AdminProviderProps) {
   const [userRole, setUserRole] = useState<'admin' | 'technician' | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Load notifikasi dari GraphQL (poll setiap 30 detik)
-  const { data: notifData, refetch: refetchNotif } = useQuery(GET_ALL_NOTIFIKASI_ADMIN, {
+  // Error backoff untuk notifikasi polling
+  const notifErrorCountRef = useRef(0);
+  const notifRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load notifikasi dari GraphQL (poll setiap 30 detik, dengan error backoff)
+  const { data: notifData, refetch: refetchNotif, error: notifError, stopPolling, startPolling } = useQuery(GET_ALL_NOTIFIKASI_ADMIN, {
     skip: !isAuthenticated,
     pollInterval: 30000,
     fetchPolicy: 'network-only',
   });
+
+  // Error backoff: stop polling setelah 2 error berturut-turut, retry setelah 5 menit
+  useEffect(() => {
+    if (notifError) {
+      notifErrorCountRef.current += 1;
+      if (notifErrorCountRef.current >= 2) {
+        stopPolling();
+        if (notifRetryTimerRef.current) clearTimeout(notifRetryTimerRef.current);
+        notifRetryTimerRef.current = setTimeout(() => {
+          notifErrorCountRef.current = 0;
+          startPolling(30000);
+        }, 5 * 60 * 1000);
+      }
+    } else if (notifData) {
+      notifErrorCountRef.current = 0;
+    }
+  }, [notifError, notifData, stopPolling, startPolling]);
 
   const [markReadMutation] = useMutation(MARK_NOTIF_READ);
 
