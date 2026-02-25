@@ -455,8 +455,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       );
     } else if (item.path) {
       router.push(item.path);
-      // Auto-close sidebar on mobile after navigation
-      if (isMobile && onClose) onClose();
+      // Sidebar TIDAK auto-close saat navigasi — hanya menutup via tombol hamburger
     }
   };
 
@@ -530,7 +529,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       variant={isMobile ? 'temporary' : 'persistent'}
       anchor='left'
       open={open}
-      onClose={onClose}
+      onClose={onToggle} // Hanya toggle via tombol hamburger, bukan klik backdrop
       ModalProps={{ keepMounted: true }} // Better mobile performance
       sx={{
         width: open ? 280 : 0,
