@@ -529,8 +529,9 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       variant={isMobile ? 'temporary' : 'persistent'}
       anchor='left'
       open={open}
-      onClose={onToggle} // Hanya toggle via tombol hamburger, bukan klik backdrop
-      ModalProps={{ keepMounted: true }} // Better mobile performance
+      onClose={onToggle}
+      transitionDuration={0}
+      ModalProps={{ keepMounted: true }}
       sx={{
         width: open ? 280 : 0,
         flexShrink: 0,
@@ -540,6 +541,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           borderRight: '1px solid',
           borderColor: 'divider',
           backgroundColor: 'background.paper',
+          transition: 'none !important',
         },
       }}
     >

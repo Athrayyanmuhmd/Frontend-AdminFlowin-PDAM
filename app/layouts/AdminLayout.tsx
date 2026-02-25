@@ -17,11 +17,18 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Set initial sidebar state based on screen size
+  // Inisialisasi dari localStorage agar state persisten antar navigasi halaman
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem('sidebarOpen');
+    if (saved !== null) return saved === 'true';
+    return true; // default: terbuka di desktop
+  });
+
+  // Saat screen size berubah (resize), paksa tutup di mobile
   useEffect(() => {
-    setSidebarOpen(!isMobile);
+    if (isMobile) setSidebarOpen(false);
   }, [isMobile]);
 
   useEffect(() => {
@@ -31,11 +38,18 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   }, [isAuthenticated, isLoading, router]);
 
   const handleSidebarToggle = () => {
-    setSidebarOpen(prev => !prev);
+    setSidebarOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebarOpen', String(next));
+      return next;
+    });
   };
 
   const handleSidebarClose = () => {
-    if (isMobile) setSidebarOpen(false);
+    if (isMobile) {
+      setSidebarOpen(false);
+      localStorage.setItem('sidebarOpen', 'false');
+    }
   };
 
   if (isLoading) {
@@ -76,10 +90,8 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           flexDirection: 'column',
           minHeight: '100vh',
           backgroundColor: 'background.default',
-          // On desktop with persistent sidebar, account for sidebar width
-          ml: !isMobile && sidebarOpen ? 0 : 0,
-          width: { xs: '100%', md: sidebarOpen ? `calc(100% - 280px)` : '100%' },
-          transition: 'width 0.2s ease',
+          minWidth: 0, // prevent flex overflow
+          overflow: 'hidden',
         }}
       >
         <AdminHeader onMenuToggle={handleSidebarToggle} title={title} />
