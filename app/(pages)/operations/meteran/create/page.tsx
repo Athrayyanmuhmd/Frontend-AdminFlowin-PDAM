@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -57,8 +56,8 @@ export default function CreateMeteran() {
     fetchPolicy: 'network-only',
   });
 
-  const connectionData = connResult?.getKoneksiData || null;
-  const kelompokList = kelompokResult?.getAllKelompokPelanggan || [];
+  const connectionData = (connResult as any)?.getKoneksiData || null;
+  const kelompokList = (kelompokResult as any)?.getAllKelompokPelanggan || [];
 
   const [createMeteranMutation] = useMutation(CREATE_METERAN, {
     refetchQueries: [{ query: GET_ALL_METERAN }],

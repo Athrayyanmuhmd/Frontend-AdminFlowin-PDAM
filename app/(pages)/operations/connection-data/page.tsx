@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -69,7 +68,7 @@ export default function ConnectionDataManagement() {
     fetchPolicy: 'network-only',
   });
 
-  const connectionData = data?.getAllKoneksiData || [];
+  const connectionData = (data as any)?.getAllKoneksiData || [];
 
   // Handle errors
   useEffect(() => {

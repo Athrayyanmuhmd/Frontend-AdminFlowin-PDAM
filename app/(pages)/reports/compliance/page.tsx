@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -139,9 +138,9 @@ export default function ComplianceReports() {
   const { data: woData, loading: loadingWo } = useQuery(GET_RINGKASAN_WORK_ORDER, { fetchPolicy: 'network-only' });
   const { data: laporanData, loading: loadingLaporan } = useQuery(GET_RINGKASAN_LAPORAN, { fetchPolicy: 'network-only' });
 
-  const kpi = kpiData?.getKpiOperasional;
-  const ringkasanWO: any[] = woData?.getRingkasanWorkOrder || [];
-  const ringkasanLaporan: any[] = laporanData?.getRingkasanLaporan || [];
+  const kpi = (kpiData as any)?.getKpiOperasional;
+  const ringkasanWO: any[] = (woData as any)?.getRingkasanWorkOrder || [];
+  const ringkasanLaporan: any[] = (laporanData as any)?.getRingkasanLaporan || [];
 
   // --- Hitung SLA dari data real ---
   const totalWO = ringkasanWO.reduce((s: number, r: any) => s + r.jumlah, 0);

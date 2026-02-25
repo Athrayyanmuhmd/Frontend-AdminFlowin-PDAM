@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -181,12 +180,12 @@ function useReportData(reportId: ReportId | null) {
   const loading = l1 || l2 || l3 || l4 || l5 || l6;
 
   const result: any = {};
-  if (kpiData?.getKpiOperasional) result.rows = kpiData.getKpiOperasional;
-  if (woData?.getRingkasanWorkOrder) result.rows = woData.getRingkasanWorkOrder;
-  if (laporanData?.getRingkasanLaporan) result.rows = laporanData.getRingkasanLaporan;
-  if (tagihanData?.getRingkasanStatusTagihan) result.rows = tagihanData.getRingkasanStatusTagihan;
-  if (bulananData?.getLaporanKeuanganBulanan) result.rows = bulananData.getLaporanKeuanganBulanan;
-  if (tunggakanData?.getTunggakanPerKelompok) result.rows = tunggakanData.getTunggakanPerKelompok;
+  if ((kpiData as any)?.getKpiOperasional) result.rows = (kpiData as any).getKpiOperasional;
+  if ((woData as any)?.getRingkasanWorkOrder) result.rows = (woData as any).getRingkasanWorkOrder;
+  if ((laporanData as any)?.getRingkasanLaporan) result.rows = (laporanData as any).getRingkasanLaporan;
+  if ((tagihanData as any)?.getRingkasanStatusTagihan) result.rows = (tagihanData as any).getRingkasanStatusTagihan;
+  if ((bulananData as any)?.getLaporanKeuanganBulanan) result.rows = (bulananData as any).getLaporanKeuanganBulanan;
+  if ((tunggakanData as any)?.getTunggakanPerKelompok) result.rows = (tunggakanData as any).getTunggakanPerKelompok;
 
   return { data: result.rows, loading };
 }

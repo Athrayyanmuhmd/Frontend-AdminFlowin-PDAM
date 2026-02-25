@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -268,7 +267,7 @@ export default function CustomerManagement() {
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {stats.customersByType?.rumah_tangga || 0}
+                      {(stats.customersByType as any)?.rumah_tangga || 0}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Rumah Tangga
@@ -288,7 +287,7 @@ export default function CustomerManagement() {
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {stats.customersByType?.komersial || 0}
+                      {(stats.customersByType as any)?.komersial || 0}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Komersial

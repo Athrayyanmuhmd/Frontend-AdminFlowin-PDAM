@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -187,7 +186,7 @@ export default function RabConnectionDetail() {
                     Nama Teknisi:
                   </Typography>
                   <Typography variant='body1' fontWeight='bold'>
-                    {data.technicianId.namaLengkap}
+                    {(data.technicianId as any)?.namaLengkap}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -195,7 +194,7 @@ export default function RabConnectionDetail() {
                     Email:
                   </Typography>
                   <Typography variant='body1'>
-                    {data.technicianId.email}
+                    {(data.technicianId as any)?.email}
                   </Typography>
                 </Grid>
               </Grid>

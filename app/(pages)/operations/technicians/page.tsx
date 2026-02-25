@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -141,7 +140,7 @@ export default function TechnicianManagement() {
   });
 
   // ==================== Data Processing ====================
-  const technicians = data?.getAllTeknisi || [];
+  const technicians = (data as any)?.getAllTeknisi || [];
 
   // Helper function to format date safely
   const formatDate = (dateString: string | undefined | null): string => {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -54,7 +53,7 @@ export default function CreateRabConnection() {
     fetchPolicy: 'network-only',
   });
 
-  const connectionData = connResult?.getKoneksiData || null;
+  const connectionData = (connResult as any)?.getKoneksiData || null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

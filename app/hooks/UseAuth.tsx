@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import React from "react";
@@ -14,14 +13,14 @@ interface AuthContextType {
     isAuthenticated: boolean;
     user: {
       id: string;
-      fullName: string;
-      phone: string;
+      namaLengkap: string;
+      noHP: string;
       email: string;
     } | null;
     token: string | null;
   };
   login: (data: {
-    user: { id: string; fullName: string; phone: string; email: string };
+    user: { id: string; namaLengkap: string; noHP: string; email: string };
     token: string;
   }) => void;
   logout: () => void;
@@ -38,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const handleLogin = (data: {
-    user: { id: string; fullName: string; phone: string; email: string };
+    user: { id: string; namaLengkap: string; noHP: string; email: string };
     token: string;
   }) => {
     dispatch(

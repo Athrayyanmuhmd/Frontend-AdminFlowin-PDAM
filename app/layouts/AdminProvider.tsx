@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -90,8 +89,8 @@ function AdminProviderInner({ children }: AdminProviderProps) {
 
   // Sync notifikasi dari GraphQL ke state
   useEffect(() => {
-    if (notifData?.getAllNotifikasiAdmin) {
-      const mapped: Notification[] = notifData.getAllNotifikasiAdmin.map((n: any) => ({
+    if ((notifData as any)?.getAllNotifikasiAdmin) {
+      const mapped: Notification[] = (notifData as any).getAllNotifikasiAdmin.map((n: any) => ({
         id: n._id,
         type: n.kategori === 'Peringatan' ? 'warning' : n.kategori === 'Transaksi' ? 'info' : 'info',
         title: n.judul,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -39,12 +38,12 @@ interface Meteran {
     hargaPenggunaanDibawah10: number;
     hargaPenggunaanDiatas10: number;
     biayaBeban: number;
-  };
+  } | null;
   userId: {
     _id: string;
     namaLengkap: string;
     noHp: string;
-  };
+  } | null;
   connectionDataId?: {
     _id: string;
     nik: string;
@@ -225,7 +224,7 @@ export default function MeteranDetail() {
                       Nama Kelompok
                     </Typography>
                     <Typography variant='h6' fontWeight='bold'>
-                      {meteran.kelompokPelangganId.namaKelompok}
+                      {meteran.kelompokPelangganId?.namaKelompok}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -262,7 +261,7 @@ export default function MeteranDetail() {
                         color='success.main'
                       >
                         {formatCurrency(
-                          meteran.kelompokPelangganId.hargaPenggunaanDibawah10
+                          meteran.kelompokPelangganId?.hargaPenggunaanDibawah10 ?? 0
                         )}
                         /m³
                       </Typography>
@@ -287,14 +286,14 @@ export default function MeteranDetail() {
                         color='warning.main'
                       >
                         {formatCurrency(
-                          meteran.kelompokPelangganId.hargaPenggunaanDiatas10
+                          meteran.kelompokPelangganId?.hargaPenggunaanDiatas10 ?? 0
                         )}
                         /m³
                       </Typography>
                     </Box>
                   </Grid>
 
-                  {meteran.kelompokPelangganId.biayaBeban > 0 && (
+                  {(meteran.kelompokPelangganId?.biayaBeban ?? 0) > 0 && (
                     <Grid item xs={12} md={4}>
                       <Box
                         sx={{
@@ -313,7 +312,7 @@ export default function MeteranDetail() {
                           color='info.main'
                         >
                           {formatCurrency(
-                            meteran.kelompokPelangganId.biayaBeban
+                            meteran.kelompokPelangganId?.biayaBeban ?? 0
                           )}
                         </Typography>
                       </Box>
@@ -340,7 +339,7 @@ export default function MeteranDetail() {
                       Nama Pelanggan
                     </Typography>
                     <Typography variant='body1'>
-                      {meteran.userId.namaLengkap}
+                      {meteran.userId?.namaLengkap}
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>
@@ -348,7 +347,7 @@ export default function MeteranDetail() {
                       No. HP
                     </Typography>
                     <Typography variant='body1'>
-                      {meteran.userId.noHp}
+                      {meteran.userId?.noHp}
                     </Typography>
                   </Grid>
                 </Grid>

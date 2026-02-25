@@ -166,7 +166,7 @@ const Navbar = () => {
             color="inherit"
           >
             <div className=" bg-white text-black py-1 px-4 rounded-full">
-              <h1 className=" text-lg">{Auth.auth.user?.fullName}</h1>
+              <h1 className=" text-lg">{Auth.auth.user?.namaLengkap}</h1>
             </div>
           </IconButton>
           <Menu
@@ -225,7 +225,7 @@ const Navbar = () => {
           <ListItem>
             <div className=" flex items-center gap-5 w-full">
               <h1 className=" text-base font-semibold">
-                {Auth.auth.user?.fullName}
+                {Auth.auth.user?.namaLengkap}
               </h1>
             </div>
           </ListItem>

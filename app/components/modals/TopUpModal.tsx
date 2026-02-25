@@ -37,13 +37,13 @@ const TopUpModal: React.FC<TopUpModalProps> = ({
       {
         customerDetails: {
           userId: auth.auth.user?.id,
-          firstName: auth.auth.user?.fullName.split(" ")[0],
-          lastName: auth.auth.user?.fullName
+          firstName: auth.auth.user?.namaLengkap.split(" ")[0],
+          lastName: auth.auth.user?.namaLengkap
             .split(" ")
-            .slice(1, auth.auth.user.fullName.split(" ").length - 1)
+            .slice(1, auth.auth.user.namaLengkap.split(" ").length - 1)
             .join(" "),
           email: auth.auth.user?.email,
-          phone: auth.auth.user?.phone,
+          phone: auth.auth.user?.noHP,
         },
         paymentMethod: paymentMethod,
         amount: amount,

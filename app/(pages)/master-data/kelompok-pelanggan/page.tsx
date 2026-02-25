@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -86,7 +85,7 @@ export default function KelompokPelangganPage() {
     fetchPolicy: 'network-only',
   });
 
-  const kelompokList = data?.getAllKelompokPelanggan || [];
+  const kelompokList = (data as any)?.getAllKelompokPelanggan || [];
 
   // Handle query errors
   useEffect(() => {
@@ -354,7 +353,7 @@ export default function KelompokPelangganPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    kelompokList.map(kelompok => (
+                    kelompokList.map((kelompok: any) => (
                       <TableRow key={kelompok._id} hover>
                         <TableCell>
                           <Box

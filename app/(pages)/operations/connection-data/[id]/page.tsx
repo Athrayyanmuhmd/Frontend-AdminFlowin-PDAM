@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -104,9 +103,11 @@ export default function ConnectionDataDetail() {
         kecamatan: graphqlData.kecamatan,
         luasBangunan: graphqlData.luasBangunan,
         statusVerifikasi: graphqlData.statusVerifikasi,
-        isVerifiedByData: graphqlData.statusVerifikasi,
+        isVerifiedByData: !!graphqlData.statusVerifikasi,
         isVerifiedByTechnician: false, // Not available in GraphQL
         isAllProcedureDone: false, // Not available in GraphQL
+        surveiId: graphqlData.surveiId || null,
+        rabConnectionId: graphqlData.rabConnectionId || null,
         // Map assign fields
         assignedTechnicianId: graphqlData.idTeknisi ? {
           _id: graphqlData.idTeknisi._id,
@@ -152,7 +153,7 @@ export default function ConnectionDataDetail() {
         variables: { id: data._id, verified: true, catatan: 'Diverifikasi oleh Admin' },
       });
       setSuccess('Data berhasil diverifikasi oleh admin');
-      setData(prev => prev ? { ...prev, isVerifiedByData: true, statusVerifikasi: true } : prev);
+      setData(prev => prev ? { ...prev, isVerifiedByData: true, statusVerifikasi: 'Terverifikasi' } : prev);
       refetch();
     } catch (err: any) {
       setError(err.message || 'Gagal melakukan verifikasi');

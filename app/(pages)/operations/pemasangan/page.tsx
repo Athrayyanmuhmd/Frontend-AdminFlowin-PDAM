@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -61,7 +60,7 @@ export default function PemasanganPage() {
     onError: (err) => setSnackbar({ open: true, message: err.message, severity: 'error' }),
   });
 
-  const allData: any[] = data?.getAllPemasangan || [];
+  const allData: any[] = (data as any)?.getAllPemasangan || [];
   const filtered = filterStatus === 'all' ? allData : allData.filter(p => p.statusVerifikasi === filterStatus);
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
   const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -134,7 +133,7 @@ export default function WorkOrderManagement() {
     onCompleted: (data) => {
       refetch();
       setAnchorEl(null);
-      const disetujui = data?.approveWorkOrder?.disetujui;
+      const disetujui = (data as any)?.approveWorkOrder?.disetujui;
       showSnackbar(disetujui ? 'Work order berhasil disetujui' : 'Work order ditolak');
     },
     onError: (err) => showSnackbar('Gagal memproses approval: ' + err.message, 'error'),
@@ -150,8 +149,8 @@ export default function WorkOrderManagement() {
     onError: (err) => showSnackbar('Gagal menugaskan teknisi: ' + err.message, 'error'),
   });
 
-  const allWO: any[] = data?.getAllWorkOrders || [];
-  const allTeknisi: any[] = teknisiData?.getAllTeknisi || [];
+  const allWO: any[] = (data as any)?.getAllWorkOrders || [];
+  const allTeknisi: any[] = (teknisiData as any)?.getAllTeknisi || [];
 
   const filtered = allWO.filter((wo) => {
     const matchStatus = filterStatus === 'all' || wo.status === filterStatus;

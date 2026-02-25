@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { ApolloClient, InMemoryCache, HttpLink, from, NormalizedCacheObject } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 
 // Create HTTP link for GraphQL endpoint
@@ -21,7 +20,7 @@ const authLink = setContext((_, { headers }) => {
 });
 
 // Create Apollo Client instance
-const apolloClient: ApolloClient<NormalizedCacheObject> = new ApolloClient({
+const apolloClient = new ApolloClient({
   link: from([authLink, httpLink]),
   cache: new InMemoryCache(),
   defaultOptions: {

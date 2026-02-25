@@ -46,8 +46,8 @@ const KreditAirPage: React.FC = () => {
   const [formData, setFormData] = useState({
     owner: {
       id: auth.auth.user?.id,
-      fullName: auth.auth.user?.fullName,
-      phone: auth.auth.user?.phone,
+      fullName: auth.auth.user?.namaLengkap,
+      phone: auth.auth.user?.noHP,
       email: auth.auth.user?.email,
     },
     cost: 0,

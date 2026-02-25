@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Work Order Types untuk Admin Panel
 
 export type WorkOrderType =
@@ -145,7 +144,7 @@ export interface WorkOrder {
 }
 
 // Populated work order (with relations)
-export interface PopulatedWorkOrder extends WorkOrder {
+export interface PopulatedWorkOrder extends Omit<WorkOrder, 'customerId' | 'assignedTechnicianId' | 'assignedBy'> {
   assignedTechnicianId?: {
     _id: string;
     fullName: string;

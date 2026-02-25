@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -95,9 +94,9 @@ export default function PaymentsPage() {
   // ==================== Data Mapping ====================
   // Map GraphQL Tagihan data to PaymentData format
   const payments = useMemo(() => {
-    if (!data?.getTagihanByStatus) return [];
+    if (!(data as any)?.getTagihanByStatus) return [];
 
-    return data.getTagihanByStatus.map((tagihan: any) => ({
+    return (data as any).getTagihanByStatus.map((tagihan: any) => ({
       id: tagihan._id,
       billingId: tagihan._id,
       accountNumber: tagihan.idMeteran?.nomorAkun || '-',
@@ -125,7 +124,7 @@ export default function PaymentsPage() {
     handleMenuClose();
   };
 
-  const filteredPayments = payments.filter(payment => {
+  const filteredPayments = payments.filter((payment: any) => {
     const matchesSearch =
       payment.accountNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -155,9 +154,9 @@ export default function PaymentsPage() {
     }
   };
 
-  const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const successPayments = filteredPayments.filter(p => p.status === 'success');
-  const successAmount = successPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalAmount = filteredPayments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
+  const successPayments = filteredPayments.filter((p: any) => p.status === 'success');
+  const successAmount = successPayments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
 
   const startIndex = (page - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
@@ -243,7 +242,7 @@ export default function PaymentsPage() {
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {filteredPayments.filter(p => p.status === 'pending').length}
+                      {filteredPayments.filter((p: any) => p.status === 'pending').length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Menunggu Konfirmasi
@@ -402,7 +401,7 @@ export default function PaymentsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedPayments.map((payment) => (
+                  paginatedPayments.map((payment: any) => (
                   <TableRow key={payment.id} hover>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>

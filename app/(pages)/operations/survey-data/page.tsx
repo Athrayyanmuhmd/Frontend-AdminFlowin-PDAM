@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -75,7 +74,7 @@ export default function SurveyDataManagement() {
   }, [graphqlError]);
 
   // Get survey data from GraphQL response
-  const surveyData = data?.getAllSurvei || [];
+  const surveyData = (data as any)?.getAllSurvei || [];
 
   // Filter data using useMemo for reactive updates
   const filteredData = useMemo(() => {

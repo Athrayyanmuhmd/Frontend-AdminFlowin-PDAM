@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -174,8 +173,8 @@ export default function SmartMeterManagement() {
   });
 
   useEffect(() => {
-    if (data?.getAllMeteran) {
-      setMeters(mapBackendToSmartMeter(data.getAllMeteran));
+    if ((data as any)?.getAllMeteran) {
+      setMeters(mapBackendToSmartMeter((data as any).getAllMeteran));
     }
   }, [data]);
 

@@ -7,7 +7,7 @@ export interface ConnectionData {
     namaLengkap: string;
     email: string;
     noHP: string;
-  };
+  } | null;
   nik: string;
   nikUrl: string;
   noKK: string;
@@ -22,7 +22,9 @@ export interface ConnectionData {
   isVerifiedByTechnician: boolean;
   surveiId: any;
   rabConnectionId: any;
+  meteranId?: string | null;
   isAllProcedureDone: boolean;
+  statusVerifikasi?: string;
   // Assignment fields
   assignedTechnicianId?: {
     _id: string;

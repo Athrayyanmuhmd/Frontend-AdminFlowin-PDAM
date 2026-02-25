@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -134,7 +133,7 @@ export default function GenerateBills() {
   const [generateTagihanMutation, { loading: generating }] = useMutation(GENERATE_TAGIHAN);
 
   // Build accounts list from real meteran data
-  const allAccounts: AccountForBilling[] = (meteranData?.getAllMeteran || []).map((m: any) => ({
+  const allAccounts: AccountForBilling[] = ((meteranData as any)?.getAllMeteran || []).map((m: any) => ({
     id: m._id,
     accountNumber: m.nomorAkun,
     customerName: m.idKoneksiData?.idPelanggan?.namaLengkap || '-',
@@ -192,7 +191,7 @@ export default function GenerateBills() {
         variables: { periode: formData.periode, idMeteranList },
       });
       setGenerationProgress(100);
-      const res = result.data?.generateTagihanBulanan;
+      const res = (result.data as any)?.generateTagihanBulanan;
       setGenerationResults({
         total: idMeteranList.length,
         success: res?.berhasil ?? idMeteranList.length,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -79,7 +78,7 @@ export default function CreateSurveyData() {
     fetchPolicy: 'network-only',
   });
 
-  const connectionData = connResult?.getKoneksiData || null;
+  const connectionData = (connResult as any)?.getKoneksiData || null;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -50,7 +49,7 @@ export default function AssignTechnicianDialog({
     fetchPolicy: 'network-only',
   });
 
-  const technicians = teknisiData?.getAllTeknisi || [];
+  const technicians = (teknisiData as any)?.getAllTeknisi || [];
 
   const [assignMutate, { loading: assigning }] = useMutation(ASSIGN_TEKNISI_TO_KONEKSI, {
     refetchQueries: [{ query: GET_CONNECTION_DATA_BY_ID, variables: { id: connectionDataId } }],

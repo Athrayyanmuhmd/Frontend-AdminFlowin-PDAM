@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -221,7 +220,7 @@ export default function CustomerRegistration() {
         });
         console.log('✅ Customer created via GraphQL:', result);
         setSuccess(
-          `Pelanggan berhasil didaftarkan! ID: ${result.data?.createPelanggan?._id}`
+          `Pelanggan berhasil didaftarkan! ID: ${(result.data as any)?.createPelanggan?._id}`
         );
       }
 
@@ -270,8 +269,6 @@ export default function CustomerRegistration() {
       const errorMsg = err.response?.data?.message || err.message;
       const statusCode = err.response?.status ? ` (${err.response.status})` : '';
       setError(`Gagal mendaftarkan pelanggan${statusCode}: ${errorMsg}`);
-    } finally {
-      setLoading(false);
     }
   };
 

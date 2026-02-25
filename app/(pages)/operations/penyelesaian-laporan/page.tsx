@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -78,8 +77,8 @@ export default function PenyelesaianLaporanPage() {
     onError: (err) => setSnackbar({ open: true, message: err.message, severity: 'error' }),
   });
 
-  const allLaporan: any[] = data?.getAllLaporan || [];
-  const allTeknisi: any[] = teknisiData?.getAllTeknisi || [];
+  const allLaporan: any[] = (data as any)?.getAllLaporan || [];
+  const allTeknisi: any[] = (teknisiData as any)?.getAllTeknisi || [];
 
   const filtered = allLaporan.filter((l) => {
     const matchStatus = filterStatus === 'all' || l.status === filterStatus;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -130,11 +129,11 @@ export default function CustomerAccounts() {
   // Calculate stats from meteran data
   const stats = useMemo(() => {
     const totalAccounts = accounts.length;
-    const activeAccounts = accounts.filter(acc => acc.serviceStatus === 'active').length;
-    const suspendedAccounts = accounts.filter(acc => acc.serviceStatus === 'suspended').length;
+    const activeAccounts = accounts.filter((acc: any) => acc.serviceStatus === 'active').length;
+    const suspendedAccounts = accounts.filter((acc: any) => acc.serviceStatus === 'suspended').length;
     const avgConsumption = 0; // Not available in current schema
 
-    const accountsByTariff = accounts.reduce((acc, account) => {
+    const accountsByTariff = accounts.reduce((acc: Record<string, number>, account: any) => {
       acc[account.tariffCategory] = (acc[account.tariffCategory] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -205,7 +204,7 @@ export default function CustomerAccounts() {
     }
   };
 
-  const filteredAccounts = accounts.filter(account => {
+  const filteredAccounts = accounts.filter((account: any) => {
     const matchesSearch = account.accountNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          account.meterNumber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || account.serviceStatus === filterStatus;
@@ -236,7 +235,7 @@ export default function CustomerAccounts() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredAccounts.map((account) => (
+                {filteredAccounts.map((account: any) => (
                   <TableRow key={account.id} hover>
                     <TableCell>
                       <Box>
@@ -510,7 +509,7 @@ export default function CustomerAccounts() {
                   {Object.entries(stats.accountsByTariff).map(([tariff, count]) => (
                     <Box key={tariff} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="body2">{getTariffLabel(tariff)}</Typography>
-                      <Typography variant="body2" fontWeight="bold">{count}</Typography>
+                      <Typography variant="body2" fontWeight="bold">{count as number}</Typography>
                     </Box>
                   ))}
                 </CardContent>

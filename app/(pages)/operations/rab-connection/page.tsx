@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -71,7 +70,7 @@ export default function RabConnectionManagement() {
   }, [graphqlError]);
 
   // Get RAB data from GraphQL response
-  const rabData = data?.getAllRABConnections || [];
+  const rabData = (data as any)?.getAllRABConnections || [];
 
   // Filter data using useMemo for reactive updates
   const filteredData = useMemo(() => {

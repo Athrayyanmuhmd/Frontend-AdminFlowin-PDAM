@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState } from 'react';
@@ -47,7 +46,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { useRouter } from 'next/navigation';
 import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
 import { UPDATE_WORK_ORDER_STATUS } from '@/lib/graphql/mutations/workOrder';
-import { useAdmin } from '../../layouts/AdminProvider';
+import { useAdmin } from '../../../layouts/AdminProvider';
 
 const STATUS_LABELS: Record<string, string> = {
   Ditugaskan: 'Ditugaskan',
@@ -111,7 +110,7 @@ export default function TechnicianMobileApp() {
     },
   });
 
-  const allWO: any[] = data?.getAllWorkOrders || [];
+  const allWO: any[] = (data as any)?.getAllWorkOrders || [];
 
   // Statistik
   const activeWO = allWO.filter(w => w.status === 'Ditugaskan' || w.status === 'SedangDikerjakan');
