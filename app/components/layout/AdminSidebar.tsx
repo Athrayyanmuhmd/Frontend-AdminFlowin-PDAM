@@ -514,7 +514,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         </ListItem>
 
         {item.children && (
-          <Collapse in={isExpanded} timeout='auto' unmountOnExit>
+          <Collapse in={isExpanded} timeout={0} unmountOnExit>
             <List component='div' disablePadding>
               {item.children.map(child => renderMenuItem(child, level + 1))}
             </List>
