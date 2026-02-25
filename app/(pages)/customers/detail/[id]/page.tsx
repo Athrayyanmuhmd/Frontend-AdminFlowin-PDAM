@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -69,6 +70,11 @@ export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams();
   const customerId = params.id as string;
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   const [tabValue, setTabValue] = useState(0);
   const [historyUsage, setHistoryUsage] = useState<any[]>([]);
@@ -249,6 +255,8 @@ export default function CustomerDetailPage() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title={`Detail Pelanggan - ${customer.namaLengkap}`}>

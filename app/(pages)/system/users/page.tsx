@@ -1,7 +1,8 @@
-// @ts-nocheck
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -59,6 +60,13 @@ import {
 } from '../../../../lib/graphql/queries/admin';
 
 export default function UsersPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -88,7 +96,7 @@ export default function UsersPage() {
   const [updateAdmin, { loading: updating }] = useMutation(UPDATE_ADMIN, { onCompleted: () => { refetch(); setOpenEditDialog(false); showAlert('success', 'Data admin berhasil diperbarui'); }, onError: (e) => showAlert('error', e.message) });
   const [deleteAdmin, { loading: deleting }] = useMutation(DELETE_ADMIN, { onCompleted: () => { refetch(); setOpenDeleteDialog(false); showAlert('success', 'Admin berhasil dihapus'); }, onError: (e) => showAlert('error', e.message) });
 
-  const admins = data?.getAllAdmins || [];
+  const admins = (data as any)?.getAllAdmins || [];
 
   const showAlert = (type: 'success' | 'error', msg: string) => {
     setAlertMsg({ type, msg });
@@ -170,6 +178,8 @@ export default function UsersPage() {
       <Alert severity="error">Gagal memuat data admin: {error.message}</Alert>
     </AdminLayout>
   );
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Manajemen User">

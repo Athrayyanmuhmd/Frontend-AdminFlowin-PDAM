@@ -2,6 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -85,6 +87,13 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function CustomerAccounts() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [tabValue, setTabValue] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -300,6 +309,8 @@ export default function CustomerAccounts() {
       )}
     </Card>
   );
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Akun Pelanggan">

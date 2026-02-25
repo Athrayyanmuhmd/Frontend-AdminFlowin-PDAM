@@ -1,7 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -98,6 +100,13 @@ interface AccountForBilling {
 }
 
 export default function GenerateBills() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -458,6 +467,8 @@ export default function GenerateBills() {
         return 'Unknown step';
     }
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Generate Tagihan">

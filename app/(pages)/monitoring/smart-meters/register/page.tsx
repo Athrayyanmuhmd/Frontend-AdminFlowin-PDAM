@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
   Box,
   Card,
@@ -111,6 +112,12 @@ interface MeterRegistration {
 
 export default function SmartMeterRegistrationPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [activeStep, setActiveStep] = useState(0);
   const [submitError, setSubmitError] = useState('');
   const [createMeteran, { loading: submitting }] = useMutation(CREATE_METERAN);
@@ -796,6 +803,8 @@ export default function SmartMeterRegistrationPage() {
         return null;
     }
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Registrasi Meteran Pintar">

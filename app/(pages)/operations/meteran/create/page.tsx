@@ -1,8 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
   Box,
   Card,
@@ -30,6 +31,11 @@ export default function CreateMeteran() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connectionId = searchParams.get('connectionId');
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -123,6 +129,8 @@ export default function CreateMeteran() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout>

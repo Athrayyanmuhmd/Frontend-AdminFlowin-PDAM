@@ -1,7 +1,8 @@
-// @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -82,15 +83,22 @@ function exportCSV(filename: string, headers: string[], rows: (string | number)[
 }
 
 export default function OperationalReports() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [currentTab, setCurrentTab] = useState(0);
 
   const { data: kpiData, loading: loadingKpi, error: errorKpi } = useQuery(GET_KPI_OPERASIONAL, { fetchPolicy: 'network-only' });
   const { data: woData, loading: loadingWo } = useQuery(GET_RINGKASAN_WORK_ORDER, { fetchPolicy: 'network-only' });
   const { data: laporanData, loading: loadingLaporan } = useQuery(GET_RINGKASAN_LAPORAN, { fetchPolicy: 'network-only' });
 
-  const kpi = kpiData?.getKpiOperasional;
-  const ringkasanWO: any[] = woData?.getRingkasanWorkOrder || [];
-  const ringkasanLaporan: any[] = laporanData?.getRingkasanLaporan || [];
+  const kpi = (kpiData as any)?.getKpiOperasional;
+  const ringkasanWO: any[] = (woData as any)?.getRingkasanWorkOrder || [];
+  const ringkasanLaporan: any[] = (laporanData as any)?.getRingkasanLaporan || [];
 
   const handleExportKPI = () => {
     if (!kpi) return;
@@ -158,6 +166,8 @@ export default function OperationalReports() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Laporan Operasional">

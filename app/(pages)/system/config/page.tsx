@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Box,
   Card,
@@ -102,6 +104,13 @@ interface NotificationSettings {
 }
 
 export default function SystemConfigPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [tabValue, setTabValue] = useState(0);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -221,6 +230,8 @@ export default function SystemConfigPage() {
     { value: 'id-ID', label: 'Bahasa Indonesia' },
     { value: 'en-US', label: 'English' },
   ];
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="System Configuration">

@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@apollo/client/react';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -59,6 +61,13 @@ const defaultForm: KelompokForm = {
 };
 
 export default function TariffsPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -182,6 +191,8 @@ export default function TariffsPage() {
   const minHarga = kelompokList.length > 0
     ? Math.min(...kelompokList.map((k: any) => k.hargaDiBawah10mKubik || 0))
     : 0;
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Struktur Tarif">

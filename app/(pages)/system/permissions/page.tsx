@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Box,
   Card,
@@ -173,6 +175,13 @@ const mockPermissions: { [roleId: string]: Permission[] } = {
 };
 
 export default function PermissionsPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [roles, setRoles] = useState<Role[]>(mockRoles);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -276,6 +285,8 @@ export default function PermissionsPage() {
         return <Security />;
     }
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Role & Permission Management">

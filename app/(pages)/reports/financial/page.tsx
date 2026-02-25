@@ -1,7 +1,8 @@
-// @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -72,6 +73,13 @@ function exportCSV(filename: string, headers: string[], rows: (string | number)[
 }
 
 export default function FinancialReports() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [currentTab, setCurrentTab] = useState(0);
 
   const { data: bulananData, loading: loadingBulanan, error: errorBulanan } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { fetchPolicy: 'network-only' });
@@ -85,10 +93,10 @@ export default function FinancialReports() {
   const isLoading = loadingBulanan || loadingRingkasan || loadingTunggakan || loadingTertinggi;
   const queryError = errorBulanan || errorRingkasan;
 
-  const bulanan = bulananData?.getLaporanKeuanganBulanan || [];
-  const tunggakan = tunggakanData?.getTunggakanPerKelompok || [];
-  const tertinggi = tertinggiData?.getTagihanTertinggi || [];
-  const ringkasan = ringkasanData?.getRingkasanStatusTagihan;
+  const bulanan = (bulananData as any)?.getLaporanKeuanganBulanan || [];
+  const tunggakan = (tunggakanData as any)?.getTunggakanPerKelompok || [];
+  const tertinggi = (tertinggiData as any)?.getTagihanTertinggi || [];
+  const ringkasan = (ringkasanData as any)?.getRingkasanStatusTagihan;
 
   const collectionRate = ringkasan && ringkasan.nilaiTotal > 0
     ? ((ringkasan.nilaiLunas / ringkasan.nilaiTotal) * 100).toFixed(1)
@@ -133,6 +141,8 @@ export default function FinancialReports() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Laporan Keuangan">

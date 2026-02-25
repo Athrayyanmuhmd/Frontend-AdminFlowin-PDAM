@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -38,6 +39,12 @@ const steps = ['Informasi Pribadi', 'Data Tambahan', 'Konfirmasi'];
 export default function CustomerRegistration() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const editId = searchParams.get('edit');
   const isEditMode = Boolean(editId);
 
@@ -604,6 +611,8 @@ export default function CustomerRegistration() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title={isEditMode ? 'Edit Pelanggan' : 'Registrasi Pelanggan'}>

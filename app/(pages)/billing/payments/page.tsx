@@ -2,6 +2,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -66,6 +68,13 @@ interface PaymentData {
 
 
 export default function PaymentsPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   // ==================== GraphQL Query ====================
   // Get all settled/successful payments (statusPembayaran = Settlement)
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_TAGIHAN_BY_STATUS, {
@@ -173,6 +182,8 @@ export default function PaymentsPage() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Manajemen Pembayaran">

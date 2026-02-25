@@ -1,7 +1,8 @@
-// @ts-nocheck
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Box,
   Card,
@@ -94,6 +95,13 @@ const resourceTypes = [
 ];
 
 export default function AuditLogsPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,7 +124,7 @@ export default function AuditLogsPage() {
     fetchPolicy: 'network-only',
   });
 
-  const logs = data?.getAuditLogs || [];
+  const logs = (data as any)?.getAuditLogs || [];
 
   // Local search filter (on top of server-side filter)
   const filteredLogs = useMemo(() => {
@@ -133,8 +141,8 @@ export default function AuditLogsPage() {
 
   const paginatedLogs = filteredLogs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  const formatDate = (ts: string) => {
-    if (!ts) return '-';
+  const formatDate = (ts: string): { date: string; time: string } => {
+    if (!ts) return { date: '-', time: '' };
     const d = new Date(parseInt(ts) || ts);
     return { date: d.toLocaleDateString('id-ID'), time: d.toLocaleTimeString('id-ID') };
   };
@@ -177,6 +185,8 @@ export default function AuditLogsPage() {
     setEndDate(null);
     setPage(0);
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Log Audit">

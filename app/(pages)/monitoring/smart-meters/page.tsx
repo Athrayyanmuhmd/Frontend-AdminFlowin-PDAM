@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import { useQuery } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import {
@@ -91,6 +92,12 @@ const GET_METERAN_STATS = gql`
 
 export default function SmartMetersListPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(1);
@@ -162,6 +169,8 @@ export default function SmartMetersListPage() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Smart Meter">

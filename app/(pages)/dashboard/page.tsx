@@ -1,7 +1,8 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -48,6 +49,13 @@ import { GET_DASHBOARD_STATS, GET_CHART_KONSUMSI_PER_BULAN, GET_DISTRIBUSI_KELOM
 const CHART_COLORS = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
 
 export default function Dashboard() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [kpis, setKpis] = useState<DashboardKPI[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -64,8 +72,8 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if (data?.getDashboardStats) {
-      updateDashboardFromGraphQL(data.getDashboardStats);
+    if ((data as any)?.getDashboardStats) {
+      updateDashboardFromGraphQL((data as any).getDashboardStats);
     }
   }, [data]);
 
@@ -156,8 +164,8 @@ export default function Dashboard() {
   };
 
   // Data chart dari GraphQL — fallback ke array kosong jika belum ada data
-  const konsumsiChartData = chartKonsumsiData?.getChartKonsumsiPerBulan || [];
-  const distribusiChartData = (distribusiData?.getDistribusiKelompokPelanggan || []).map(
+  const konsumsiChartData = (chartKonsumsiData as any)?.getChartKonsumsiPerBulan || [];
+  const distribusiChartData = ((distribusiData as any)?.getDistribusiKelompokPelanggan || []).map(
     (item: { namaKelompok: string; jumlahMeteran: number }, index: number) => ({
       ...item,
       color: CHART_COLORS[index % CHART_COLORS.length],
@@ -173,6 +181,8 @@ export default function Dashboard() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Dashboard Eksekutif">

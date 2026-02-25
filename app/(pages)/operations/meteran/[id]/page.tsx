@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
   Box,
   Card,
@@ -60,6 +61,11 @@ export default function MeteranDetail() {
   const router = useRouter();
   const params = useParams();
   const meteranId = params.id as string;
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   // ✅ GraphQL Query - Replace REST API
   const { meteran: meteranData, loading, error: graphqlError, refetch } = useGetMeteran(meteranId);
@@ -153,6 +159,8 @@ export default function MeteranDetail() {
       </AdminLayout>
     );
   }
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout>

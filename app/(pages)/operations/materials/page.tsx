@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
@@ -134,6 +136,13 @@ const mockMaterials: Material[] = [
 ];
 
 export default function MaterialsPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
+
   const [materials, setMaterials] = useState<Material[]>(mockMaterials);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -210,6 +219,8 @@ export default function MaterialsPage() {
   const startIndex = (page - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const paginatedMaterials = filteredMaterials.slice(startIndex, endIndex);
+
+  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Material & Inventaris">
