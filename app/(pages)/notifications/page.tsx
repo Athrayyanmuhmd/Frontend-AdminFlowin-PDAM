@@ -52,7 +52,7 @@ import {
 import AdminLayout from '../../layouts/AdminLayout';
 import { useAdmin } from '../../layouts/AdminProvider';
 import { GET_ALL_NOTIFIKASI_ADMIN, GET_ALL_PENGGUNA_FOR_NOTIF } from '@/lib/graphql/queries/notifikasi';
-import { CREATE_NOTIFIKASI } from '@/lib/graphql/mutations/notifikasi';
+import { CREATE_NOTIFIKASI, BROADCAST_NOTIFIKASI } from '@/lib/graphql/mutations/notifikasi';
 
 interface Pengguna {
   _id: string;
@@ -159,7 +159,7 @@ export default function NotifikasiPage() {
     skip: !isAuthenticated,
   });
 
-  const [createNotifikasi, { loading: sending }] = useMutation(CREATE_NOTIFIKASI, {
+  const [createNotifikasi, { loading: sendingPersonal }] = useMutation(CREATE_NOTIFIKASI, {
     onCompleted: () => {
       setSnackMsg('Notifikasi berhasil dikirim');
       setSnackSeverity('success');
@@ -172,6 +172,23 @@ export default function NotifikasiPage() {
       setSnackSeverity('error');
     },
   });
+
+  const [broadcastNotifikasi, { loading: sendingBroadcast }] = useMutation(BROADCAST_NOTIFIKASI, {
+    onCompleted: (result) => {
+      const count = (result as any)?.broadcastNotifikasi?.length ?? allPengguna.length;
+      setSnackMsg(`Broadcast berhasil dikirim ke ${count} pelanggan`);
+      setSnackSeverity('success');
+      setOpenSend(false);
+      resetForm();
+      refetch();
+    },
+    onError: (err) => {
+      setSnackMsg('Gagal broadcast: ' + err.message);
+      setSnackSeverity('error');
+    },
+  });
+
+  const sending = sendingPersonal || sendingBroadcast;
 
   if (authLoading || !isAuthenticated) return null;
 
@@ -243,22 +260,8 @@ export default function NotifikasiPage() {
       // Kirim ke satu pelanggan
       createNotifikasi({ variables: { input: { ...input, idPelanggan: selectedPengguna._id } } });
     } else {
-      // Broadcast ke semua pelanggan — kirim satu per satu
-      const promises = allPengguna.map((p) =>
-        createNotifikasi({ variables: { input: { ...input, idPelanggan: p._id } } })
-      );
-      Promise.all(promises)
-        .then(() => {
-          setSnackMsg(`Broadcast dikirim ke ${allPengguna.length} pelanggan`);
-          setSnackSeverity('success');
-          setOpenSend(false);
-          resetForm();
-          refetch();
-        })
-        .catch((err) => {
-          setSnackMsg('Gagal broadcast: ' + err.message);
-          setSnackSeverity('error');
-        });
+      // Broadcast ke semua pelanggan via backend bulk mutation
+      broadcastNotifikasi({ variables: { input } });
     }
   };
 

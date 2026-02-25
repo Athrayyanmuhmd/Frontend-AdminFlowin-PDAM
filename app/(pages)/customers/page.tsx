@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -194,7 +193,8 @@ export default function CustomerManagement() {
         'Status',
         'Tgl Registrasi',
       ];
-      const csvData = filteredCustomers.map(customer => [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const csvData = filteredCustomers.map((customer: any) => [
         customer.nik,
         customer.name,
         customer.email,
@@ -207,7 +207,7 @@ export default function CustomerManagement() {
 
       const csvContent = [
         headers.join(','),
-        ...csvData.map(row => row.map(cell => `"${cell}"`).join(',')),
+        ...csvData.map((row: any[]) => row.map((cell: any) => `"${cell}"`).join(',')),
       ].join('\n');
 
       // Create download link
@@ -290,11 +290,13 @@ export default function CustomerManagement() {
     if (selectedCustomers.length === filteredCustomers.length) {
       setSelectedCustomers([]);
     } else {
-      setSelectedCustomers(filteredCustomers.map(c => c.id));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setSelectedCustomers(filteredCustomers.map((c: any) => c.id));
     }
   };
 
-  const filteredCustomers = customers.filter(customer => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredCustomers = customers.filter((customer: any) => {
     const matchesSearch =
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -420,7 +422,8 @@ export default function CustomerManagement() {
                   <Box>
                     <Typography variant='h4' sx={{ fontWeight: 600 }}>
                       {customers
-                        .filter(c => c.accountStatus === 'active')
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        .filter((c: any) => c.accountStatus === 'active')
                         .length.toLocaleString('id-ID')}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
@@ -442,7 +445,8 @@ export default function CustomerManagement() {
                   <Box>
                     <Typography variant='h4' sx={{ fontWeight: 600 }}>
                       {customers
-                        .filter(c => c.customerType === 'rumah_tangga')
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        .filter((c: any) => c.customerType === 'rumah_tangga')
                         .length.toLocaleString('id-ID')}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
@@ -464,7 +468,8 @@ export default function CustomerManagement() {
                   <Box>
                     <Typography variant='h4' sx={{ fontWeight: 600 }}>
                       {customers
-                        .filter(c => c.customerType === 'komersial')
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        .filter((c: any) => c.customerType === 'komersial')
                         .length.toLocaleString('id-ID')}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
@@ -619,7 +624,8 @@ export default function CustomerManagement() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedCustomers.map(customer => (
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {paginatedCustomers.map((customer: any) => (
                   <TableRow
                     key={customer.id}
                     hover

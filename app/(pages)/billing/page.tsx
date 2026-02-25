@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -138,9 +137,12 @@ export default function BillingManagement() {
   const [updateStatusPembayaran] = useMutation(UPDATE_STATUS_PEMBAYARAN);
   const [generateTagihanBulanan] = useMutation(GENERATE_TAGIHAN_BULANAN);
 
-  const allTagihan = data?.getAllTagihan || [];
-  const billingStats = statsData?.getRingkasanStatusTagihan;
-  const revenueData = (chartData?.getLaporanKeuanganBulanan || []).map((d: any) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allTagihan = (data as any)?.getAllTagihan || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const billingStats = (statsData as any)?.getRingkasanStatusTagihan;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const revenueData = ((chartData as any)?.getLaporanKeuanganBulanan || []).map((d: any) => ({
     month: d.bulan,
     revenue: d.totalTagihan,
     bills: d.jumlahTagihan,
@@ -211,7 +213,8 @@ export default function BillingManagement() {
   };
 
   const handleConfirmGenerate = async () => {
-    const allMeteranIds = (meteranData?.getAllMeteran || []).map((m: any) => m._id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allMeteranIds = ((meteranData as any)?.getAllMeteran || []).map((m: any) => m._id);
     if (allMeteranIds.length === 0) {
       setSnackbar({ open: true, message: 'Tidak ada meteran terdaftar', severity: 'error' });
       setOpenGenerateDialog(false);
@@ -222,7 +225,7 @@ export default function BillingManagement() {
       const result = await generateTagihanBulanan({
         variables: { periode: generatePeriode, idMeteranList: allMeteranIds },
       });
-      setGenerateResult(result.data.generateTagihanBulanan);
+      setGenerateResult((result.data as any).generateTagihanBulanan);
       refetch();
       refetchStats();
     } catch (err: any) {
@@ -793,7 +796,7 @@ export default function BillingManagement() {
                 InputLabelProps={{ shrink: true }}
               />
               <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Total meteran terdaftar: {meteranData?.getAllMeteran?.length || 0}
+                Total meteran terdaftar: {(meteranData as any)?.getAllMeteran?.length || 0}
               </Typography>
             </Box>
           ) : (
