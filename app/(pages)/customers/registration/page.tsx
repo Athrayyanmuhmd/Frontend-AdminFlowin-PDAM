@@ -212,7 +212,7 @@ export default function CustomerRegistration() {
       if (shouldRedirect) {
         setTimeout(() => {
           router.push('/customers');
-        }, 2000);
+        }, 1000);
       } else {
         // Clear success message after 3 seconds for intermediate saves
         setTimeout(() => {
@@ -662,7 +662,7 @@ export default function CustomerRegistration() {
                 {isEditMode && activeStep < steps.length - 1 && (
                   <Button
                     variant="outlined"
-                    onClick={() => handleSubmit(false)}
+                    onClick={() => handleSubmit(true)}
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={20} /> : <Save />}
                   >
