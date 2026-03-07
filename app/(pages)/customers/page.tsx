@@ -311,6 +311,9 @@ export default function CustomerManagement() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
+
+  // Reset halaman saat filter/search berubah
+  useEffect(() => { setPage(1); }, [searchTerm, filterType, filterStatus]);
   const getCustomerTypeLabel = (type: string) => {
     switch (type) {
       case 'rumah_tangga':

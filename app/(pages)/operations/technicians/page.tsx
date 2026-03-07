@@ -72,7 +72,11 @@ interface CreateTechnicianData {
 
 export default function TechnicianManagement() {
   const router = useRouter();
-  const { userRole } = useAdmin();
+  const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   // ==================== GraphQL Queries & Mutations ====================
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_TEKNISI, {
@@ -292,6 +296,8 @@ export default function TechnicianManagement() {
       console.error('Error deleting technician:', err);
     }
   };
+
+  if (authLoading || !isAuthenticated) return null;
 
   // Only admin can manage technicians
   if (userRole !== 'admin') {

@@ -39,14 +39,10 @@ import {
   Alert,
   CircularProgress,
   Snackbar,
-  Divider,
 } from '@mui/material';
 import {
   Search,
-  Add,
   MoreVert,
-  Edit,
-  Delete,
   Visibility,
   Receipt,
   Payment,
@@ -54,10 +50,9 @@ import {
   CheckCircle,
   Schedule,
   Download,
-  Print,
   Autorenew,
 } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
 import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART } from '@/lib/graphql/queries/billing';
 
@@ -115,6 +110,9 @@ export default function BillingManagement() {
   });
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
+
+  // Reset halaman saat filter/search berubah
+  useEffect(() => { setPage(1); }, [searchTerm, filterStatus, filterPeriod]);
 
   // GraphQL queries
   const { data, loading, error, refetch } = useQuery(GET_BILLINGS, {
@@ -446,7 +444,7 @@ export default function BillingManagement() {
                 </Typography>
                 <Box sx={{ height: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={revenueData}>
+                    <ComposedChart data={revenueData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis yAxisId="left" />
@@ -463,7 +461,7 @@ export default function BillingManagement() {
                       <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#2196F3" strokeWidth={3} />
                       <Line yAxisId="left" type="monotone" dataKey="collected" stroke="#4CAF50" strokeWidth={3} />
                       <Bar yAxisId="right" dataKey="bills" fill="#FF9800" />
-                    </LineChart>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </Box>
               </CardContent>
@@ -703,11 +701,11 @@ export default function BillingManagement() {
           <Payment sx={{ mr: 1 }} />
           Proses Pembayaran
         </MenuItem>
-        <MenuItem onClick={handleGenerateBills}>
+        <MenuItem onClick={handleViewDetails}>
           <Receipt sx={{ mr: 1 }} />
           Cetak Tagihan
         </MenuItem>
-        <MenuItem>
+        <MenuItem onClick={() => { setSnackbar({ open: true, message: 'Fitur download PDF sedang dalam pengembangan', severity: 'success' }); handleMenuClose(); }}>
           <Download sx={{ mr: 1 }} />
           Download PDF
         </MenuItem>
