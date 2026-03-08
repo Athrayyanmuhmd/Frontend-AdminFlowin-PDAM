@@ -22,6 +22,8 @@ import {
   CheckCircle,
   Warning,
   Refresh,
+  HourglassEmpty,
+  Cancel,
 } from '@mui/icons-material';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@mui/material';
@@ -259,6 +261,62 @@ export default function Dashboard() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Koneksi Data Status Cards */}
+      {(data as any)?.getDashboardStats && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Status Pengajuan Sambungan Air
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={4}>
+              <Card sx={{ borderLeft: '4px solid', borderColor: 'warning.main' }}>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <HourglassEmpty sx={{ fontSize: 40, color: 'warning.main' }} />
+                  <Box>
+                    <Typography variant="h4" fontWeight={700}>
+                      {(data as any).getDashboardStats.koneksiMenunggu ?? 0}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Menunggu Verifikasi
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <CheckCircle sx={{ fontSize: 40, color: 'success.main' }} />
+                  <Box>
+                    <Typography variant="h4" fontWeight={700}>
+                      {(data as any).getDashboardStats.koneksiDisetujui ?? 0}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Disetujui
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Cancel sx={{ fontSize: 40, color: 'error.main' }} />
+                  <Box>
+                    <Typography variant="h4" fontWeight={700}>
+                      {(data as any).getDashboardStats.koneksiDitolak ?? 0}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Ditolak
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
 
       {/* Charts Row */}
       <Grid container spacing={3}>

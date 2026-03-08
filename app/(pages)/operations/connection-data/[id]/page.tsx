@@ -16,13 +16,16 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   IconButton,
   Paper,
+  TextField,
 } from '@mui/material';
 import {
   ArrowBack,
   CheckCircle,
   HourglassEmpty,
+  Cancel,
   Description,
   Close,
   ZoomIn,
@@ -43,10 +46,12 @@ import { useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 
 const VERIFY_KONEKSI_DATA = gql`
-  mutation VerifyKoneksiData($id: ID!, $status: String!, $catatan: String) {
-    verifyKoneksiData(id: $id, status: $status, catatan: $catatan) {
+  mutation VerifyKoneksiData($id: ID!, $status: String!, $catatan: String, $alasanPenolakan: String) {
+    verifyKoneksiData(id: $id, status: $status, catatan: $catatan, alasanPenolakan: $alasanPenolakan) {
       _id
       statusVerifikasi
+      alasanPenolakan
+      tanggalVerifikasi
       catatan
     }
   }
@@ -73,6 +78,10 @@ export default function ConnectionDataDetail() {
 
   // Assignment dialog state
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+
+  // Tolak dialog state
+  const [tolakDialogOpen, setTolakDialogOpen] = useState(false);
+  const [alasanPenolakanInput, setAlasanPenolakanInput] = useState('');
 
   // ✅ GraphQL Query - Replace REST API
   const { connectionData: graphqlData, loading: graphqlLoading, error: graphqlError, refetch } = useGetConnectionData(id);
@@ -200,6 +209,27 @@ export default function ConnectionDataDetail() {
     }
   };
 
+  const handleTolak = async () => {
+    if (!data || !alasanPenolakanInput.trim()) return;
+    setActionLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      await verifyKoneksiDataMutation({
+        variables: { id: data._id, status: 'Ditolak', alasanPenolakan: alasanPenolakanInput.trim() },
+      });
+      setSuccess('Pengajuan berhasil ditolak');
+      setTolakDialogOpen(false);
+      setAlasanPenolakanInput('');
+      setData(prev => prev ? { ...prev, isVerifiedByData: false, statusVerifikasi: 'Ditolak' } : prev);
+      refetch();
+    } catch (err: any) {
+      setError(err.message || 'Gagal menolak pengajuan');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const openDocumentViewer = (url: string, title: string) => {
     setViewerImage(url);
     setViewerTitle(title);
@@ -312,6 +342,18 @@ export default function ConnectionDataDetail() {
                   }
                 >
                   Verifikasi sebagai Admin
+                </Button>
+              )}
+
+              {userRole === 'admin' && data.statusVerifikasi === 'Menunggu' && (
+                <Button
+                  variant='outlined'
+                  color='error'
+                  onClick={() => setTolakDialogOpen(true)}
+                  disabled={actionLoading}
+                  startIcon={<Cancel />}
+                >
+                  Tolak Pengajuan
                 </Button>
               )}
 
@@ -746,8 +788,49 @@ export default function ConnectionDataDetail() {
                 </Box>
               </Grid>
             </Grid>
+            {data.statusVerifikasi === 'Ditolak' && (graphqlData as any)?.alasanPenolakan && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'error.50', borderRadius: 1, border: '1px solid', borderColor: 'error.200' }}>
+                <Typography variant='body2' color='error' fontWeight='bold' gutterBottom>
+                  Alasan Penolakan:
+                </Typography>
+                <Typography variant='body2'>{(graphqlData as any).alasanPenolakan}</Typography>
+              </Box>
+            )}
           </CardContent>
         </Card>
+
+        {/* Tolak Dialog */}
+        <Dialog open={tolakDialogOpen} onClose={() => setTolakDialogOpen(false)} maxWidth='sm' fullWidth>
+          <DialogTitle>Tolak Pengajuan Sambungan Air</DialogTitle>
+          <DialogContent>
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+              Masukkan alasan penolakan pengajuan dari <strong>{data?.userId?.namaLengkap}</strong>.
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label='Alasan Penolakan'
+              value={alasanPenolakanInput}
+              onChange={e => setAlasanPenolakanInput(e.target.value)}
+              required
+              error={!alasanPenolakanInput.trim()}
+              helperText={!alasanPenolakanInput.trim() ? 'Alasan penolakan wajib diisi' : ''}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { setTolakDialogOpen(false); setAlasanPenolakanInput(''); }}>Batal</Button>
+            <Button
+              variant='contained'
+              color='error'
+              onClick={handleTolak}
+              disabled={actionLoading || !alasanPenolakanInput.trim()}
+              startIcon={actionLoading ? <CircularProgress size={20} /> : <Cancel />}
+            >
+              Tolak Pengajuan
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Document Viewer Dialog */}
         <Dialog
