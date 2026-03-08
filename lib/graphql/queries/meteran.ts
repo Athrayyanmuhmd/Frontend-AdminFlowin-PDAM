@@ -120,6 +120,49 @@ export const GET_METERAN_STATS = gql`
   }
 `;
 
+/**
+ * Query untuk riwayat penggunaan air bulanan per meteran
+ * Digunakan untuk grafik monitoring (line chart bulanan)
+ */
+export const GET_RIWAYAT_PENGGUNAAN_BULANAN = gql`
+  query GetRiwayatPenggunaanBulanan($meteranId: ID!) {
+    getRiwayatPenggunaanBulanan(meteranId: $meteranId) {
+      bulan
+      totalPemakaian
+      jumlahRecord
+    }
+  }
+`;
+
+/**
+ * Query untuk riwayat penggunaan air terbaru per meteran
+ * Digunakan untuk tabel detail / chart realtime
+ */
+export const GET_RIWAYAT_PENGGUNAAN = gql`
+  query GetRiwayatPenggunaan($meteranId: ID!, $limit: Int) {
+    getRiwayatPenggunaan(meteranId: $meteranId, limit: $limit) {
+      _id
+      penggunaanAir
+      createdAt
+    }
+  }
+`;
+
+/**
+ * Query untuk estimasi biaya berdasarkan pemakaian belum terbayar
+ */
+export const GET_ESTIMASI_BIAYA = gql`
+  query GetEstimashiBiaya($meteranId: ID!) {
+    getEstimashiBiaya(meteranId: $meteranId) {
+      pemakaianBelumTerbayar
+      estimasiBiaya
+      biayaBeban
+      totalEstimasi
+      namaKelompok
+    }
+  }
+`;
+
 // ==================== MUTATIONS ====================
 
 export const CREATE_METERAN = gql`

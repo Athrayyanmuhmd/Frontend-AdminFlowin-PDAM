@@ -23,6 +23,12 @@ import {
   IconButton,
   Tooltip,
   Badge,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+  Divider,
 } from '@mui/material';
 import {
   Speed,
@@ -49,6 +55,8 @@ import {
   NetworkCheck,
   DeviceHub,
   Add,
+  MonitorHeart,
+  AttachMoney,
 } from '@mui/icons-material';
 import {
   PieChart,
@@ -56,17 +64,25 @@ import {
   Cell,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
+  Legend,
 } from 'recharts';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useLazyQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { useAdmin } from '../../../layouts/AdminProvider';
-import { GET_ALL_METERAN } from '@/lib/graphql/queries/meteran';
+import {
+  GET_ALL_METERAN,
+  GET_RIWAYAT_PENGGUNAAN_BULANAN,
+  GET_RIWAYAT_PENGGUNAAN,
+  GET_ESTIMASI_BIAYA,
+} from '@/lib/graphql/queries/meteran';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -161,6 +177,7 @@ export default function SmartMeterManagement() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [activeTab, setActiveTab] = useState(0);
+  const [selectedMeteranId, setSelectedMeteranId] = useState<string>('');
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
@@ -172,9 +189,21 @@ export default function SmartMeterManagement() {
     fetchPolicy: 'network-only',
   });
 
+  const [fetchBulanan, { data: bulananDataRaw, loading: bulananLoading }] = useLazyQuery(GET_RIWAYAT_PENGGUNAAN_BULANAN);
+  const [fetchRiwayat, { data: riwayatDataRaw, loading: riwayatLoading }] = useLazyQuery(GET_RIWAYAT_PENGGUNAAN);
+  const [fetchEstimasi, { data: estimasiDataRaw, loading: estimasiLoading }] = useLazyQuery(GET_ESTIMASI_BIAYA);
+  const bulananData = bulananDataRaw as any;
+  const riwayatData = riwayatDataRaw as any;
+  const estimasiData = estimasiDataRaw as any;
+
   useEffect(() => {
     if ((data as any)?.getAllMeteran) {
-      setMeters(mapBackendToSmartMeter((data as any).getAllMeteran));
+      const mapped = mapBackendToSmartMeter((data as any).getAllMeteran);
+      setMeters(mapped);
+      // Auto-select first meter for monitoring tab
+      if (mapped.length > 0 && !selectedMeteranId) {
+        setSelectedMeteranId(mapped[0].id);
+      }
     }
   }, [data]);
 
@@ -183,6 +212,14 @@ export default function SmartMeterManagement() {
       console.error('GraphQL Error loading meteran:', graphqlError);
     }
   }, [graphqlError]);
+
+  useEffect(() => {
+    if (selectedMeteranId) {
+      fetchBulanan({ variables: { meteranId: selectedMeteranId } });
+      fetchRiwayat({ variables: { meteranId: selectedMeteranId, limit: 30 } });
+      fetchEstimasi({ variables: { meteranId: selectedMeteranId } });
+    }
+  }, [selectedMeteranId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -342,8 +379,9 @@ export default function SmartMeterManagement() {
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-            <Tab label="Daftar Meteran" icon={<Speed />} />
-            <Tab label="Analitik" icon={<TrendingUp />} />
+            <Tab label="Daftar Meteran" icon={<Speed />} iconPosition="start" />
+            <Tab label="Analitik" icon={<TrendingUp />} iconPosition="start" />
+            <Tab label="Monitoring Pemakaian" icon={<MonitorHeart />} iconPosition="start" />
           </Tabs>
         </Box>
 
@@ -554,6 +592,216 @@ export default function SmartMeterManagement() {
                       </Paper>
                     </Grid>
                   </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </TabPanel>
+
+        {/* Tab 2: Monitoring Pemakaian */}
+        <TabPanel value={activeTab} index={2}>
+          <Grid container spacing={3}>
+            {/* Meter Selector */}
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <FormControl sx={{ minWidth: 320 }}>
+                      <InputLabel>Pilih Meteran</InputLabel>
+                      <Select
+                        value={selectedMeteranId}
+                        label="Pilih Meteran"
+                        onChange={(e: SelectChangeEvent) => setSelectedMeteranId(e.target.value)}
+                      >
+                        {meters.map(m => (
+                          <MenuItem key={m.id} value={m.id}>
+                            {m.serialNumber} — {m.customerName}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    {(bulananLoading || riwayatLoading || estimasiLoading) && (
+                      <CircularProgress size={24} />
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Estimasi Biaya Cards */}
+            {estimasiData?.getEstimashiBiaya && (
+              <>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <WaterDrop />
+                        <Typography variant="body2">Pemakaian Belum Terbayar</Typography>
+                      </Box>
+                      <Typography variant="h5" fontWeight="bold">
+                        {estimasiData.getEstimashiBiaya.pemakaianBelumTerbayar.toLocaleString('id-ID')} m³
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ bgcolor: 'info.light', color: 'info.contrastText' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <AttachMoney />
+                        <Typography variant="body2">Estimasi Biaya Pemakaian</Typography>
+                      </Box>
+                      <Typography variant="h5" fontWeight="bold">
+                        Rp {estimasiData.getEstimashiBiaya.estimasiBiaya.toLocaleString('id-ID')}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <AttachMoney />
+                        <Typography variant="body2">Biaya Beban</Typography>
+                      </Box>
+                      <Typography variant="h5" fontWeight="bold">
+                        Rp {estimasiData.getEstimashiBiaya.biayaBeban.toLocaleString('id-ID')}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ bgcolor: 'success.light', color: 'success.contrastText' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <AttachMoney />
+                        <Typography variant="body2">Total Estimasi Tagihan</Typography>
+                      </Box>
+                      <Typography variant="h5" fontWeight="bold">
+                        Rp {estimasiData.getEstimashiBiaya.totalEstimasi.toLocaleString('id-ID')}
+                      </Typography>
+                      {estimasiData.getEstimashiBiaya.namaKelompok && (
+                        <Typography variant="caption">
+                          Tarif: {estimasiData.getEstimashiBiaya.namaKelompok}
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </>
+            )}
+
+            {/* Grafik Bulanan */}
+            <Grid item xs={12} md={8}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Pemakaian Air per Bulan (m³)
+                  </Typography>
+                  {bulananLoading ? (
+                    <Box display="flex" justifyContent="center" py={4}>
+                      <CircularProgress />
+                    </Box>
+                  ) : (bulananData?.getRiwayatPenggunaanBulanan?.length ?? 0) === 0 ? (
+                    <Alert severity="info">Belum ada data pemakaian bulanan untuk meteran ini.</Alert>
+                  ) : (
+                    <Box sx={{ height: 300 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={bulananData?.getRiwayatPenggunaanBulanan || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="bulan" tick={{ fontSize: 11 }} />
+                          <YAxis allowDecimals={false} />
+                          <RechartsTooltip
+                            formatter={(value: number) => [`${value.toLocaleString('id-ID')} m³`, 'Pemakaian']}
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="totalPemakaian"
+                            stroke="#2196f3"
+                            strokeWidth={2}
+                            dot={{ r: 4 }}
+                            name="Total Pemakaian (m³)"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Jumlah Record per Bulan */}
+            <Grid item xs={12} md={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Frekuensi Pencatatan / Bulan
+                  </Typography>
+                  {bulananLoading ? (
+                    <Box display="flex" justifyContent="center" py={4}>
+                      <CircularProgress />
+                    </Box>
+                  ) : (bulananData?.getRiwayatPenggunaanBulanan?.length ?? 0) === 0 ? (
+                    <Alert severity="info">Tidak ada data.</Alert>
+                  ) : (
+                    <Box sx={{ height: 300 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={bulananData?.getRiwayatPenggunaanBulanan || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="bulan" tick={{ fontSize: 10 }} />
+                          <YAxis allowDecimals={false} />
+                          <RechartsTooltip />
+                          <Bar dataKey="jumlahRecord" fill="#4caf50" name="Jumlah Pencatatan" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Riwayat Terbaru */}
+            <Grid item xs={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    30 Pencatatan Pemakaian Terakhir
+                  </Typography>
+                  {riwayatLoading ? (
+                    <Box display="flex" justifyContent="center" py={3}>
+                      <CircularProgress />
+                    </Box>
+                  ) : (riwayatData?.getRiwayatPenggunaan?.length ?? 0) === 0 ? (
+                    <Alert severity="info">Belum ada data pencatatan untuk meteran ini.</Alert>
+                  ) : (
+                    <TableContainer sx={{ maxHeight: 320 }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>#</TableCell>
+                            <TableCell>Waktu Pencatatan</TableCell>
+                            <TableCell align="right">Pemakaian (L/detik)</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {(riwayatData?.getRiwayatPenggunaan || []).map((r: any, idx: number) => (
+                            <TableRow key={r._id} hover>
+                              <TableCell>{idx + 1}</TableCell>
+                              <TableCell>
+                                {r.createdAt
+                                  ? new Date(Number(r.createdAt)).toLocaleString('id-ID')
+                                  : '-'}
+                              </TableCell>
+                              <TableCell align="right">
+                                {r.penggunaanAir?.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
                 </CardContent>
               </Card>
             </Grid>

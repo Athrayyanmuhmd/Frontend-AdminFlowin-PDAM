@@ -36,7 +36,7 @@ import {
   Visibility,
   CheckCircle,
   HourglassEmpty,
-  FilterList,
+  Cancel,
   Refresh,
   Description,
 } from '@mui/icons-material';
@@ -82,10 +82,12 @@ export default function ConnectionDataManagement() {
     let filtered = [...connectionData];
 
     // Filter by admin verification (statusVerifikasi)
-    if (adminVerifyFilter === 'verified') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi === true);
-    } else if (adminVerifyFilter === 'unverified') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi === false);
+    if (adminVerifyFilter === 'disetujui') {
+      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Disetujui');
+    } else if (adminVerifyFilter === 'menunggu') {
+      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Menunggu');
+    } else if (adminVerifyFilter === 'ditolak') {
+      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Ditolak');
     }
 
     // Filter by technician assignment (idTeknisi presence)
@@ -95,12 +97,11 @@ export default function ConnectionDataManagement() {
       filtered = filtered.filter((item: any) => !item.idTeknisi);
     }
 
-    // Filter by procedure status (isAllProcedureDone not available in GraphQL,
-    // approximate with statusVerifikasi + idTeknisi both true = done)
+    // Filter by procedure status
     if (procedureFilter === 'done') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi === true && !!item.idTeknisi);
+      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Disetujui' && !!item.idTeknisi);
     } else if (procedureFilter === 'pending') {
-      filtered = filtered.filter((item: any) => !item.statusVerifikasi || !item.idTeknisi);
+      filtered = filtered.filter((item: any) => item.statusVerifikasi !== 'Disetujui' || !item.idTeknisi);
     }
 
     // Search filter
@@ -125,10 +126,13 @@ export default function ConnectionDataManagement() {
   }, [searchQuery, adminVerifyFilter, technicianVerifyFilter, procedureFilter]);
 
   const getVerificationStatus = (data: any) => {
-    if (data.statusVerifikasi === true) {
-      return { label: 'Terverifikasi', color: 'success' as const };
+    if (data.statusVerifikasi === 'Disetujui') {
+      return { label: 'Disetujui', color: 'success' as const, icon: <CheckCircle /> };
     }
-    return { label: 'Pending', color: 'warning' as const };
+    if (data.statusVerifikasi === 'Ditolak') {
+      return { label: 'Ditolak', color: 'error' as const, icon: <Cancel /> };
+    }
+    return { label: 'Menunggu', color: 'warning' as const, icon: <HourglassEmpty /> };
   };
 
   const handleViewDetail = (id: string) => {
@@ -209,8 +213,9 @@ export default function ConnectionDataManagement() {
                     }
                   >
                     <MenuItem value='all'>Semua</MenuItem>
-                    <MenuItem value='verified'>Terverifikasi</MenuItem>
-                    <MenuItem value='pending'>Belum Verifikasi</MenuItem>
+                    <MenuItem value='disetujui'>Disetujui</MenuItem>
+                    <MenuItem value='menunggu'>Menunggu</MenuItem>
+                    <MenuItem value='ditolak'>Ditolak</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -371,13 +376,7 @@ export default function ConnectionDataManagement() {
                                 label={status.label}
                                 color={status.color}
                                 size='small'
-                                icon={
-                                  data.statusVerifikasi ? (
-                                    <CheckCircle />
-                                  ) : (
-                                    <HourglassEmpty />
-                                  )
-                                }
+                                icon={status.icon}
                               />
                             </TableCell>
                             <TableCell align='center'>

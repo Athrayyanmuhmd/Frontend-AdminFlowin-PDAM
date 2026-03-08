@@ -43,8 +43,8 @@ import { useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 
 const VERIFY_KONEKSI_DATA = gql`
-  mutation VerifyKoneksiData($id: ID!, $verified: Boolean!, $catatan: String) {
-    verifyKoneksiData(id: $id, verified: $verified, catatan: $catatan) {
+  mutation VerifyKoneksiData($id: ID!, $status: String!, $catatan: String) {
+    verifyKoneksiData(id: $id, status: $status, catatan: $catatan) {
       _id
       statusVerifikasi
       catatan
@@ -103,7 +103,7 @@ export default function ConnectionDataDetail() {
         kecamatan: graphqlData.kecamatan,
         luasBangunan: graphqlData.luasBangunan,
         statusVerifikasi: graphqlData.statusVerifikasi,
-        isVerifiedByData: !!graphqlData.statusVerifikasi,
+        isVerifiedByData: graphqlData.statusVerifikasi === 'Disetujui',
         isVerifiedByTechnician: false, // Not available in GraphQL
         isAllProcedureDone: false, // Not available in GraphQL
         surveiId: graphqlData.surveiId || null,
@@ -150,10 +150,10 @@ export default function ConnectionDataDetail() {
     setSuccess('');
     try {
       await verifyKoneksiDataMutation({
-        variables: { id: data._id, verified: true, catatan: 'Diverifikasi oleh Admin' },
+        variables: { id: data._id, status: 'Disetujui', catatan: 'Diverifikasi oleh Admin' },
       });
       setSuccess('Data berhasil diverifikasi oleh admin');
-      setData(prev => prev ? { ...prev, isVerifiedByData: true, statusVerifikasi: 'Terverifikasi' } : prev);
+      setData(prev => prev ? { ...prev, isVerifiedByData: true, statusVerifikasi: 'Disetujui' } : prev);
       refetch();
     } catch (err: any) {
       setError(err.message || 'Gagal melakukan verifikasi');
@@ -169,7 +169,7 @@ export default function ConnectionDataDetail() {
     setSuccess('');
     try {
       await verifyKoneksiDataMutation({
-        variables: { id: data._id, verified: true, catatan: 'Diverifikasi oleh Teknisi' },
+        variables: { id: data._id, status: 'Disetujui', catatan: 'Diverifikasi oleh Teknisi' },
       });
       setSuccess('Data berhasil diverifikasi oleh teknisi');
       setData(prev => prev ? { ...prev, isVerifiedByTechnician: true } : prev);
@@ -188,7 +188,7 @@ export default function ConnectionDataDetail() {
     setSuccess('');
     try {
       await verifyKoneksiDataMutation({
-        variables: { id: data._id, verified: true, catatan: 'Semua prosedur selesai' },
+        variables: { id: data._id, status: 'Disetujui', catatan: 'Semua prosedur selesai' },
       });
       setSuccess('Semua prosedur berhasil diselesaikan');
       setData(prev => prev ? { ...prev, isAllProcedureDone: true } : prev);

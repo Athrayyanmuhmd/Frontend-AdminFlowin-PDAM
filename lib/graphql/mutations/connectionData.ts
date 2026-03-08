@@ -6,8 +6,8 @@ import { gql } from '@apollo/client';
  */
 
 export const VERIFY_CONNECTION_DATA = gql`
-  mutation VerifyKoneksiData($id: ID!, $verified: Boolean!, $catatan: String) {
-    verifyKoneksiData(id: $id, verified: $verified, catatan: $catatan) {
+  mutation VerifyKoneksiData($id: ID!, $status: String!, $catatan: String) {
+    verifyKoneksiData(id: $id, status: $status, catatan: $catatan) {
       _id
       statusVerifikasi
       catatan
