@@ -1,4 +1,5 @@
 import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { onError } from '@apollo/client/link/error';
 import { setContext } from '@apollo/client/link/context';
 
 // Create HTTP link for GraphQL endpoint
@@ -26,9 +27,22 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
+// Global error handler — log network errors, let components handle GraphQL errors
+const errorLink = onError((err: any) => {
+  const { graphQLErrors, networkError, operation } = err;
+  if (networkError) {
+    console.error('[Network Error]', operation?.operationName, networkError);
+  }
+  if (graphQLErrors) {
+    graphQLErrors.forEach((e: any) => {
+      console.error('[GraphQL Error]', operation?.operationName, e?.message);
+    });
+  }
+});
+
 // Create Apollo Client instance
 const apolloClient = new ApolloClient({
-  link: from([authLink, httpLink]),
+  link: from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {

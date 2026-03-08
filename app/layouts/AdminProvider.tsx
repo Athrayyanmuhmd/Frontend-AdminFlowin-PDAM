@@ -2,15 +2,11 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AdminUser, Permission, Notification } from '../types/admin.types';
-import {
-  loginAdmin,
-  loginTechnician,
-  logoutAdmin,
-  logoutTechnician,
-} from '../services/auth.service';
+import { loginAdmin, loginTechnician } from '../services/auth.service';
 import ApolloWrapper from '../lib/ApolloWrapper';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
+import { LOGOUT_ADMIN, LOGOUT_TECHNICIAN } from '../../lib/graphql/mutations/auth';
 
 const GET_ALL_NOTIFIKASI_ADMIN = gql`
   query GetAllNotifikasiAdmin {
@@ -107,6 +103,8 @@ function AdminProviderInner({ children }: AdminProviderProps) {
   }, [notifError, notifData, stopPolling, startPolling]);
 
   const [markReadMutation] = useMutation(MARK_NOTIF_READ);
+  const [logoutAdminMutation] = useMutation(LOGOUT_ADMIN);
+  const [logoutTechnicianMutation] = useMutation(LOGOUT_TECHNICIAN);
 
   // Sync notifikasi dari GraphQL ke state
   useEffect(() => {
@@ -227,10 +225,11 @@ function AdminProviderInner({ children }: AdminProviderProps) {
 
   const logout = async () => {
     try {
+      // Invalidate token on server via GraphQL mutation
       if (userRole === 'admin') {
-        await logoutAdmin();
+        await logoutAdminMutation().catch(() => {}); // fire-and-forget, don't block logout
       } else if (userRole === 'technician') {
-        await logoutTechnician();
+        await logoutTechnicianMutation().catch(() => {});
       }
     } catch (error) {
       console.error('Logout error:', error);
