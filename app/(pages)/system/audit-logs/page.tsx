@@ -371,7 +371,10 @@ export default function AuditLogsPage() {
                 <Paper sx={{ p: 2, bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200' }}>
                   <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'error.main' }}>Nilai Sebelum</Typography>
                   <Box component="pre" sx={{ fontSize: '0.8rem', overflow: 'auto', m: 0 }}>
-                    {JSON.stringify(JSON.parse(selectedLog.nilaiBefore), null, 2)}
+                    {(() => {
+                      try { return JSON.stringify(JSON.parse(selectedLog.nilaiBefore), null, 2); }
+                      catch { return selectedLog.nilaiBefore || ''; }
+                    })()}
                   </Box>
                 </Paper>
               )}
@@ -380,7 +383,10 @@ export default function AuditLogsPage() {
                 <Paper sx={{ p: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
                   <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'success.main' }}>Nilai Sesudah</Typography>
                   <Box component="pre" sx={{ fontSize: '0.8rem', overflow: 'auto', m: 0 }}>
-                    {JSON.stringify(JSON.parse(selectedLog.nilaiAfter), null, 2)}
+                    {(() => {
+                      try { return JSON.stringify(JSON.parse(selectedLog.nilaiAfter), null, 2); }
+                      catch { return selectedLog.nilaiAfter || ''; }
+                    })()}
                   </Box>
                 </Paper>
               )}

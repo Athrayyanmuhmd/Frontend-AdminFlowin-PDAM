@@ -5,6 +5,13 @@ import { setContext } from '@apollo/client/link/context';
 const httpLink = new HttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql',
   credentials: 'include',
+  // 30 second timeout via AbortController
+  fetch: (uri, options) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    return fetch(uri as RequestInfo, { ...options, signal: controller.signal })
+      .finally(() => clearTimeout(timeoutId));
+  },
 });
 
 // Auth link to add token to headers
@@ -33,7 +40,7 @@ const apolloClient = new ApolloClient({
       errorPolicy: 'all',
     },
     mutate: {
-      errorPolicy: 'all',
+      errorPolicy: 'none',
     },
   },
 });

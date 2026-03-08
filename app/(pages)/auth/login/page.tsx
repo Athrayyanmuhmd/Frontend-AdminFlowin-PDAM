@@ -207,25 +207,6 @@ export default function AdminLogin() {
             </Button>
           </form>
 
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Typography variant='body2' color='text.secondary'>
-              Testing Credentials:
-            </Typography>
-            <Typography
-              variant='body2'
-              color='primary'
-              sx={{ fontSize: '0.75rem' }}
-            >
-              Admin: admin@pdam.com / admin123
-            </Typography>
-            <Typography
-              variant='body2'
-              color='primary'
-              sx={{ fontSize: '0.75rem' }}
-            >
-              Teknisi: teknisi@pdam.com / teknisi123
-            </Typography>
-          </Box>
         </CardContent>
       </Card>
     </Box>

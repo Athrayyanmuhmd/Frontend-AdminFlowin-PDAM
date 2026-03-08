@@ -3,9 +3,7 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 // Membuat instance API dengan konfigurasi dasar
 const API = axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_BASE_URL}`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // No default Content-Type — let axios/browser set it correctly for FormData/JSON
 });
 
 // Menambahkan interceptor untuk request
@@ -38,7 +36,7 @@ API.interceptors.response.use(
         localStorage.removeItem('adminAuth');
         localStorage.removeItem('admin_user');
         localStorage.removeItem('admin_permissions');
-        window.location.href = '/auth/login';
+        window.location.replace('/auth/login');
       }
     }
     return Promise.reject(error);

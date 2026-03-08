@@ -125,21 +125,38 @@ function AdminProviderInner({ children }: AdminProviderProps) {
     }
   }, [notifData]);
 
+  // Cleanup polling timer on unmount
+  useEffect(() => {
+    return () => {
+      if (notifRetryTimerRef.current) clearTimeout(notifRetryTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     // Check saved session on client side
     if (typeof window !== 'undefined') {
       const savedAuth = localStorage.getItem('adminAuth');
+      const savedToken = localStorage.getItem('admin_token');
 
-      if (savedAuth) {
+      if (savedAuth && savedToken) {
         try {
-          const authData = JSON.parse(savedAuth);
-          setUser(authData.user);
-          setUserRole(authData.role);
-          setPermissions(authData.permissions || []);
-          setIsAuthenticated(true);
+          // Check JWT expiry before restoring session
+          const payload = JSON.parse(atob(savedToken.split('.')[1]));
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            // Token expired — clear session
+            localStorage.removeItem('adminAuth');
+            localStorage.removeItem('admin_token');
+          } else {
+            const authData = JSON.parse(savedAuth);
+            setUser(authData.user);
+            setUserRole(authData.role);
+            setPermissions(authData.permissions || []);
+            setIsAuthenticated(true);
+          }
         } catch (error) {
           console.error('Error parsing saved auth:', error);
           localStorage.removeItem('adminAuth');
+          localStorage.removeItem('admin_token');
         }
       }
     }

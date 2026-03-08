@@ -70,11 +70,14 @@ export default function CustomerDetailPage() {
   const router = useRouter();
   const params = useParams();
   const customerId = params.id as string;
-  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading, hasPermission } = useAdmin();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
-  }, [authLoading, isAuthenticated, router]);
+    if (!authLoading && isAuthenticated && !hasPermission('customers', 'read')) {
+      router.replace('/dashboard');
+    }
+  }, [authLoading, isAuthenticated, hasPermission, router]);
 
   const [tabValue, setTabValue] = useState(0);
   const [historyUsage, setHistoryUsage] = useState<any[]>([]);
@@ -256,7 +259,11 @@ export default function CustomerDetailPage() {
     );
   }
 
-  if (authLoading || !isAuthenticated) return null;
+  if (authLoading || !isAuthenticated) return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <CircularProgress />
+    </Box>
+  );
 
   return (
     <AdminLayout title={`Detail Pelanggan - ${customer.namaLengkap}`}>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Grid,
@@ -94,6 +94,13 @@ export default function CustomerManagement() {
   // ==================== Local State ====================
   const [accounts, setAccounts] = useState<CustomerAccount[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search to reduce unnecessary re-renders
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedCustomer, setSelectedCustomer] = useState<User | null>(null);
@@ -298,10 +305,10 @@ export default function CustomerManagement() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredCustomers = customers.filter((customer: any) => {
     const matchesSearch =
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm) ||
-      customer.nik.includes(searchTerm);
+      customer.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      customer.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      customer.phone.includes(debouncedSearch) ||
+      customer.nik.includes(debouncedSearch);
 
     const matchesType =
       filterType === 'all' || customer.customerType === filterType;
@@ -313,7 +320,7 @@ export default function CustomerManagement() {
 
 
   // Reset halaman saat filter/search berubah
-  useEffect(() => { setPage(1); }, [searchTerm, filterType, filterStatus]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, filterType, filterStatus]);
   const getCustomerTypeLabel = (type: string) => {
     switch (type) {
       case 'rumah_tangga':
