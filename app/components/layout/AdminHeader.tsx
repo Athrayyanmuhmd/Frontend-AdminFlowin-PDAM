@@ -241,10 +241,10 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
                       {notification.title}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(notification.createdAt).toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {(() => {
+                        const d = new Date(notification.createdAt);
+                        return isNaN(d.getTime()) ? '-' : d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                      })()}
                     </Typography>
                   </Box>
                   <Typography 
