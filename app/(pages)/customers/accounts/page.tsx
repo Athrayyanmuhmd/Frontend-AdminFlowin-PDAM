@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
@@ -35,29 +35,27 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Paper,
   Tabs,
   Tab,
 } from '@mui/material';
 import {
   Search,
   Add,
-  MoreVert,
   Edit,
-  Delete,
+  MoreVert,
   Visibility,
   AccountBalance,
   WaterDrop,
   Speed,
-  LocationOn,
-  Refresh,
   Assignment,
+  Refresh,
   TrendingUp,
+  Block,
+  CheckCircle,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { CustomerAccount } from '../../../types/admin.types';
-import { useGetAllMeteran } from '../../../../lib/graphql/hooks/useMeteran';
-import { useMemo } from 'react';
+import { useGetAllMeteran, useUpdateMeteran } from '../../../../lib/graphql/hooks/useMeteran';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -67,7 +65,6 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
-
   return (
     <div
       role="tabpanel"
@@ -76,11 +73,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`account-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
     </div>
   );
 }
@@ -101,61 +94,53 @@ export default function CustomerAccounts() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
+  const rowsPerPage = 10;
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // ✅ GraphQL Query - Replace REST API
   const { meteran: meteranData, loading, error: graphqlError, refetch } = useGetAllMeteran();
+  const { updateMeteran, loading: updateLoading } = useUpdateMeteran();
 
-  // Transform GraphQL meteran data to CustomerAccount format
-  const accounts = useMemo(() => {
+  // Transform GraphQL meteran data ke CustomerAccount
+  const accounts: CustomerAccount[] = useMemo(() => {
     return meteranData.map((meter: any) => ({
       id: meter._id,
       customerId: meter.idKoneksiData?.idPelanggan?._id || '',
+      namaLengkap: meter.idKoneksiData?.idPelanggan?.namaLengkap || '-',
       accountNumber: meter.nomorAkun || '-',
       meterNumber: meter.nomorMeteran || '-',
       connectionType: 'existing' as const,
-      serviceStatus: 'active' as const, // Assume active if meter exists
+      serviceStatus: meter.statusAktif !== false ? 'active' : 'inactive',
       tariffCategory: meter.idKelompokPelanggan?.namaKelompok || '-',
-      installationDate: new Date(meter.createdAt),
-      lastReading: new Date(meter.updatedAt),
-      currentReading: 0, // Not available in meteran schema
+      installationDate: meter.createdAt ? new Date(meter.createdAt) : new Date(),
+      lastReading: meter.updatedAt ? new Date(meter.updatedAt) : undefined,
+      currentReading: meter.totalPemakaian || 0,
       previousReading: 0,
-      consumption: 0,
+      consumption: meter.pemakaianBelumTerbayar || 0,
     }));
   }, [meteranData]);
 
-  // Calculate stats from meteran data
-  const stats = useMemo(() => {
-    const totalAccounts = accounts.length;
-    const activeAccounts = accounts.filter((acc: any) => acc.serviceStatus === 'active').length;
-    const suspendedAccounts = accounts.filter((acc: any) => acc.serviceStatus === 'suspended').length;
-    const avgConsumption = 0; // Not available in current schema
-
-    const accountsByTariff = accounts.reduce((acc: Record<string, number>, account: any) => {
-      acc[account.tariffCategory] = (acc[account.tariffCategory] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return {
-      totalAccounts,
-      activeAccounts,
-      suspendedAccounts,
-      avgConsumption,
-      accountsByTariff
-    };
+  // Opsi tarif dinamis dari data real
+  const tariffOptions = useMemo(() => {
+    return [...new Set(accounts.map(a => a.tariffCategory))].filter(t => t !== '-').sort();
   }, [accounts]);
 
-  const handleRefresh = () => {
-    refetch();
-  };
+  // Stats
+  const stats = useMemo(() => {
+    const totalAccounts = accounts.length;
+    const activeAccounts = accounts.filter(a => a.serviceStatus === 'active').length;
+    const inactiveAccounts = accounts.filter(a => a.serviceStatus === 'inactive').length;
+    const totalConsumption = accounts.reduce((sum, a) => sum + (a.consumption || 0), 0);
+    const avgConsumption = totalAccounts > 0 ? totalConsumption / totalAccounts : 0;
+    const accountsByTariff = accounts.reduce((acc: Record<string, number>, a) => {
+      if (a.tariffCategory !== '-') acc[a.tariffCategory] = (acc[a.tariffCategory] || 0) + 1;
+      return acc;
+    }, {});
+    return { totalAccounts, activeAccounts, inactiveAccounts, avgConsumption, accountsByTariff };
+  }, [accounts]);
 
-  // Handle GraphQL errors
   useEffect(() => {
-    if (graphqlError) {
-      setError('Gagal memuat data: ' + graphqlError.message);
-    }
+    if (graphqlError) setError('Gagal memuat data: ' + graphqlError.message);
   }, [graphqlError]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, account: CustomerAccount) => {
@@ -170,6 +155,18 @@ export default function CustomerAccounts() {
 
   const handleViewDetails = () => {
     setOpenDialog(true);
+    setAnchorEl(null);
+  };
+
+  const handleToggleStatus = async () => {
+    if (!selectedAccount) return;
+    const newStatus = selectedAccount.serviceStatus === 'active' ? false : true;
+    try {
+      await updateMeteran({ variables: { id: selectedAccount.id, statusAktif: newStatus } });
+      setSuccess(newStatus ? 'Akun berhasil diaktifkan' : 'Akun berhasil ditangguhkan');
+    } catch (err: any) {
+      setError('Gagal mengubah status: ' + err.message);
+    }
     handleMenuClose();
   };
 
@@ -193,119 +190,183 @@ export default function CustomerAccounts() {
     }
   };
 
-  const getTariffLabel = (tariff: string) => {
-    switch (tariff) {
-      case '2A2': return 'Rumah Tangga 2A2';
-      case '2A3': return 'Rumah Tangga 2A3';
-      case 'komersial': return 'Komersial';
-      case 'industri': return 'Industri';
-      case 'sosial': return 'Sosial';
-      default: return tariff;
-    }
-  };
+  const filterAccounts = (source: CustomerAccount[]) =>
+    source.filter(account => {
+      const q = searchTerm.toLowerCase();
+      const matchesSearch =
+        account.accountNumber.toLowerCase().includes(q) ||
+        account.meterNumber.toLowerCase().includes(q) ||
+        account.namaLengkap.toLowerCase().includes(q);
+      const matchesStatus = filterStatus === 'all' || account.serviceStatus === filterStatus;
+      const matchesTariff = filterTariff === 'all' || account.tariffCategory === filterTariff;
+      return matchesSearch && matchesStatus && matchesTariff;
+    });
 
-  const filteredAccounts = accounts.filter((account: any) => {
-    const matchesSearch = account.accountNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         account.meterNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || account.serviceStatus === filterStatus;
-    const matchesTariff = filterTariff === 'all' || account.tariffCategory === filterTariff;
+  const allFiltered = filterAccounts(accounts);
+  const attentionFiltered = filterAccounts(accounts.filter(a => a.serviceStatus === 'inactive'));
 
-    return matchesSearch && matchesStatus && matchesTariff;
-  });
+  const renderTable = (source: CustomerAccount[]) => {
+    const paginated = source.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  const renderAccountsTable = () => (
-    <Card>
-      {loading ? (
+    if (loading) {
+      return (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
-      ) : (
-        <>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Akun</TableCell>
-                  <TableCell>Meteran</TableCell>
-                  <TableCell>Tarif</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Konsumsi</TableCell>
-                  <TableCell>Pembacaan Terakhir</TableCell>
-                  <TableCell align="right">Aksi</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredAccounts.map((account: any) => (
-                  <TableRow key={account.id} hover>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                          {account.accountNumber}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {account.connectionType === 'new' ? 'Sambungan Baru' :
-                           account.connectionType === 'existing' ? 'Sambungan Lama' : 'Transfer'}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <WaterDrop color="primary" sx={{ fontSize: 20 }} />
-                        <Typography variant="body2">
-                          {account.meterNumber}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getTariffLabel(account.tariffCategory)}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getStatusLabel(account.serviceStatus)}
-                        size="small"
-                        color={getStatusColor(account.serviceStatus) as any}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TrendingUp color="success" sx={{ fontSize: 16 }} />
-                        <Typography variant="body2">
-                          {account.consumption} m³
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {account.lastReading ? new Date(account.lastReading).toLocaleDateString('id-ID') : '-'}
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, account)}
-                        size="small"
-                      >
-                        <MoreVert />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+      );
+    }
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-            <Pagination
-              count={Math.ceil(filteredAccounts.length / rowsPerPage)}
-              page={page}
-              onChange={(_, newPage) => setPage(newPage)}
-              color="primary"
+    if (source.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 6 }}>
+          <Typography color="text.secondary">Tidak ada data akun</Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <Card>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Akun &amp; Pelanggan</TableCell>
+                <TableCell>Meteran</TableCell>
+                <TableCell>Tarif</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Pemakaian Belum Bayar</TableCell>
+                <TableCell>Total Pemakaian</TableCell>
+                <TableCell align="right">Aksi</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {paginated.map(account => (
+                <TableRow key={account.id} hover>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {account.accountNumber}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {account.namaLengkap}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <WaterDrop color="primary" sx={{ fontSize: 20 }} />
+                      <Typography variant="body2">{account.meterNumber}</Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={account.tariffCategory}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={getStatusLabel(account.serviceStatus)}
+                      size="small"
+                      color={getStatusColor(account.serviceStatus) as any}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TrendingUp color={account.consumption > 0 ? 'warning' : 'disabled'} sx={{ fontSize: 16 }} />
+                      <Typography variant="body2">{account.consumption.toFixed(2)} m³</Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">{(account.currentReading || 0).toFixed(2)} m³</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton onClick={e => handleMenuOpen(e, account)} size="small">
+                      <MoreVert />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+          <Pagination
+            count={Math.ceil(source.length / rowsPerPage)}
+            page={page}
+            onChange={(_, newPage) => setPage(newPage)}
+            color="primary"
+          />
+        </Box>
+      </Card>
+    );
+  };
+
+  const renderFilters = () => (
+    <Card sx={{ mb: 3 }}>
+      <CardContent>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              placeholder="Cari nomor akun, meteran, atau nama pelanggan..."
+              value={searchTerm}
+              onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search />
+                  </InputAdornment>
+                ),
+              }}
             />
-          </Box>
-        </>
-      )}
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filterStatus}
+                onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
+                label="Status"
+              >
+                <MenuItem value="all">Semua</MenuItem>
+                <MenuItem value="active">Aktif</MenuItem>
+                <MenuItem value="inactive">Tidak Aktif</MenuItem>
+                <MenuItem value="suspended">Ditangguhkan</MenuItem>
+                <MenuItem value="disconnected">Putus</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Tarif</InputLabel>
+              <Select
+                value={filterTariff}
+                onChange={e => { setFilterTariff(e.target.value); setPage(1); }}
+                label="Tarif"
+              >
+                <MenuItem value="all">Semua</MenuItem>
+                {tariffOptions.map(t => (
+                  <MenuItem key={t} value={t}>{t}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<Add />}
+              sx={{ height: '56px' }}
+              onClick={() => router.push('/operations/meteran/create')}
+            >
+              Buat Akun
+            </Button>
+          </Grid>
+        </Grid>
+      </CardContent>
     </Card>
   );
 
@@ -319,7 +380,7 @@ export default function CustomerAccounts() {
             Manajemen Akun Pelanggan
           </Typography>
           <Tooltip title="Refresh Data">
-            <IconButton onClick={handleRefresh} disabled={loading}>
+            <IconButton onClick={() => refetch()} disabled={loading}>
               <Refresh />
             </IconButton>
           </Tooltip>
@@ -338,9 +399,7 @@ export default function CustomerAccounts() {
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
                       {stats.totalAccounts.toLocaleString('id-ID')}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Akun
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Total Akun</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -358,9 +417,7 @@ export default function CustomerAccounts() {
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
                       {stats.activeAccounts.toLocaleString('id-ID')}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Akun Aktif
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Akun Aktif</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -378,9 +435,7 @@ export default function CustomerAccounts() {
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
                       {stats.avgConsumption.toFixed(1)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Rata-rata Konsumsi (m³)
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Rata-rata Pemakaian (m³)</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -396,11 +451,9 @@ export default function CustomerAccounts() {
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {stats.suspendedAccounts.toLocaleString('id-ID')}
+                      {stats.inactiveAccounts.toLocaleString('id-ID')}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Akun Ditangguhkan
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Akun Tidak Aktif</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -410,92 +463,26 @@ export default function CustomerAccounts() {
 
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+          <Tabs value={tabValue} onChange={(_, v) => { setTabValue(v); setPage(1); }}>
             <Tab label="Semua Akun" />
-            <Tab label="Perlu Perhatian" />
-            <Tab label="Statistik" />
+            <Tab
+              label={`Perlu Perhatian${stats.inactiveAccounts > 0 ? ` (${stats.inactiveAccounts})` : ''}`}
+            />
+            <Tab label="Statistik Tarif" />
           </Tabs>
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          {/* Filters and Search */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    placeholder="Cari nomor akun atau meteran..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Search />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      label="Status"
-                    >
-                      <MenuItem value="all">Semua</MenuItem>
-                      <MenuItem value="active">Aktif</MenuItem>
-                      <MenuItem value="suspended">Ditangguhkan</MenuItem>
-                      <MenuItem value="disconnected">Putus</MenuItem>
-                      <MenuItem value="inactive">Tidak Aktif</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Tarif</InputLabel>
-                    <Select
-                      value={filterTariff}
-                      onChange={(e) => setFilterTariff(e.target.value)}
-                      label="Tarif"
-                    >
-                      <MenuItem value="all">Semua</MenuItem>
-                      <MenuItem value="2A2">Rumah Tangga 2A2</MenuItem>
-                      <MenuItem value="2A3">Rumah Tangga 2A3</MenuItem>
-                      <MenuItem value="komersial">Komersial</MenuItem>
-                      <MenuItem value="industri">Industri</MenuItem>
-                      <MenuItem value="sosial">Sosial</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} md={2}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<Add />}
-                    sx={{ height: '56px' }}
-                    onClick={() => setSuccess('Fitur tambah akun akan segera tersedia')}
-                  >
-                    Buat Akun
-                  </Button>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-
-          {renderAccountsTable()}
+          {renderFilters()}
+          {renderTable(allFiltered)}
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
           <Alert severity="warning" sx={{ mb: 3 }}>
-            Daftar akun yang memerlukan perhatian khusus
+            Akun dengan status tidak aktif — meter dinonaktifkan oleh admin
           </Alert>
-          {renderAccountsTable()}
+          {renderFilters()}
+          {renderTable(attentionFiltered)}
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
@@ -506,12 +493,21 @@ export default function CustomerAccounts() {
                   <Typography variant="h6" gutterBottom>
                     Distribusi Tarif
                   </Typography>
-                  {Object.entries(stats.accountsByTariff).map(([tariff, count]) => (
-                    <Box key={tariff} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2">{getTariffLabel(tariff)}</Typography>
-                      <Typography variant="body2" fontWeight="bold">{count as number}</Typography>
-                    </Box>
-                  ))}
+                  {Object.entries(stats.accountsByTariff).length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">Belum ada data</Typography>
+                  ) : (
+                    Object.entries(stats.accountsByTariff)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([tariff, count]) => (
+                        <Box
+                          key={tariff}
+                          sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
+                        >
+                          <Typography variant="body2">{tariff}</Typography>
+                          <Typography variant="body2" fontWeight="bold">{count as number} akun</Typography>
+                        </Box>
+                      ))
+                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -520,22 +516,28 @@ export default function CustomerAccounts() {
       </Box>
 
       {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={handleViewDetails}>
           <Visibility sx={{ mr: 1 }} />
           Lihat Detail
         </MenuItem>
-        <MenuItem onClick={() => { setSuccess('Fitur edit akan segera tersedia'); handleMenuClose(); }}>
+        <MenuItem onClick={() => {
+          if (selectedAccount) router.push(`/operations/meteran/${selectedAccount.id}`);
+          handleMenuClose();
+        }}>
           <Edit sx={{ mr: 1 }} />
           Edit
         </MenuItem>
-        <MenuItem onClick={() => { setSuccess('Fitur suspend akan segera tersedia'); handleMenuClose(); }} sx={{ color: 'error.main' }}>
-          <Delete sx={{ mr: 1 }} />
-          Tangguhkan
+        <MenuItem
+          onClick={handleToggleStatus}
+          disabled={updateLoading}
+          sx={{ color: selectedAccount?.serviceStatus === 'active' ? 'error.main' : 'success.main' }}
+        >
+          {selectedAccount?.serviceStatus === 'active' ? (
+            <><Block sx={{ mr: 1 }} />Tangguhkan</>
+          ) : (
+            <><CheckCircle sx={{ mr: 1 }} />Aktifkan</>
+          )}
         </MenuItem>
       </Menu>
 
@@ -543,34 +545,47 @@ export default function CustomerAccounts() {
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           Detail Akun
-          {selectedAccount && ` - ${selectedAccount.accountNumber}`}
+          {selectedAccount && ` — ${selectedAccount.accountNumber}`}
         </DialogTitle>
         <DialogContent>
           {selectedAccount && (
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ mt: 0 }}>
               <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>
-                  Informasi Akun
-                </Typography>
+                <Typography variant="h6" gutterBottom>Informasi Akun</Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Typography><strong>Nomor Akun:</strong> {selectedAccount.accountNumber}</Typography>
                   <Typography><strong>Nomor Meteran:</strong> {selectedAccount.meterNumber}</Typography>
-                  <Typography><strong>Jenis Koneksi:</strong> {selectedAccount.connectionType}</Typography>
-                  <Typography><strong>Status:</strong> {getStatusLabel(selectedAccount.serviceStatus)}</Typography>
-                  <Typography><strong>Tarif:</strong> {getTariffLabel(selectedAccount.tariffCategory)}</Typography>
-                  <Typography><strong>Tanggal Instalasi:</strong> {new Date(selectedAccount.installationDate).toLocaleDateString('id-ID')}</Typography>
+                  <Typography><strong>Nama Pelanggan:</strong> {selectedAccount.namaLengkap}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography><strong>Status:</strong></Typography>
+                    <Chip
+                      label={getStatusLabel(selectedAccount.serviceStatus)}
+                      size="small"
+                      color={getStatusColor(selectedAccount.serviceStatus) as any}
+                    />
+                  </Box>
+                  <Typography><strong>Tarif:</strong> {selectedAccount.tariffCategory}</Typography>
+                  <Typography>
+                    <strong>Tanggal Instalasi:</strong>{' '}
+                    {new Date(selectedAccount.installationDate).toLocaleDateString('id-ID')}
+                  </Typography>
                 </Box>
               </Grid>
-
               <Grid item xs={12} md={6}>
-                <Typography variant="h6" gutterBottom>
-                  Data Meteran
-                </Typography>
+                <Typography variant="h6" gutterBottom>Data Pemakaian</Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Pembacaan Saat Ini:</strong> {selectedAccount.currentReading} m³</Typography>
-                  <Typography><strong>Pembacaan Sebelumnya:</strong> {selectedAccount.previousReading} m³</Typography>
-                  <Typography><strong>Konsumsi:</strong> {selectedAccount.consumption} m³</Typography>
-                  <Typography><strong>Pembacaan Terakhir:</strong> {selectedAccount.lastReading ? new Date(selectedAccount.lastReading).toLocaleDateString('id-ID') : '-'}</Typography>
+                  <Typography>
+                    <strong>Pemakaian Belum Terbayar:</strong> {selectedAccount.consumption.toFixed(2)} m³
+                  </Typography>
+                  <Typography>
+                    <strong>Total Pemakaian:</strong> {(selectedAccount.currentReading || 0).toFixed(2)} m³
+                  </Typography>
+                  <Typography>
+                    <strong>Terakhir Diperbarui:</strong>{' '}
+                    {selectedAccount.lastReading
+                      ? new Date(selectedAccount.lastReading).toLocaleDateString('id-ID')
+                      : '-'}
+                  </Typography>
                 </Box>
               </Grid>
             </Grid>
@@ -578,29 +593,28 @@ export default function CustomerAccounts() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Tutup</Button>
-          <Button variant="contained">Edit Akun</Button>
+          {selectedAccount && (
+            <Button
+              variant="contained"
+              color={selectedAccount.serviceStatus === 'active' ? 'error' : 'success'}
+              onClick={() => {
+                setOpenDialog(false);
+                handleToggleStatus();
+              }}
+              disabled={updateLoading}
+            >
+              {selectedAccount.serviceStatus === 'active' ? 'Tangguhkan' : 'Aktifkan'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
-      {/* Success/Error Snackbars */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={6000}
-        onClose={() => setSuccess(null)}
-      >
-        <Alert onClose={() => setSuccess(null)} severity="success">
-          {success}
-        </Alert>
+      {/* Snackbars */}
+      <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)}>
+        <Alert onClose={() => setSuccess(null)} severity="success">{success}</Alert>
       </Snackbar>
-
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={() => setError(null)}
-      >
-        <Alert onClose={() => setError(null)} severity="error">
-          {error}
-        </Alert>
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+        <Alert onClose={() => setError(null)} severity="error">{error}</Alert>
       </Snackbar>
     </AdminLayout>
   );

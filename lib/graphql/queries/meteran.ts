@@ -152,8 +152,8 @@ export const GET_RIWAYAT_PENGGUNAAN = gql`
  * Query untuk estimasi biaya berdasarkan pemakaian belum terbayar
  */
 export const GET_ESTIMASI_BIAYA = gql`
-  query GetEstimashiBiaya($meteranId: ID!) {
-    getEstimashiBiaya(meteranId: $meteranId) {
+  query GetEstimasiBiaya($meteranId: ID!) {
+    getEstimasiBiaya(meteranId: $meteranId) {
       pemakaianBelumTerbayar
       estimasiBiaya
       biayaBeban

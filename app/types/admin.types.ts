@@ -47,11 +47,12 @@ export interface PermissionCondition {
 export interface CustomerAccount {
   id: string;
   customerId: string;
+  namaLengkap: string;
   accountNumber: string;
   meterNumber: string;
   connectionType: 'new' | 'existing' | 'transfer';
-  serviceStatus: 'active' | 'suspended' | 'disconnected';
-  tariffCategory: '2A2' | '2A3' | 'komersial' | 'industri' | 'sosial';
+  serviceStatus: 'active' | 'suspended' | 'disconnected' | 'inactive';
+  tariffCategory: string;
   installationDate: Date;
   lastReading?: Date;
   currentReading?: number;
