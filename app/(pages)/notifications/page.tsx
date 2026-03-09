@@ -52,7 +52,7 @@ import {
 import AdminLayout from '../../layouts/AdminLayout';
 import { useAdmin } from '../../layouts/AdminProvider';
 import { GET_ALL_NOTIFIKASI_ADMIN, GET_ALL_PENGGUNA_FOR_NOTIF } from '@/lib/graphql/queries/notifikasi';
-import { CREATE_NOTIFIKASI, BROADCAST_NOTIFIKASI } from '@/lib/graphql/mutations/notifikasi';
+import { CREATE_NOTIFIKASI, BROADCAST_NOTIFIKASI, MARK_NOTIFIKASI_AS_READ } from '@/lib/graphql/mutations/notifikasi';
 
 interface Pengguna {
   _id: string;
@@ -189,6 +189,8 @@ export default function NotifikasiPage() {
       setSnackSeverity('error');
     },
   });
+
+  const [markAsRead] = useMutation(MARK_NOTIFIKASI_AS_READ);
 
   const sending = sendingPersonal || sendingBroadcast;
 
@@ -451,7 +453,15 @@ export default function NotifikasiPage() {
                               <Tooltip title="Lihat Detail">
                                 <IconButton
                                   size="small"
-                                  onClick={() => { setSelectedNotif(item); setOpenDetail(true); }}
+                                  onClick={() => {
+                                    setSelectedNotif(item);
+                                    setOpenDetail(true);
+                                    if (!item.isRead) {
+                                      markAsRead({ variables: { id: item._id } })
+                                        .then(() => refetch())
+                                        .catch(() => {});
+                                    }
+                                  }}
                                 >
                                   <Visibility fontSize="small" />
                                 </IconButton>
