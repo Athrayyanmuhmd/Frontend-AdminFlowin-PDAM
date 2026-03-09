@@ -86,8 +86,10 @@ const kategoriIcon = (k: string) => {
   return <Info fontSize="small" />;
 };
 
-const formatDate = (ts: string) => {
+const formatDate = (ts: string | null | undefined) => {
+  if (!ts) return '-';
   const d = new Date(isNaN(Number(ts)) ? ts : Number(ts));
+  if (isNaN(d.getTime())) return '-';
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 

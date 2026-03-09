@@ -116,7 +116,7 @@ function AdminProviderInner({ children }: AdminProviderProps) {
         message: n.pesan,
         priority: n.kategori === 'Peringatan' ? 'high' : 'medium',
         isRead: n.isRead,
-        createdAt: new Date(n.createdAt),
+        createdAt: n.createdAt ? new Date(n.createdAt) : new Date(),
         actionUrl: n.link || undefined,
       }));
       setNotifications(mapped);
