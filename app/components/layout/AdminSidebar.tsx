@@ -42,6 +42,7 @@ import {
   FactCheck,
   VerifiedUser,
   NotificationsActive,
+  PersonOff,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 
@@ -131,6 +132,14 @@ const adminMenuItems: MenuItem[] = [
         title: 'Struktur Tarif',
         icon: <Receipt />,
         path: '/billing/tariffs',
+        permission: 'billing:update',
+        roles: ['admin'],
+      },
+      {
+        id: 'billing-pemutusan',
+        title: 'Pemutusan',
+        icon: <PersonOff />,
+        path: '/billing/pemutusan',
         permission: 'billing:update',
         roles: ['admin'],
       },

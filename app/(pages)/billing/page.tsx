@@ -199,9 +199,82 @@ export default function BillingManagement() {
     setSelectedBilling(null);
   };
 
+  // Tutup menu tanpa hapus selectedBilling (agar dialog/print bisa pakai data)
+  const closeMenuOnly = () => setAnchorEl(null);
+
   const handleViewDetails = () => {
     setOpenDialog(true);
-    handleMenuClose();
+    closeMenuOnly();
+  };
+
+  const handlePrint = () => {
+    closeMenuOnly();
+    if (!selectedBilling) return;
+    const b = selectedBilling;
+    const pelanggan = b.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-';
+    const nomorMeteran = b.idMeteran?.nomorMeteran || '-';
+    const nomorAkun = b.idMeteran?.nomorAkun || '-';
+    const periode = formatPeriode(b.periode);
+    const tenggatWaktu = formatTanggal(b.tenggatWaktu);
+    const totalBiaya = (b.totalBiaya || 0).toLocaleString('id-ID');
+    const biayaAir = (b.biaya || 0).toLocaleString('id-ID');
+    const biayaBeban = (b.biayaBeban || 0).toLocaleString('id-ID');
+    const denda = (b.denda || 0).toLocaleString('id-ID');
+    const isMerged = b.isMergedBilling ? `<p style="color:#e53935;font-size:12px">⚠️ Tagihan gabungan (${b.bulanCakupan} bulan)</p>` : '';
+    const isDenda = b.jenisBilling === 'denda' ? `<p style="color:#e53935;font-size:12px">⚠️ Tagihan Denda Pemutusan</p>` : '';
+
+    const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Tagihan Air - ${periode}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; padding: 40px; color: #222; }
+  .header { text-align:center; border-bottom: 2px solid #1565c0; padding-bottom:16px; margin-bottom:24px; }
+  .header h1 { font-size:20px; color:#1565c0; }
+  .header p { font-size:13px; color:#555; margin-top:4px; }
+  .badge { display:inline-block; background:#1565c0; color:#fff; padding:2px 10px; border-radius:12px; font-size:11px; margin-top:6px; }
+  table { width:100%; border-collapse:collapse; margin-top:16px; }
+  td { padding: 8px 12px; font-size:13px; border-bottom:1px solid #eee; }
+  td:first-child { color:#555; width:45%; }
+  td:last-child { font-weight:600; }
+  .total-row td { font-size:16px; color:#1565c0; border-top:2px solid #1565c0; padding-top:12px; }
+  .footer { margin-top:32px; font-size:11px; color:#999; text-align:center; border-top:1px solid #eee; padding-top:12px; }
+  .status { font-size:13px; font-weight:bold; color:${b.statusPembayaran === 'Settlement' ? '#2e7d32' : '#c62828'}; }
+  @media print { body { padding:20px; } }
+</style></head><body>
+  <div class="header">
+    <h1>PERUMDAM TIRTA DAROY BANDA ACEH</h1>
+    <p>Jl. Twk. Hasyim Banta Muda No. 1, Banda Aceh</p>
+    <span class="badge">TAGIHAN AIR BERSIH</span>
+  </div>
+  ${isMerged}${isDenda}
+  <table>
+    <tr><td>Nama Pelanggan</td><td>${pelanggan}</td></tr>
+    <tr><td>No. Meteran</td><td>${nomorMeteran}</td></tr>
+    <tr><td>No. Akun</td><td>${nomorAkun}</td></tr>
+    <tr><td>Periode Tagihan</td><td>${periode}</td></tr>
+    <tr><td>Pemakaian Air</td><td>${b.totalPemakaian || 0} m³</td></tr>
+    <tr><td>Biaya Pemakaian</td><td>Rp ${biayaAir}</td></tr>
+    <tr><td>Biaya Beban</td><td>Rp ${biayaBeban}</td></tr>
+    ${b.denda ? `<tr><td>Denda</td><td>Rp ${denda}</td></tr>` : ''}
+    <tr><td>Jatuh Tempo</td><td>${tenggatWaktu}</td></tr>
+    <tr><td>Status</td><td class="status">${b.statusPembayaran === 'Settlement' ? '✅ Lunas' : '❌ Belum Bayar'}</td></tr>
+    <tr class="total-row"><td>TOTAL TAGIHAN</td><td>Rp ${totalBiaya}</td></tr>
+  </table>
+  <div class="footer">
+    <p>Dicetak pada: ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })}</p>
+    <p>Dokumen ini digenerate otomatis oleh sistem Aqualink</p>
+  </div>
+</body></html>`;
+
+    const win = window.open('', '_blank', 'width=700,height=800');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.onload = () => win.print();
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    handlePrint(); // gunakan fungsi yang sama — browser akan menawarkan "Save as PDF"
   };
 
   const handleGenerateBills = () => {
@@ -701,11 +774,11 @@ export default function BillingManagement() {
           <Payment sx={{ mr: 1 }} />
           Proses Pembayaran
         </MenuItem>
-        <MenuItem onClick={handleViewDetails}>
+        <MenuItem onClick={handlePrint}>
           <Receipt sx={{ mr: 1 }} />
           Cetak Tagihan
         </MenuItem>
-        <MenuItem onClick={() => { setSnackbar({ open: true, message: 'Fitur download PDF sedang dalam pengembangan', severity: 'success' }); handleMenuClose(); }}>
+        <MenuItem onClick={handleDownloadPDF}>
           <Download sx={{ mr: 1 }} />
           Download PDF
         </MenuItem>
