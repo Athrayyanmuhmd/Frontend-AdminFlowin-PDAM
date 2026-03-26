@@ -52,7 +52,7 @@ import {
   Download,
   Autorenew,
 } from '@mui/icons-material';
-import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
 import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART } from '@/lib/graphql/queries/billing';
 
@@ -518,22 +518,28 @@ export default function BillingManagement() {
                 <Box sx={{ height: 300 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <RechartsTooltip 
-                        formatter={(value, name) => [
-                          name === 'revenue' ? `Rp ${value.toLocaleString('id-ID')}` :
-                          name === 'collected' ? `Rp ${value.toLocaleString('id-ID')}` :
-                          `${value.toLocaleString('id-ID')}`,
-                          name === 'revenue' ? 'Target' :
-                          name === 'collected' ? 'Terkumpul' : 'Jumlah Tagihan'
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                      <YAxis
+                        tickFormatter={(v) => {
+                          if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
+                          if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
+                          return String(v);
+                        }}
+                        tick={{ fontSize: 11 }}
+                        width={55}
+                      />
+                      <RechartsTooltip
+                        formatter={(value: number, name: string) => [
+                          `Rp ${value.toLocaleString('id-ID')}`,
+                          name === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)',
                         ]}
                       />
-                      <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#2196F3" strokeWidth={3} />
-                      <Line yAxisId="left" type="monotone" dataKey="collected" stroke="#4CAF50" strokeWidth={3} />
-                      <Bar yAxisId="right" dataKey="bills" fill="#FF9800" />
+                      <Legend
+                        formatter={(value) => value === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)'}
+                      />
+                      <Bar dataKey="revenue" fill="#FF9800" name="revenue" radius={[3, 3, 0, 0]} />
+                      <Line type="monotone" dataKey="collected" stroke="#4CAF50" strokeWidth={2} dot={{ r: 4 }} name="collected" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </Box>

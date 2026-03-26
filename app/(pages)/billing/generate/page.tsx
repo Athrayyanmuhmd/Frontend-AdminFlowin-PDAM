@@ -10,7 +10,6 @@ import {
   Typography,
   Box,
   Button,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -31,10 +30,9 @@ import {
   Checkbox,
   Chip,
   LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   Receipt,
@@ -45,8 +43,9 @@ import {
   Error,
   Warning,
   Info,
-  WaterDrop,
-  AttachMoney,
+  ExpandMore,
+  ErrorOutline,
+  ReportProblem,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -55,6 +54,7 @@ import AdminLayout from '../../../layouts/AdminLayout';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import dayjs from 'dayjs';
+import { GET_ALL_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/kelompokPelanggan';
 
 const GET_ALL_METERAN = gql`
   query GetAllMeteranForBilling {
@@ -83,6 +83,13 @@ const GENERATE_TAGIHAN = gql`
       berhasil
       gagal
       pesan
+      detailGagal {
+        idMeteran
+        nomorMeteran
+        nomorAkun
+        namaLengkap
+        alasan
+      }
     }
   }
 `;
@@ -95,6 +102,7 @@ interface AccountForBilling {
   customerName: string;
   meterNumber: string;
   tariffCategory: string;
+  kelompokId: string;
   selected: boolean;
 }
 
@@ -114,14 +122,30 @@ export default function GenerateBills() {
 
   const [formData, setFormData] = useState({
     periode: dayjs().format('YYYY-MM'),
-    tariffCategory: 'all',
+    kelompokId: 'all',
   });
+
+  // Fetch kelompok pelanggan untuk dropdown filter
+  const { data: kelompokData } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
+    fetchPolicy: 'cache-first',
+  });
+  const kelompokList: Array<{ _id: string; namaKelompok: string }> =
+    (kelompokData as any)?.getAllKelompokPelanggan || [];
+
+  interface DetailGagal {
+    idMeteran: string;
+    nomorMeteran?: string;
+    nomorAkun?: string;
+    namaLengkap?: string;
+    alasan: string;
+  }
 
   const [generationResults, setGenerationResults] = useState({
     total: 0,
     success: 0,
     failed: 0,
-    errors: [] as string[]
+    errors: [] as string[],
+    detailGagal: [] as DetailGagal[],
   });
 
   // Fetch real meteran data
@@ -139,11 +163,12 @@ export default function GenerateBills() {
     customerName: m.idKoneksiData?.idPelanggan?.namaLengkap || '-',
     meterNumber: m.nomorMeteran,
     tariffCategory: m.idKelompokPelanggan?.namaKelompok || '-',
+    kelompokId: m.idKelompokPelanggan?._id || '',
     selected: selectedIds.has(m._id),
   }));
 
   const filteredAccounts = allAccounts.filter((a) =>
-    formData.tariffCategory === 'all' || a.tariffCategory === formData.tariffCategory
+    formData.kelompokId === 'all' || a.kelompokId === formData.kelompokId
   );
 
   const selectedAccounts = filteredAccounts.filter((a) => selectedIds.has(a.id));
@@ -197,6 +222,7 @@ export default function GenerateBills() {
         success: res?.berhasil ?? idMeteranList.length,
         failed: res?.gagal ?? 0,
         errors: res?.pesan ? [res.pesan] : [],
+        detailGagal: res?.detailGagal ?? [],
       });
       setActiveStep(3);
       setSuccess(`Generate tagihan selesai untuk periode ${formData.periode}`);
@@ -235,11 +261,14 @@ export default function GenerateBills() {
                 <FormControl fullWidth>
                   <InputLabel>Filter Kelompok Pelanggan</InputLabel>
                   <Select
-                    value={formData.tariffCategory}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, tariffCategory: e.target.value }))}
+                    value={formData.kelompokId}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, kelompokId: e.target.value }))}
                     label="Filter Kelompok Pelanggan"
                   >
                     <MenuItem value="all">Semua Kelompok</MenuItem>
+                    {kelompokList.map((k) => (
+                      <MenuItem key={k._id} value={k._id}>{k.namaKelompok}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>
@@ -353,25 +382,74 @@ export default function GenerateBills() {
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>Periode Tagihan</Typography>
-                <Typography><strong>Periode:</strong> {formData.periode}</Typography>
-                <Typography><strong>Kelompok:</strong> {formData.tariffCategory === 'all' ? 'Semua' : formData.tariffCategory}</Typography>
+            {/* Info periode + ringkasan angka */}
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 3, height: '100%' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>Konfigurasi Generate</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Periode</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{formData.periode}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Kelompok</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right', maxWidth: 140 }}>
+                      {formData.kelompokId === 'all' ? 'Semua Kelompok' : (kelompokList.find((k) => k._id === formData.kelompokId)?.namaKelompok || '-')}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="body2" color="text.secondary">Total Meteran</Typography>
+                    <Chip label={`${selectedIds.size} meteran`} size="small" color="primary" />
+                  </Box>
+                </Box>
               </Paper>
             </Grid>
 
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>Ringkasan Generate</Typography>
-                <Typography><strong>Jumlah Meteran:</strong> {selectedIds.size}</Typography>
-                <Typography><strong>Pelanggan terpilih:</strong> {selectedAccounts.map((a) => a.customerName).slice(0, 3).join(', ')}{selectedIds.size > 3 ? '...' : ''}</Typography>
+            {/* Tabel daftar akun terpilih */}
+            <Grid item xs={12} md={8}>
+              <Paper>
+                <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Daftar Meteran yang Akan Digenerate ({selectedIds.size})
+                  </Typography>
+                </Box>
+                <TableContainer sx={{ maxHeight: 280 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>No. Akun / Meteran</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Nama Pelanggan</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Kelompok</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedAccounts.map((account, index) => (
+                        <TableRow key={account.id} hover>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">{index + 1}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{account.accountNumber}</Typography>
+                            <Typography variant="caption" color="text.secondary">{account.meterNumber}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{account.customerName}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={account.tariffCategory} size="small" variant="outlined" color="primary" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </Paper>
             </Grid>
 
             <Grid item xs={12}>
               <Alert severity="warning">
-                <strong>Perhatian:</strong> Proses generate tagihan akan membuat tagihan baru untuk semua meteran yang dipilih pada periode {formData.periode}.
+                <strong>Perhatian:</strong> Proses generate akan membuat tagihan baru untuk <strong>{selectedIds.size} meteran</strong> pada periode <strong>{formData.periode}</strong>.
                 Pastikan tagihan untuk periode ini belum pernah digenerate sebelumnya.
               </Alert>
             </Grid>
@@ -379,9 +457,7 @@ export default function GenerateBills() {
             {generating && (
               <Grid item xs={12}>
                 <Paper sx={{ p: 2 }}>
-                  <Typography variant="body2" gutterBottom>
-                    Sedang generate tagihan...
-                  </Typography>
+                  <Typography variant="body2" gutterBottom>Sedang generate tagihan...</Typography>
                   <LinearProgress sx={{ height: 8, borderRadius: 4 }} />
                 </Paper>
               </Grid>
@@ -441,21 +517,66 @@ export default function GenerateBills() {
               </Card>
             </Grid>
 
-            {generationResults.errors.length > 0 && (
+            {generationResults.failed > 0 && (
               <Grid item xs={12}>
-                <Alert severity="error">
-                  <Typography variant="subtitle2" gutterBottom>Error Details:</Typography>
-                  {generationResults.errors.map((error, index) => (
-                    <Typography key={index} variant="body2">• {error}</Typography>
-                  ))}
-                </Alert>
+                <Accordion defaultExpanded>
+                  <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: 'error.light' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ReportProblem sx={{ color: 'error.dark' }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'error.dark' }}>
+                        Detail Kegagalan ({generationResults.failed} item gagal)
+                      </Typography>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ p: 0 }}>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ bgcolor: 'grey.100' }}>
+                            <TableCell sx={{ fontWeight: 600 }}>No. Akun</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>No. Meteran</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Nama Pelanggan</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Alasan Gagal</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {generationResults.detailGagal.map((item, index) => (
+                            <TableRow key={index} sx={{ '&:hover': { bgcolor: 'error.50' } }}>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                  {item.nomorAkun || '-'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" color="text.secondary">
+                                  {item.nomorMeteran || '-'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>{item.namaLengkap || '-'}</TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <ErrorOutline sx={{ fontSize: 16, color: 'error.main' }} />
+                                  <Typography variant="body2" color="error.main">
+                                    {item.alasan}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </AccordionDetails>
+                </Accordion>
               </Grid>
             )}
 
             <Grid item xs={12}>
-              <Paper sx={{ p: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
+              <Paper sx={{ p: 2, bgcolor: generationResults.failed === 0 ? 'success.light' : 'warning.light', color: generationResults.failed === 0 ? 'success.contrastText' : 'warning.contrastText' }}>
                 <Typography variant="body1">
-                  ✅ Proses generate tagihan selesai! Tagihan yang berhasil dibuat dapat dilihat di halaman daftar tagihan.
+                  {generationResults.failed === 0
+                    ? '✅ Proses generate tagihan selesai! Semua tagihan berhasil dibuat.'
+                    : `⚠️ Proses selesai dengan ${generationResults.failed} kegagalan. Periksa detail di atas dan perbaiki data sebelum generate ulang.`}
                 </Typography>
               </Paper>
             </Grid>
@@ -519,7 +640,7 @@ export default function GenerateBills() {
                     onClick={() => {
                       setActiveStep(0);
                       setSelectedIds(new Set());
-                      setGenerationResults({ total: 0, success: 0, failed: 0, errors: [] });
+                      setGenerationResults({ total: 0, success: 0, failed: 0, errors: [], detailGagal: [] });
                     }}
                   >
                     Generate Lagi
