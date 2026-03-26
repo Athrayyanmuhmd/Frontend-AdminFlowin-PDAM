@@ -23,6 +23,11 @@ import {
   Tab,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -39,11 +44,21 @@ import {
   Warning,
   Refresh,
 } from '@mui/icons-material';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import AdminLayout from '../../../../layouts/AdminLayout';
-import { GET_CUSTOMER } from '../../../../../lib/graphql/queries/customers';
+import { GET_CUSTOMER, UPDATE_CUSTOMER } from '../../../../../lib/graphql/queries/customers';
 import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billing';
 import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
+
+const KONFIRMASI_PEMBAYARAN_LOKET = gql`
+  mutation KonfirmasiPembayaranLoket($userId: ID!) {
+    konfirmasiPembayaranLoket(userId: $userId) {
+      _id
+      accountStatus
+    }
+  }
+`;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -82,9 +97,29 @@ export default function CustomerDetailPage() {
   const [tabValue, setTabValue] = useState(0);
   const [historyUsage, setHistoryUsage] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState<
-    'hari' | 'minggu' | 'bulan' | 'tahun'
-  >('minggu');
+  const [historyFilter, setHistoryFilter] = useState<'hari' | 'minggu' | 'bulan' | 'tahun'>('minggu');
+
+  // State untuk Pengaturan Akun
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; action: 'activate' | 'deactivate' | null }>({ open: false, action: null });
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+
+  const [updateCustomer, { loading: updatingCustomer }] = useMutation(UPDATE_CUSTOMER, {
+    onCompleted: () => {
+      refetchCustomer();
+      setSnackbar({ open: true, message: 'Status akun berhasil diperbarui', severity: 'success' });
+      setConfirmDialog({ open: false, action: null });
+    },
+    onError: (err) => setSnackbar({ open: true, message: err.message, severity: 'error' }),
+  });
+
+  const [konfirmasiLoket, { loading: konfirmasiLoading }] = useMutation(KONFIRMASI_PEMBAYARAN_LOKET, {
+    onCompleted: () => {
+      refetchCustomer();
+      setSnackbar({ open: true, message: 'Akun berhasil diaktifkan dan tagihan dilunasi via loket', severity: 'success' });
+      setConfirmDialog({ open: false, action: null });
+    },
+    onError: (err) => setSnackbar({ open: true, message: err.message, severity: 'error' }),
+  });
 
   // GraphQL Query - Get Customer Detail
   const {
@@ -578,10 +613,167 @@ export default function CustomerDetailPage() {
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
-            <Alert severity='info'>Fitur pengaturan akun akan segera tersedia</Alert>
+            <Grid container spacing={3}>
+              {/* Status Akun */}
+              <Grid item xs={12} md={6}>
+                <Card variant='outlined'>
+                  <CardContent>
+                    <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
+                      Status Akun
+                    </Typography>
+                    <Divider sx={{ mb: 2 }} />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant='body2' color='text.secondary'>Status Saat Ini</Typography>
+                        <Chip
+                          label={customer.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                          color={customer.accountStatus === 'active' ? 'success' : 'error'}
+                          size='small'
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant='body2' color='text.secondary'>Verifikasi</Typography>
+                        <Chip
+                          label={customer.isVerified ? 'Terverifikasi' : 'Belum Verifikasi'}
+                          color={customer.isVerified ? 'info' : 'default'}
+                          size='small'
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant='body2' color='text.secondary'>Tanggal Daftar</Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 500 }}>
+                          {customer.registrationDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant='body2' color='text.secondary'>Tipe Pelanggan</Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 500 }}>
+                          {customer.customerType === 'rumah_tangga' ? 'Rumah Tangga' : customer.customerType}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    {customer.accountStatus === 'inactive' ? (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Alert severity='warning' sx={{ mb: 1 }}>
+                          Akun ini nonaktif. Aktifkan dengan konfirmasi pelunasan tagihan via loket, atau aktifkan langsung tanpa pelunasan.
+                        </Alert>
+                        <Button
+                          variant='contained'
+                          color='success'
+                          fullWidth
+                          onClick={() => setConfirmDialog({ open: true, action: 'activate' })}
+                        >
+                          Aktifkan Akun (Konfirmasi Loket)
+                        </Button>
+                        <Button
+                          variant='outlined'
+                          color='success'
+                          fullWidth
+                          onClick={() => updateCustomer({ variables: { id: customerId, input: { accountStatus: 'active' } } })}
+                          disabled={updatingCustomer}
+                        >
+                          Aktifkan Langsung (Tanpa Pelunasan)
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box>
+                        <Alert severity='info' sx={{ mb: 1 }}>
+                          Pemutusan akun hanya dapat dilakukan jika pelanggan menunggak minimal 3 bulan. Gunakan halaman Pemutusan.
+                        </Alert>
+                        <Button
+                          variant='outlined'
+                          color='error'
+                          fullWidth
+                          onClick={() => router.push('/operations/pemutusan')}
+                        >
+                          Ke Halaman Pemutusan
+                        </Button>
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Verifikasi & Edit Cepat */}
+              <Grid item xs={12} md={6}>
+                <Card variant='outlined'>
+                  <CardContent>
+                    <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
+                      Verifikasi & Info
+                    </Typography>
+                    <Divider sx={{ mb: 2 }} />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                          <Typography variant='body2' sx={{ fontWeight: 500 }}>Status Verifikasi</Typography>
+                          <Typography variant='caption' color='text.secondary'>
+                            {customer.isVerified ? 'Data pelanggan sudah diverifikasi admin' : 'Belum diverifikasi oleh admin'}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size='small'
+                          variant={customer.isVerified ? 'outlined' : 'contained'}
+                          color={customer.isVerified ? 'warning' : 'info'}
+                          disabled={updatingCustomer}
+                          onClick={() => updateCustomer({ variables: { id: customerId, input: { isVerified: !customer.isVerified } } })}
+                        >
+                          {customer.isVerified ? 'Batalkan Verifikasi' : 'Verifikasi Sekarang'}
+                        </Button>
+                      </Box>
+                      <Divider />
+                      <Typography variant='body2' color='text.secondary'>
+                        Untuk mengubah data profil (nama, nomor HP, alamat, NIK), gunakan tombol <strong>Edit Pelanggan</strong> di bagian atas halaman.
+                      </Typography>
+                      <Button
+                        variant='contained'
+                        startIcon={<Edit />}
+                        onClick={() => router.push(`/customers/registration?edit=${customerId}`)}
+                        fullWidth
+                      >
+                        Edit Data Pelanggan
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
           </TabPanel>
         </Card>
       </Box>
+
+      {/* Dialog Konfirmasi Aktivasi */}
+      <Dialog open={confirmDialog.open} onClose={() => setConfirmDialog({ open: false, action: null })}>
+        <DialogTitle>Konfirmasi Aktivasi Akun</DialogTitle>
+        <DialogContent>
+          <Typography variant='body2'>
+            Aksi ini akan menandai <strong>semua tagihan pending</strong> milik pelanggan ini sebagai <strong>Lunas (via Loket)</strong> dan mengaktifkan kembali akunnya.
+          </Typography>
+          <Alert severity='warning' sx={{ mt: 2 }}>
+            Pastikan pelanggan sudah membayar semua tunggakan secara tunai di loket sebelum melanjutkan.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialog({ open: false, action: null })}>Batal</Button>
+          <Button
+            variant='contained'
+            color='success'
+            disabled={konfirmasiLoading}
+            onClick={() => konfirmasiLoket({ variables: { userId: customerId } })}
+          >
+            {konfirmasiLoading ? 'Memproses...' : 'Ya, Konfirmasi & Aktifkan'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        message={snackbar.message}
+      />
     </AdminLayout>
   );
 }
