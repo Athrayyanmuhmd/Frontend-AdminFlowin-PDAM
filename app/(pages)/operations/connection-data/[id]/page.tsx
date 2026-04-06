@@ -112,11 +112,16 @@ export default function ConnectionDataDetail() {
         kecamatan: graphqlData.kecamatan,
         luasBangunan: graphqlData.luasBangunan,
         statusVerifikasi: graphqlData.statusVerifikasi,
+        catatan: graphqlData.catatan || null,
+        alasanPenolakan: graphqlData.alasanPenolakan || null,
+        tanggalVerifikasi: graphqlData.tanggalVerifikasi || null,
         isVerifiedByData: graphqlData.statusVerifikasi === 'Disetujui',
-        isVerifiedByTechnician: false, // Not available in GraphQL
-        isAllProcedureDone: false, // Not available in GraphQL
+        isVerifiedByTechnician: !!graphqlData.isVerifiedByTeknisi,
+        isAllProcedureDone: graphqlData.statusVerifikasi === 'Disetujui' && !!graphqlData.isVerifiedByTeknisi,
         surveiId: graphqlData.surveiId || null,
         rabConnectionId: graphqlData.rabConnectionId || null,
+        catatanTeknisi: graphqlData.catatanTeknisi || null,
+        tanggalVerifikasiTeknisi: graphqlData.tanggalVerifikasiTeknisi || null,
         // Map assign fields
         assignedTechnicianId: graphqlData.idTeknisi ? {
           _id: graphqlData.idTeknisi._id,
@@ -163,25 +168,6 @@ export default function ConnectionDataDetail() {
       });
       setSuccess('Data berhasil diverifikasi oleh admin');
       setData(prev => prev ? { ...prev, isVerifiedByData: true, statusVerifikasi: 'Disetujui' } : prev);
-      refetch();
-    } catch (err: any) {
-      setError(err.message || 'Gagal melakukan verifikasi');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleVerifyTechnician = async () => {
-    if (!data) return;
-    setActionLoading(true);
-    setError('');
-    setSuccess('');
-    try {
-      await verifyKoneksiDataMutation({
-        variables: { id: data._id, status: 'Disetujui', catatan: 'Diverifikasi oleh Teknisi' },
-      });
-      setSuccess('Data berhasil diverifikasi oleh teknisi');
-      setData(prev => prev ? { ...prev, isVerifiedByTechnician: true } : prev);
       refetch();
     } catch (err: any) {
       setError(err.message || 'Gagal melakukan verifikasi');
@@ -374,25 +360,16 @@ export default function ConnectionDataDetail() {
                   </Button>
                 )}
 
-              {userRole === 'technician' &&
-                !data.isVerifiedByTechnician &&
-                data.isVerifiedByData && (
-                  <Button
-                    variant='contained'
-                    color='info'
-                    onClick={handleVerifyTechnician}
-                    disabled={actionLoading}
-                    startIcon={
-                      actionLoading ? (
-                        <CircularProgress size={20} />
-                      ) : (
-                        <CheckCircle />
-                      )
-                    }
-                  >
-                    Verifikasi sebagai Teknisi
-                  </Button>
-                )}
+              {/* Teknisi verification is handled automatically by Rafli's backend system */}
+              {userRole === 'admin' && data.isVerifiedByData && !data.isVerifiedByTechnician && (
+                <Chip
+                  label='Menunggu verifikasi teknisi dari sistem lapangan'
+                  color='warning'
+                  icon={<HourglassEmpty />}
+                  variant='outlined'
+                  sx={{ alignSelf: 'center' }}
+                />
+              )}
 
               {/* Create Survey Button - Show for admin or technician if verified and no survey yet */}
               {(userRole === 'technician' || userRole === 'admin') &&
@@ -750,19 +727,29 @@ export default function ConnectionDataDetail() {
                 </Box>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                   {data.isVerifiedByTechnician ? (
-                    <>
-                      <CheckCircle color='success' />
-                      <Typography variant='body2'>
-                        Terverifikasi Teknisi
-                      </Typography>
-                    </>
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CheckCircle color='success' />
+                        <Typography variant='body2'>Terverifikasi Teknisi</Typography>
+                      </Box>
+                      {data.tanggalVerifikasiTeknisi && (
+                        <Typography variant='caption' color='text.secondary' sx={{ ml: 4 }}>
+                          {new Date(data.tanggalVerifikasiTeknisi).toLocaleString('id-ID')}
+                        </Typography>
+                      )}
+                      {data.catatanTeknisi && (
+                        <Typography variant='caption' color='text.secondary' sx={{ ml: 4, display: 'block' }}>
+                          Catatan: {data.catatanTeknisi}
+                        </Typography>
+                      )}
+                    </Box>
                   ) : (
                     <>
                       <HourglassEmpty color='disabled' />
                       <Typography variant='body2' color='text.secondary'>
-                        Belum Verifikasi Teknisi
+                        Menunggu verifikasi teknisi
                       </Typography>
                     </>
                   )}
@@ -788,12 +775,12 @@ export default function ConnectionDataDetail() {
                 </Box>
               </Grid>
             </Grid>
-            {data.statusVerifikasi === 'Ditolak' && (graphqlData as any)?.alasanPenolakan && (
+            {data.statusVerifikasi === 'Ditolak' && data.alasanPenolakan && (
               <Box sx={{ mt: 2, p: 2, bgcolor: 'error.50', borderRadius: 1, border: '1px solid', borderColor: 'error.200' }}>
                 <Typography variant='body2' color='error' fontWeight='bold' gutterBottom>
                   Alasan Penolakan:
                 </Typography>
-                <Typography variant='body2'>{(graphqlData as any).alasanPenolakan}</Typography>
+                <Typography variant='body2'>{data.alasanPenolakan}</Typography>
               </Box>
             )}
           </CardContent>
@@ -911,7 +898,7 @@ export default function ConnectionDataDetail() {
           currentTechnicianName={data.assignedTechnicianId?.namaLengkap}
           onSuccess={() => {
             setSuccess('Teknisi berhasil di-assign');
-            fetchData();
+            refetch();
           }}
         />
       </Box>

@@ -59,6 +59,9 @@ export const GET_CONNECTION_DATA_BY_ID = gql`
       kecamatan
       luasBangunan
       statusVerifikasi
+      catatan
+      alasanPenolakan
+      tanggalVerifikasi
       idTeknisi {
         _id
         namaLengkap
@@ -71,6 +74,9 @@ export const GET_CONNECTION_DATA_BY_ID = gql`
         namaLengkap
         email
       }
+      isVerifiedByTeknisi
+      catatanTeknisi
+      tanggalVerifikasiTeknisi
       createdAt
       updatedAt
     }

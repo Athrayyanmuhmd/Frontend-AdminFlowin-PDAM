@@ -1,12 +1,7 @@
 import { gql } from '@apollo/client';
 
-/**
- * GraphQL Mutations untuk Kelompok Pelanggan
- * Backend: BE_backend/graphql/resolvers/index.js
- */
-
 export const CREATE_KELOMPOK_PELANGGAN = gql`
-  mutation CreateKelompokPelanggan($input: KelompokPelangganInput!) {
+  mutation CreateKelompokPelanggan($input: CreateKelompokPelangganInput!) {
     createKelompokPelanggan(input: $input) {
       _id
       namaKelompok
@@ -20,7 +15,7 @@ export const CREATE_KELOMPOK_PELANGGAN = gql`
 `;
 
 export const UPDATE_KELOMPOK_PELANGGAN = gql`
-  mutation UpdateKelompokPelanggan($id: ID!, $input: KelompokPelangganInput!) {
+  mutation UpdateKelompokPelanggan($id: ID!, $input: UpdateKelompokPelangganInput!) {
     updateKelompokPelanggan(id: $id, input: $input) {
       _id
       namaKelompok
@@ -36,8 +31,8 @@ export const UPDATE_KELOMPOK_PELANGGAN = gql`
 export const DELETE_KELOMPOK_PELANGGAN = gql`
   mutation DeleteKelompokPelanggan($id: ID!) {
     deleteKelompokPelanggan(id: $id) {
-      _id
-      namaKelompok
+      success
+      message
     }
   }
 `;

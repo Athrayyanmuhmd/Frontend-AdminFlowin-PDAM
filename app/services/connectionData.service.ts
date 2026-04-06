@@ -25,6 +25,9 @@ export interface ConnectionData {
   meteranId?: string | null;
   isAllProcedureDone: boolean;
   statusVerifikasi?: string;
+  catatan?: string | null;
+  alasanPenolakan?: string | null;
+  tanggalVerifikasi?: string | null;
   // Assignment fields
   assignedTechnicianId?: {
     _id: string;
@@ -38,6 +41,9 @@ export interface ConnectionData {
     namaLengkap: string;
     email: string;
   } | null;
+  // Teknisi verification (from Rafli's backend)
+  catatanTeknisi?: string | null;
+  tanggalVerifikasiTeknisi?: string | null;
   createdAt: string;
   updatedAt: string;
 }

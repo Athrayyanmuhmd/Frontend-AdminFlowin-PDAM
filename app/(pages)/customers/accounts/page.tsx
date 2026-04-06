@@ -360,7 +360,7 @@ export default function CustomerAccounts() {
               variant="contained"
               startIcon={<Add />}
               sx={{ height: '56px' }}
-              onClick={() => router.push('/operations/meteran/create')}
+              onClick={() => router.push('/customers/registration')}
             >
               Buat Akun
             </Button>

@@ -65,7 +65,7 @@ interface NotifikasiItem {
   _id: string;
   judul: string;
   pesan: string;
-  kategori: 'Transaksi' | 'Informasi' | 'Peringatan';
+  kategori: 'Pembayaran' | 'Informasi' | 'Peringatan';
   link?: string;
   isRead: boolean;
   idPelanggan?: { _id: string; namaLengkap: string; email: string };
@@ -75,13 +75,13 @@ interface NotifikasiItem {
 }
 
 const kategoriColor = (k: string) => {
-  if (k === 'Transaksi') return 'info';
+  if (k === 'Pembayaran') return 'info';
   if (k === 'Peringatan') return 'warning';
   return 'success';
 };
 
 const kategoriIcon = (k: string) => {
-  if (k === 'Transaksi') return <Receipt fontSize="small" />;
+  if (k === 'Pembayaran') return <Receipt fontSize="small" />;
   if (k === 'Peringatan') return <Warning fontSize="small" />;
   return <Info fontSize="small" />;
 };
@@ -98,7 +98,7 @@ const BROADCAST_TEMPLATES = [
     label: 'Pengingat Tagihan',
     judul: 'Pengingat Pembayaran Tagihan Air',
     pesan: 'Kami mengingatkan Anda untuk segera melakukan pembayaran tagihan air sebelum jatuh tempo. Pembayaran dapat dilakukan melalui aplikasi Aqualink.',
-    kategori: 'Transaksi',
+    kategori: 'Pembayaran',
   },
   {
     label: 'Pemeliharaan Jaringan',
@@ -145,7 +145,7 @@ export default function NotifikasiPage() {
   const [selectedPengguna, setSelectedPengguna] = useState<Pengguna | null>(null);
   const [formJudul, setFormJudul] = useState('');
   const [formPesan, setFormPesan] = useState('');
-  const [formKategori, setFormKategori] = useState<'Transaksi' | 'Informasi' | 'Peringatan'>('Informasi');
+  const [formKategori, setFormKategori] = useState<'Pembayaran' | 'Informasi' | 'Peringatan'>('Informasi');
   const [formLink, setFormLink] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [snackMsg, setSnackMsg] = useState('');
@@ -218,7 +218,7 @@ export default function NotifikasiPage() {
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const statsTotal = allNotif.length;
-  const statsTransaksi = allNotif.filter((n) => n.kategori === 'Transaksi').length;
+  const statsTransaksi = allNotif.filter((n) => n.kategori === 'Pembayaran').length;
   const statsInformasi = allNotif.filter((n) => n.kategori === 'Informasi').length;
   const statsPeringatan = allNotif.filter((n) => n.kategori === 'Peringatan').length;
 
@@ -237,7 +237,7 @@ export default function NotifikasiPage() {
     if (!tmpl) return;
     setFormJudul(tmpl.judul);
     setFormPesan(tmpl.pesan);
-    setFormKategori(tmpl.kategori as 'Transaksi' | 'Informasi' | 'Peringatan');
+    setFormKategori(tmpl.kategori as 'Pembayaran' | 'Informasi' | 'Peringatan');
     setSelectedTemplate(templateLabel);
   };
 
@@ -308,7 +308,7 @@ export default function NotifikasiPage() {
         <Grid container spacing={2} mb={3}>
           {[
             { label: 'Total Terkirim', value: statsTotal, color: '#1976d2', icon: <Notifications /> },
-            { label: 'Transaksi', value: statsTransaksi, color: '#0288d1', icon: <Receipt /> },
+            { label: 'Pembayaran', value: statsTransaksi, color: '#0288d1', icon: <Receipt /> },
             { label: 'Informasi', value: statsInformasi, color: '#2e7d32', icon: <Info /> },
             { label: 'Peringatan', value: statsPeringatan, color: '#ed6c02', icon: <Warning /> },
           ].map((s) => (
@@ -352,7 +352,7 @@ export default function NotifikasiPage() {
                 InputProps={{ startAdornment: <FilterList sx={{ mr: 1, color: 'text.secondary' }} /> }}
               >
                 <MenuItem value="">Semua</MenuItem>
-                <MenuItem value="Transaksi">Transaksi</MenuItem>
+                <MenuItem value="Pembayaran">Pembayaran</MenuItem>
                 <MenuItem value="Informasi">Informasi</MenuItem>
                 <MenuItem value="Peringatan">Peringatan</MenuItem>
               </TextField>
@@ -633,11 +633,11 @@ export default function NotifikasiPage() {
             size="small"
             fullWidth
             value={formKategori}
-            onChange={(e) => setFormKategori(e.target.value as 'Transaksi' | 'Informasi' | 'Peringatan')}
+            onChange={(e) => setFormKategori(e.target.value as 'Pembayaran' | 'Informasi' | 'Peringatan')}
             sx={{ mb: 2 }}
           >
             <MenuItem value="Informasi">Informasi</MenuItem>
-            <MenuItem value="Transaksi">Transaksi</MenuItem>
+            <MenuItem value="Pembayaran">Pembayaran</MenuItem>
             <MenuItem value="Peringatan">Peringatan</MenuItem>
           </TextField>
 

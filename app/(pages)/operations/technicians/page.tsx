@@ -140,7 +140,7 @@ export default function TechnicianManagement() {
     email: '',
     password: '',
     noHP: '',
-    divisi: 'PerencanaanTeknik',
+    divisi: 'perencanaan_teknik',
   });
 
   // ==================== Data Processing ====================
@@ -195,7 +195,7 @@ export default function TechnicianManagement() {
       email: '',
       password: '',
       noHP: '',
-      divisi: 'PerencanaanTeknik',
+      divisi: 'perencanaan_teknik',
     });
   };
 
@@ -528,9 +528,9 @@ export default function TechnicianManagement() {
                       setFormData({ ...formData, divisi: e.target.value })
                     }
                   >
-                    <MenuItem value='PerencanaanTeknik'>Perencanaan Teknik</MenuItem>
-                    <MenuItem value='TeknikCabang'>Teknik Cabang</MenuItem>
-                    <MenuItem value='PengawasanTeknik'>Pengawasan Teknik</MenuItem>
+                    <MenuItem value='perencanaan_teknik'>Perencanaan Teknik</MenuItem>
+                    <MenuItem value='teknik_cabang'>Teknik Cabang</MenuItem>
+                    <MenuItem value='pengawasan_teknik'>Pengawasan Teknik</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -627,9 +627,9 @@ export default function TechnicianManagement() {
                       setFormData({ ...formData, divisi: e.target.value })
                     }
                   >
-                    <MenuItem value='PerencanaanTeknik'>Perencanaan Teknik</MenuItem>
-                    <MenuItem value='TeknikCabang'>Teknik Cabang</MenuItem>
-                    <MenuItem value='PengawasanTeknik'>Pengawasan Teknik</MenuItem>
+                    <MenuItem value='perencanaan_teknik'>Perencanaan Teknik</MenuItem>
+                    <MenuItem value='teknik_cabang'>Teknik Cabang</MenuItem>
+                    <MenuItem value='pengawasan_teknik'>Pengawasan Teknik</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

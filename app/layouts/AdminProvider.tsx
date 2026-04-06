@@ -111,7 +111,7 @@ function AdminProviderInner({ children }: AdminProviderProps) {
     if ((notifData as any)?.getAllNotifikasiAdmin) {
       const mapped: Notification[] = (notifData as any).getAllNotifikasiAdmin.map((n: any) => ({
         id: n._id,
-        type: n.kategori === 'Peringatan' ? 'warning' : n.kategori === 'Transaksi' ? 'info' : 'info',
+        type: n.kategori === 'Peringatan' ? 'warning' : n.kategori === 'Pembayaran' ? 'info' : 'info',
         title: n.judul,
         message: n.pesan,
         priority: n.kategori === 'Peringatan' ? 'high' : 'medium',
