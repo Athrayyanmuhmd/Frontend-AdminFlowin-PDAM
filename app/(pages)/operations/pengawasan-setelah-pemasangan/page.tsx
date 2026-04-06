@@ -51,6 +51,7 @@ import {
 import {
   DELETE_PENGAWASAN_SETELAH_PEMASANGAN,
 } from '@/lib/graphql/mutations/pengawasan';
+import { AKTIVASI_PELANGGAN } from '@/lib/graphql/mutations/survei';
 
 interface ChecklistSetelah {
   meteranBacaCorrect?: boolean;
@@ -178,6 +179,14 @@ export default function PengawasanSetelahPemasanganPage() {
       refetch();
     },
     onError: (err) => setSnackMsg('Gagal menghapus: ' + err.message),
+  });
+
+  const [aktivasiPelanggan, { loading: aktivating }] = useMutation(AKTIVASI_PELANGGAN, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onCompleted: (res: any) => {
+      setSnackMsg(`Pelanggan ${res.aktivasiPelanggan?.namaLengkap ?? ''} berhasil diaktifkan`);
+    },
+    onError: (err) => setSnackMsg('Gagal aktivasi: ' + err.message),
   });
 
   if (authLoading || !isAuthenticated) return null;
@@ -644,6 +653,19 @@ export default function PengawasanSetelahPemasanganPage() {
           )}
         </DialogContent>
         <DialogActions>
+          {selectedItem?.hasilPengawasan === 'Baik' && selectedItem?.idPemasangan?.idKoneksiData?._id && (
+            <Button
+              variant="contained"
+              color="success"
+              disabled={aktivating}
+              onClick={() => aktivasiPelanggan({
+                variables: { koneksiDataId: selectedItem.idPemasangan.idKoneksiData!._id },
+              })}
+              startIcon={aktivating ? <CircularProgress size={16} /> : <CheckCircle />}
+            >
+              Aktivasi Pelanggan
+            </Button>
+          )}
           <Button onClick={() => setOpenDetail(false)}>Tutup</Button>
         </DialogActions>
       </Dialog>

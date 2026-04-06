@@ -41,6 +41,7 @@ import {
   Schedule,
   Menu as MenuIcon,
   Refresh,
+  PlayArrow,
 } from '@mui/icons-material';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useRouter } from 'next/navigation';
@@ -196,7 +197,19 @@ export default function TechnicianMobileApp() {
                   {wo.catatan && (
                     <Typography variant="caption" color="text.secondary">{wo.catatan}</Typography>
                   )}
-                  <Box sx={{ mt: 1 }}>
+                  <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+                    {wo.status === 'Ditugaskan' && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="primary"
+                        startIcon={<PlayArrow />}
+                        onClick={() => updateStatus({ variables: { id: wo._id, status: 'SedangDikerjakan', catatan: 'Mulai survei lapangan' } })}
+                        disabled={updating}
+                      >
+                        Mulai Survei
+                      </Button>
+                    )}
                     <Button size="small" variant="outlined" onClick={() => handleOpenUpdate(wo)}>
                       Update Status
                     </Button>
@@ -255,15 +268,29 @@ export default function TechnicianMobileApp() {
                 {wo.createdAt ? new Date(wo.createdAt).toLocaleDateString('id-ID') : '-'}
               </Typography>
 
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Build />}
-                onClick={() => handleOpenUpdate(wo)}
-                disabled={wo.status === 'Selesai' || wo.status === 'Dibatalkan'}
-              >
-                Update Status
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {wo.status === 'Ditugaskan' && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<PlayArrow />}
+                    onClick={() => updateStatus({ variables: { id: wo._id, status: 'SedangDikerjakan', catatan: 'Mulai survei lapangan' } })}
+                    disabled={updating}
+                  >
+                    Mulai Survei
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Build />}
+                  onClick={() => handleOpenUpdate(wo)}
+                  disabled={wo.status === 'Selesai' || wo.status === 'Dibatalkan'}
+                >
+                  Update Status
+                </Button>
+              </Box>
             </CardContent>
           </Card>
         ))

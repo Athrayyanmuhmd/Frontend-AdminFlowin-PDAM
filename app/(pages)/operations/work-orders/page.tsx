@@ -53,6 +53,7 @@ import {
   ThumbUp,
   ThumbDown,
   GroupAdd,
+  PlayArrow,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
@@ -417,6 +418,14 @@ export default function WorkOrderManagement() {
         <MenuItem onClick={handleOpenAssign}>
           <GroupAdd sx={{ mr: 1 }} fontSize="small" /> Tugaskan Teknisi
         </MenuItem>
+        {selectedWO?.status === 'Ditugaskan' && (
+          <MenuItem onClick={() => {
+            updateStatus({ variables: { id: selectedWO._id, status: 'SedangDikerjakan', catatan: 'Mulai survei lapangan' } });
+            handleMenuClose();
+          }} disabled={updatingStatus}>
+            <PlayArrow sx={{ mr: 1 }} fontSize="small" color="primary" /> Mulai Survei
+          </MenuItem>
+        )}
         <MenuItem onClick={handleOpenStatusUpdate}>
           <Build sx={{ mr: 1 }} fontSize="small" /> Update Status
         </MenuItem>

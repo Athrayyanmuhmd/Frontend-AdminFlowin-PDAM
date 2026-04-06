@@ -16,6 +16,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  TextField,
+  Snackbar,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -25,10 +28,14 @@ import {
   ZoomOut,
   RestartAlt,
   LocationOn,
+  ThumbUp,
+  ThumbDown,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { useGetSurveyData } from '../../../../../lib/graphql/hooks/useSurveyData';
+import { useMutation } from '@apollo/client/react';
+import { APPROVE_SURVEI, REJECT_SURVEI } from '../../../../../lib/graphql/mutations/survei';
 
 export default function SurveyDataDetail() {
   const params = useParams();
@@ -73,11 +80,35 @@ export default function SurveyDataDetail() {
     jumlahPenghuni: graphqlSurvey.jumlahPenghuni,
     standar: graphqlSurvey.standar,
     catatan: graphqlSurvey.catatan,
+    statusSurvei: graphqlSurvey.statusSurvei || 'Menunggu',
+    alasanPenolakan: graphqlSurvey.alasanPenolakan || '',
+    tanggalVerifikasiAdmin: graphqlSurvey.tanggalVerifikasiAdmin || null,
     createdAt: graphqlSurvey.createdAt,
     updatedAt: graphqlSurvey.updatedAt,
   } : null;
 
   const [error, setError] = useState('');
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [alasanPenolakan, setAlasanPenolakan] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const [approveSurvei, { loading: approving }] = useMutation(APPROVE_SURVEI, {
+    onCompleted: () => {
+      refetch();
+      setSnackbar({ open: true, message: 'Survei disetujui. Work order akan dibuat.', severity: 'success' });
+    },
+    onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
+  });
+
+  const [rejectSurvei, { loading: rejecting }] = useMutation(REJECT_SURVEI, {
+    onCompleted: () => {
+      refetch();
+      setRejectOpen(false);
+      setAlasanPenolakan('');
+      setSnackbar({ open: true, message: 'Survei ditolak. Teknisi akan melakukan survei ulang.', severity: 'success' });
+    },
+    onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
+  });
 
   // Image viewer state
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -168,11 +199,42 @@ export default function SurveyDataDetail() {
               {data.connectionDataId.userId.namaLengkap}
             </Typography>
           </Box>
-          <Chip
-            label={data.standar ? 'Standar' : 'Non-Standar'}
-            color={data.standar ? 'success' : 'warning'}
-            icon={<CheckCircle />}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Chip
+              label={data.standar ? 'Standar' : 'Non-Standar'}
+              color={data.standar ? 'success' : 'warning'}
+              icon={<CheckCircle />}
+            />
+            <Chip
+              label={data.statusSurvei === 'Menunggu' ? 'Menunggu Verifikasi' : data.statusSurvei === 'Disetujui' ? 'Disetujui' : 'Ditolak'}
+              color={data.statusSurvei === 'Disetujui' ? 'success' : data.statusSurvei === 'Ditolak' ? 'error' : 'default'}
+              size="small"
+            />
+            {data.statusSurvei === 'Menunggu' && (
+              <>
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  startIcon={<ThumbUp />}
+                  onClick={() => approveSurvei({ variables: { id } })}
+                  disabled={approving || rejecting}
+                >
+                  {approving ? <CircularProgress size={16} /> : 'Setujui'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  startIcon={<ThumbDown />}
+                  onClick={() => setRejectOpen(true)}
+                  disabled={approving || rejecting}
+                >
+                  Tolak
+                </Button>
+              </>
+            )}
+          </Box>
         </Box>
 
         {/* Alerts */}
@@ -426,6 +488,47 @@ export default function SurveyDataDetail() {
             </Grid>
           </CardContent>
         </Card>
+
+        {/* Reject Dialog */}
+        <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Tolak Survei</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Berikan alasan penolakan. Teknisi akan melakukan survei ulang.
+            </Typography>
+            <TextField
+              fullWidth
+              label="Alasan Penolakan"
+              value={alasanPenolakan}
+              onChange={(e) => setAlasanPenolakan(e.target.value)}
+              multiline
+              rows={3}
+              autoFocus
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setRejectOpen(false)}>Batal</Button>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={!alasanPenolakan.trim() || rejecting}
+              onClick={() => rejectSurvei({ variables: { id, alasanPenolakan } })}
+            >
+              {rejecting ? <CircularProgress size={20} /> : 'Tolak Survei'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        >
+          <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
 
         {/* Image Viewer Dialog */}
         <Dialog

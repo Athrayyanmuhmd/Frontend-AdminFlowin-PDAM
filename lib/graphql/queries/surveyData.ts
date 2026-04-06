@@ -31,6 +31,8 @@ export const GET_ALL_SURVEY_DATA = gql`
       jumlahPenghuni
       standar
       catatan
+      statusSurvei
+      alasanPenolakan
       createdAt
       updatedAt
     }
@@ -69,6 +71,9 @@ export const GET_SURVEY_DATA_BY_ID = gql`
       jumlahPenghuni
       standar
       catatan
+      statusSurvei
+      alasanPenolakan
+      tanggalVerifikasiAdmin
       createdAt
       updatedAt
     }
