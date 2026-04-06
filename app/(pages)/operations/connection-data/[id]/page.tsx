@@ -32,7 +32,6 @@ import {
   ZoomOut,
   RestartAlt,
   Assignment,
-  AddCircle,
   Visibility,
   AttachMoney,
   Speed,
@@ -371,42 +370,9 @@ export default function ConnectionDataDetail() {
                 />
               )}
 
-              {/* Create Survey Button - Show for admin or technician if verified and no survey yet */}
+              {/* Create RAB Button - Show for admin or technician if RAB not yet created */}
               {(userRole === 'technician' || userRole === 'admin') &&
                 data.isVerifiedByData &&
-                !data.surveiId && (
-                  <Button
-                    variant='contained'
-                    color='success'
-                    onClick={() =>
-                      router.push(
-                        `/operations/survey-data/create?connectionId=${data._id}`
-                      )
-                    }
-                    disabled={actionLoading}
-                    startIcon={<AddCircle />}
-                  >
-                    Buat Survei
-                  </Button>
-                )}
-
-              {/* View Survey Button - Show if survey exists */}
-              {data.surveiId && (
-                <Button
-                  variant='outlined'
-                  color='primary'
-                  onClick={() =>
-                    router.push(`/operations/survey-data/${data.surveiId}`)
-                  }
-                  startIcon={<Visibility />}
-                >
-                  Lihat Survei
-                </Button>
-              )}
-
-              {/* Create RAB Button - Show for admin or technician if survey exists and no RAB yet */}
-              {(userRole === 'technician' || userRole === 'admin') &&
-                data.surveiId &&
                 !data.rabConnectionId && (
                   <Button
                     variant='contained'
