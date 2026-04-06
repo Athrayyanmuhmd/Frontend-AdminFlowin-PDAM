@@ -23,6 +23,7 @@ export const GET_ALL_RAB_CONNECTIONS = gql`
       }
       totalBiaya
       statusPembayaran
+      statusVerifikasiAdmin
       urlRab
       catatan
       createdAt
@@ -54,9 +55,35 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
       }
       totalBiaya
       statusPembayaran
+      statusVerifikasiAdmin
+      alasanPenolakan
+      tanggalVerifikasiAdmin
       urlRab
       catatan
       createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const APPROVE_RAB = gql`
+  mutation ApproveRAB($id: ID!) {
+    approveRAB(id: $id) {
+      _id
+      statusVerifikasiAdmin
+      tanggalVerifikasiAdmin
+      updatedAt
+    }
+  }
+`;
+
+export const REJECT_RAB = gql`
+  mutation RejectRAB($id: ID!, $alasanPenolakan: String!) {
+    rejectRAB(id: $id, alasanPenolakan: $alasanPenolakan) {
+      _id
+      statusVerifikasiAdmin
+      alasanPenolakan
+      tanggalVerifikasiAdmin
       updatedAt
     }
   }

@@ -13,6 +13,12 @@ import {
   Alert,
   CircularProgress,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Snackbar,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -20,10 +26,15 @@ import {
   HourglassEmpty,
   AttachFile,
   Download,
+  ThumbUp,
+  ThumbDown,
+  OpenInNew,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { useGetRABConnection } from '../../../../../lib/graphql/hooks/useRABConnection';
+import { useMutation } from '@apollo/client/react';
+import { APPROVE_RAB, REJECT_RAB } from '../../../../../lib/graphql/queries/rabConnection';
 
 interface RabConnection {
   _id: string;
@@ -79,6 +90,9 @@ export default function RabConnectionDetail() {
     technicianId: undefined,
     totalBiaya: rabData.totalBiaya,
     isPaid: rabData.statusPembayaran === 'Settlement',
+    statusVerifikasiAdmin: (rabData as any).statusVerifikasiAdmin || 'Menunggu',
+    alasanPenolakan: (rabData as any).alasanPenolakan || null,
+    tanggalVerifikasiAdmin: (rabData as any).tanggalVerifikasiAdmin || null,
     urlRab: rabData.urlRab || '',
     catatan: rabData.catatan,
     createdAt: rabData.createdAt,
@@ -86,6 +100,27 @@ export default function RabConnectionDetail() {
   } : null;
 
   const [error, setError] = useState(graphqlError?.message || '');
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [alasanInput, setAlasanInput] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const [approveRAB, { loading: approving }] = useMutation(APPROVE_RAB, {
+    onCompleted: () => {
+      refetch();
+      setSnackbar({ open: true, message: 'RAB disetujui. Admin dapat membuat tagihan ke pelanggan.', severity: 'success' });
+    },
+    onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
+  });
+
+  const [rejectRAB, { loading: rejecting }] = useMutation(REJECT_RAB, {
+    onCompleted: () => {
+      refetch();
+      setRejectOpen(false);
+      setAlasanInput('');
+      setSnackbar({ open: true, message: 'RAB ditolak. Teknisi perlu merevisi RAB.', severity: 'success' });
+    },
+    onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -152,11 +187,24 @@ export default function RabConnectionDetail() {
               {data.connectionDataId?.userId?.namaLengkap || '—'}
             </Typography>
           </Box>
-          <Chip
-            label={data.isPaid ? 'Sudah Dibayar' : 'Belum Dibayar'}
-            color={data.isPaid ? 'success' : 'warning'}
-            icon={data.isPaid ? <CheckCircle /> : <HourglassEmpty />}
-          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip
+              label={
+                data.statusVerifikasiAdmin === 'Disetujui' ? 'RAB Disetujui' :
+                data.statusVerifikasiAdmin === 'Ditolak' ? 'RAB Ditolak' : 'Menunggu Verifikasi'
+              }
+              color={
+                data.statusVerifikasiAdmin === 'Disetujui' ? 'success' :
+                data.statusVerifikasiAdmin === 'Ditolak' ? 'error' : 'default'
+              }
+              size="small"
+            />
+            <Chip
+              label={data.isPaid ? 'Sudah Dibayar' : 'Belum Dibayar'}
+              color={data.isPaid ? 'success' : 'warning'}
+              icon={data.isPaid ? <CheckCircle /> : <HourglassEmpty />}
+            />
+          </Box>
         </Box>
 
         {/* Alerts */}
@@ -166,10 +214,53 @@ export default function RabConnectionDetail() {
           </Alert>
         )}
 
-        {!data.isPaid && userRole === 'admin' && (
-          <Alert severity='info' sx={{ mb: 3 }}>
-            RAB belum dibayar oleh pelanggan. Silakan tunggu pembayaran sebelum
-            melanjutkan proses instalasi.
+        {/* Admin Verifikasi RAB */}
+        {data.statusVerifikasiAdmin === 'Menunggu' && (
+          <Card sx={{ mb: 3, border: '1px solid', borderColor: 'warning.main' }}>
+            <CardContent>
+              <Typography variant='h6' gutterBottom>Verifikasi RAB oleh Admin</Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                Periksa dokumen RAB yang diupload teknisi. Jika sesuai, setujui untuk lanjut ke tagihan pelanggan.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  variant='contained'
+                  color='success'
+                  startIcon={approving ? <CircularProgress size={16} /> : <ThumbUp />}
+                  onClick={() => approveRAB({ variables: { id } })}
+                  disabled={approving || rejecting}
+                >
+                  Setujui RAB
+                </Button>
+                <Button
+                  variant='outlined'
+                  color='error'
+                  startIcon={<ThumbDown />}
+                  onClick={() => setRejectOpen(true)}
+                  disabled={approving || rejecting}
+                >
+                  Tolak RAB
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
+
+        {data.statusVerifikasiAdmin === 'Disetujui' && !data.isPaid && (
+          <Alert severity='success' sx={{ mb: 3 }}>
+            RAB telah disetujui admin. Buat tagihan ke pelanggan dari menu <strong>Penagihan &gt; Generate Tagihan</strong>, lalu tunggu pembayaran sebelum lanjut ke instalasi.
+          </Alert>
+        )}
+
+        {data.statusVerifikasiAdmin === 'Ditolak' && (
+          <Alert severity='error' sx={{ mb: 3 }}>
+            RAB ditolak. Alasan: <strong>{data.alasanPenolakan}</strong>. Teknisi perlu merevisi dan upload ulang RAB.
+          </Alert>
+        )}
+
+        {data.isPaid && (
+          <Alert severity='success' sx={{ mb: 3 }}>
+            Pembayaran RAB telah dikonfirmasi. Proses instalasi dapat dilanjutkan.
           </Alert>
         )}
 
@@ -256,13 +347,22 @@ export default function RabConnectionDetail() {
                   </Typography>
                 </Box>
               </Box>
-              <Button
-                variant='contained'
-                startIcon={<Download />}
-                onClick={handleDownloadRAB}
-              >
-                Download RAB
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant='outlined'
+                  startIcon={<OpenInNew />}
+                  onClick={handleDownloadRAB}
+                >
+                  Buka
+                </Button>
+                <Button
+                  variant='contained'
+                  startIcon={<Download />}
+                  onClick={handleDownloadRAB}
+                >
+                  Download
+                </Button>
+              </Box>
             </Box>
           </CardContent>
         </Card>
@@ -332,6 +432,47 @@ export default function RabConnectionDetail() {
           </CardContent>
         </Card>
       </Box>
+
+      {/* Dialog Tolak RAB */}
+      <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Tolak RAB</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Berikan alasan penolakan. Teknisi perlu merevisi dan upload ulang RAB.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Alasan Penolakan"
+            value={alasanInput}
+            onChange={(e) => setAlasanInput(e.target.value)}
+            multiline
+            rows={3}
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setRejectOpen(false); setAlasanInput(''); }}>Batal</Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={!alasanInput.trim() || rejecting}
+            onClick={() => rejectRAB({ variables: { id, alasanPenolakan: alasanInput } })}
+          >
+            {rejecting ? <CircularProgress size={20} /> : 'Tolak RAB'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </AdminLayout>
   );
 }
