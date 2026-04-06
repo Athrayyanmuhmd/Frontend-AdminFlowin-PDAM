@@ -687,7 +687,7 @@ export default function CustomerDetailPage() {
                           variant='outlined'
                           color='error'
                           fullWidth
-                          onClick={() => router.push('/operations/pemutusan')}
+                          onClick={() => router.push('/billing/pemutusan')}
                         >
                           Ke Halaman Pemutusan
                         </Button>

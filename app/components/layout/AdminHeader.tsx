@@ -175,11 +175,11 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
               />
             </Box>
           </MenuItem>
-          <MenuItem onClick={() => { router.push('/profile'); handleMenuClose(); }}>
+          <MenuItem onClick={() => { router.push('/system/users'); handleMenuClose(); }}>
             <AccountCircle sx={{ mr: 1 }} />
             Profil
           </MenuItem>
-          <MenuItem onClick={() => { router.push('/settings'); handleMenuClose(); }}>
+          <MenuItem onClick={() => { router.push('/system/config'); handleMenuClose(); }}>
             <Settings sx={{ mr: 1 }} />
             Pengaturan
           </MenuItem>

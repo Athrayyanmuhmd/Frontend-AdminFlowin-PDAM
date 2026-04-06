@@ -127,6 +127,9 @@ export const GET_BILLINGS = gql`
       menunggak
       denda
       catatan
+      jenisBilling
+      bulanCakupan
+      isMergedBilling
       createdAt
     }
   }
