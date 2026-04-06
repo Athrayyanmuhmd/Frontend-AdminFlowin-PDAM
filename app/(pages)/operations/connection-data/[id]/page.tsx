@@ -33,7 +33,6 @@ import {
   RestartAlt,
   Assignment,
   Visibility,
-  AttachMoney,
   Speed,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
@@ -369,25 +368,6 @@ export default function ConnectionDataDetail() {
                   sx={{ alignSelf: 'center' }}
                 />
               )}
-
-              {/* Create RAB Button - Show for admin or technician if RAB not yet created */}
-              {(userRole === 'technician' || userRole === 'admin') &&
-                data.isVerifiedByData &&
-                !data.rabConnectionId && (
-                  <Button
-                    variant='contained'
-                    color='secondary'
-                    onClick={() =>
-                      router.push(
-                        `/operations/rab-connection/create?connectionId=${data._id}`
-                      )
-                    }
-                    disabled={actionLoading}
-                    startIcon={<AttachMoney />}
-                  >
-                    Buat RAB
-                  </Button>
-                )}
 
               {/* View RAB Button - Show if RAB exists */}
               {data.rabConnectionId && (
