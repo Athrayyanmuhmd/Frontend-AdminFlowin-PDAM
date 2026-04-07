@@ -1,39 +1,34 @@
 import { gql } from '@apollo/client';
 
-export const APPROVE_SURVEI = gql`
-  mutation ApproveSurvei($id: ID!) {
-    approveSurvei(id: $id) {
+export const ASSIGN_TEKNISI_SURVEI = gql`
+  mutation AssignTeknisiSurvei($surveiId: ID!, $teknisiIds: [ID!]!) {
+    assignTeknisiSurvei(surveiId: $surveiId, teknisiIds: $teknisiIds) {
       _id
-      statusSurvei
-      tanggalVerifikasiAdmin
-      updatedAt
-    }
-  }
-`;
-
-export const REJECT_SURVEI = gql`
-  mutation RejectSurvei($id: ID!, $alasanPenolakan: String!) {
-    rejectSurvei(id: $id, alasanPenolakan: $alasanPenolakan) {
-      _id
-      statusSurvei
-      alasanPenolakan
-      tanggalVerifikasiAdmin
-      updatedAt
-    }
-  }
-`;
-
-export const ASSIGN_TEKNISI_DED = gql`
-  mutation AssignTeknisiDED($id: ID!, $technicianId: ID!) {
-    assignTeknisiDED(id: $id, technicianId: $technicianId) {
-      _id
-      idTeknisiDED {
+      status
+      disetujui
+      tim {
         _id
         namaLengkap
         email
         noHP
       }
-      assignedDEDAt
+      updatedAt
+    }
+  }
+`;
+
+export const ASSIGN_TEKNISI_RAB = gql`
+  mutation AssignTeknisiRAB($rabId: ID!, $teknisiIds: [ID!]!) {
+    assignTeknisiRAB(rabId: $rabId, teknisiIds: $teknisiIds) {
+      _id
+      status
+      disetujui
+      tim {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
       updatedAt
     }
   }

@@ -19,6 +19,10 @@ import {
   DialogActions,
   TextField,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -30,57 +34,49 @@ import {
   LocationOn,
   ThumbUp,
   ThumbDown,
+  GroupAdd,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { useGetSurveyData } from '../../../../../lib/graphql/hooks/useSurveyData';
 import { useMutation, useQuery } from '@apollo/client/react';
-import { APPROVE_SURVEI, REJECT_SURVEI, ASSIGN_TEKNISI_DED } from '../../../../../lib/graphql/mutations/survei';
+import { ASSIGN_TEKNISI_SURVEI } from '../../../../../lib/graphql/mutations/survei';
+import { APPROVE_WORK_ORDER } from '../../../../../lib/graphql/mutations/workOrder';
 import { GET_ALL_TEKNISI } from '../../../../../lib/graphql/queries/technicians';
-import {
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from '@mui/material';
+import { GET_WO_BY_SURVEI } from '../../../../../lib/graphql/queries/surveyData';
 
 export default function SurveyDataDetail() {
   const params = useParams();
   const router = useRouter();
-  const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const id = params.id as string;
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  // ✅ GraphQL Query - Replace REST API
   const { surveyData: graphqlSurvey, loading, error: graphqlError, refetch } = useGetSurveyData(id);
 
-  // Transform GraphQL data — map semua field ke nama yang dipakai di render
+  const { data: woData, loading: woLoading, refetch: refetchWO } = useQuery(GET_WO_BY_SURVEI, {
+    variables: { surveiId: id },
+    fetchPolicy: 'network-only',
+    skip: !id,
+  });
+  const wo = (woData as any)?.getWOBySurvei || null;
+
   const data = graphqlSurvey ? {
     _id: graphqlSurvey._id,
-    // Nested objects untuk header subtitle
     connectionDataId: graphqlSurvey.idKoneksiData ? {
       _id: graphqlSurvey.idKoneksiData._id,
       nik: graphqlSurvey.idKoneksiData.NIK || graphqlSurvey.idKoneksiData.alamat || '',
+      alamat: graphqlSurvey.idKoneksiData.alamat || '',
       userId: graphqlSurvey.idKoneksiData.idPelanggan ? {
         namaLengkap: graphqlSurvey.idKoneksiData.idPelanggan.namaLengkap,
       } : { namaLengkap: '—' },
-      idTeknisiDED: (graphqlSurvey.idKoneksiData as any).idTeknisiDED || null,
-      assignedDEDAt: (graphqlSurvey.idKoneksiData as any).assignedDEDAt || null,
-    } : { _id: '', nik: '', userId: { namaLengkap: '—' }, idTeknisiDED: null, assignedDEDAt: null },
-    // Teknisi
-    technicianId: graphqlSurvey.idTeknisi ? {
-      _id: graphqlSurvey.idTeknisi._id,
-      namaLengkap: graphqlSurvey.idTeknisi.namaLengkap,
-      email: graphqlSurvey.idTeknisi.email,
-    } : null,
-    // URL foto — pakai nama field GraphQL langsung
+    } : { _id: '', nik: '', alamat: '', userId: { namaLengkap: '—' } },
     jaringanUrl: graphqlSurvey.urlJaringan || '',
     posisiBakUrl: graphqlSurvey.urlPosisiBak || '',
     posisiMeteranUrl: graphqlSurvey.posisiMeteran || '',
-    // Koordinat — GraphQL pakai latitude/longitude, render pakai .lat/.long
     koordinat: graphqlSurvey.koordinat ? {
       lat: graphqlSurvey.koordinat.latitude,
       long: graphqlSurvey.koordinat.longitude,
@@ -89,65 +85,57 @@ export default function SurveyDataDetail() {
     jumlahPenghuni: graphqlSurvey.jumlahPenghuni,
     standar: graphqlSurvey.standar,
     catatan: graphqlSurvey.catatan,
-    statusSurvei: graphqlSurvey.statusSurvei || 'Menunggu',
-    alasanPenolakan: graphqlSurvey.alasanPenolakan || '',
-    tanggalVerifikasiAdmin: graphqlSurvey.tanggalVerifikasiAdmin || null,
     createdAt: graphqlSurvey.createdAt,
     updatedAt: graphqlSurvey.updatedAt,
   } : null;
 
   const [error, setError] = useState('');
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [alasanPenolakan, setAlasanPenolakan] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
-  const [approveSurvei, { loading: approving }] = useMutation(APPROVE_SURVEI, {
-    onCompleted: () => {
-      refetch();
-      setSnackbar({ open: true, message: 'Survei disetujui. Work order akan dibuat.', severity: 'success' });
-    },
-    onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
-  });
-
-  const [assignDEDOpen, setAssignDEDOpen] = useState(false);
-  const [selectedTeknisiDED, setSelectedTeknisiDED] = useState('');
+  // Assign teknisi WO
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [selectedTeknisiIds, setSelectedTeknisiIds] = useState<string[]>([]);
 
   const { data: teknisiData, loading: loadingTeknisi } = useQuery(GET_ALL_TEKNISI, {
-    skip: !assignDEDOpen,
+    skip: !assignOpen,
     fetchPolicy: 'network-only',
   });
   const teknisiList = (teknisiData as any)?.getAllTeknisi || [];
 
-  const [assignTeknisiDED, { loading: assigning }] = useMutation(ASSIGN_TEKNISI_DED, {
+  const [assignTeknisiSurvei, { loading: assigning }] = useMutation(ASSIGN_TEKNISI_SURVEI, {
     onCompleted: () => {
-      refetch();
-      setAssignDEDOpen(false);
-      setSelectedTeknisiDED('');
-      setSnackbar({ open: true, message: 'Teknisi DED berhasil di-assign. Teknisi akan membuat dokumen DED dan RAB.', severity: 'success' });
+      refetchWO();
+      setAssignOpen(false);
+      setSelectedTeknisiIds([]);
+      setSnackbar({ open: true, message: 'Teknisi berhasil di-assign ke work order survei.', severity: 'success' });
     },
     onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
   });
 
-  const [rejectSurvei, { loading: rejecting }] = useMutation(REJECT_SURVEI, {
+  // Approve / reject WO
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [catatanWO, setCatatanWO] = useState('');
+
+  const [approveWorkOrder, { loading: approving }] = useMutation(APPROVE_WORK_ORDER, {
     onCompleted: () => {
-      refetch();
+      refetchWO();
+      setApproveOpen(false);
       setRejectOpen(false);
-      setAlasanPenolakan('');
-      setSnackbar({ open: true, message: 'Survei ditolak. Teknisi akan melakukan survei ulang.', severity: 'success' });
+      setCatatanWO('');
+      setSnackbar({ open: true, message: 'Status work order berhasil diperbarui.', severity: 'success' });
     },
     onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
   });
 
-  // Image viewer state
+  // Image viewer
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
   const [zoom, setZoom] = useState(100);
 
   useEffect(() => {
-    if (graphqlError) {
-      setError(graphqlError.message);
-    }
+    if (graphqlError) setError(graphqlError.message);
   }, [graphqlError]);
 
   const handleOpenViewer = (imageUrl: string, title: string) => {
@@ -157,23 +145,22 @@ export default function SurveyDataDetail() {
     setZoom(100);
   };
 
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 25, 300));
-  };
-
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 25, 50));
-  };
-
-  const handleResetZoom = () => {
-    setZoom(100);
-  };
-
   const openGoogleMaps = () => {
     if (data?.koordinat?.lat != null && data?.koordinat?.long != null) {
-      const url = `https://www.google.com/maps?q=${data.koordinat.lat},${data.koordinat.long}`;
-      window.open(url, '_blank');
+      window.open(`https://www.google.com/maps?q=${data.koordinat.lat},${data.koordinat.long}`, '_blank');
     }
+  };
+
+  const getWOStatusColor = (disetujui: boolean | null) => {
+    if (disetujui === true) return 'success';
+    if (disetujui === false) return 'error';
+    return 'default';
+  };
+
+  const getWOStatusLabel = (disetujui: boolean | null) => {
+    if (disetujui === true) return 'Disetujui';
+    if (disetujui === false) return 'Ditolak';
+    return 'Menunggu Verifikasi';
   };
 
   if (authLoading || !isAuthenticated) return null;
@@ -181,14 +168,7 @@ export default function SurveyDataDetail() {
   if (loading) {
     return (
       <AdminLayout>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '60vh',
-          }}
-        >
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
           <CircularProgress />
         </Box>
       </AdminLayout>
@@ -200,13 +180,7 @@ export default function SurveyDataDetail() {
       <AdminLayout>
         <Box sx={{ p: 3 }}>
           <Alert severity='error'>{error || 'Data tidak ditemukan'}</Alert>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => router.back()}
-            sx={{ mt: 2 }}
-          >
-            Kembali
-          </Button>
+          <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>Kembali</Button>
         </Box>
       </AdminLayout>
     );
@@ -227,128 +201,111 @@ export default function SurveyDataDetail() {
               {data.connectionDataId.userId.namaLengkap}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Chip
-              label={data.standar ? 'Standar' : 'Non-Standar'}
-              color={data.standar ? 'success' : 'warning'}
-              icon={<CheckCircle />}
-            />
-            <Chip
-              label={data.statusSurvei === 'Menunggu' ? 'Menunggu Verifikasi' : data.statusSurvei === 'Disetujui' ? 'Disetujui' : 'Ditolak'}
-              color={data.statusSurvei === 'Disetujui' ? 'success' : data.statusSurvei === 'Ditolak' ? 'error' : 'default'}
-              size="small"
-            />
-            {data.statusSurvei === 'Menunggu' && (
-              <>
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="small"
-                  startIcon={approving ? <CircularProgress size={16} /> : <ThumbUp />}
-                  onClick={() => approveSurvei({ variables: { id } })}
-                  disabled={approving || rejecting}
-                >
-                  Setujui
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  startIcon={<ThumbDown />}
-                  onClick={() => setRejectOpen(true)}
-                  disabled={approving || rejecting}
-                >
-                  Tolak
-                </Button>
-              </>
-            )}
-            {data.statusSurvei === 'Disetujui' && (
-              <Button
-                variant="contained"
-                color="secondary"
-                size="small"
-                onClick={() => setAssignDEDOpen(true)}
-              >
-                {data.connectionDataId?.idTeknisiDED ? 'Ganti Teknisi DED' : 'Assign Teknisi DED'}
-              </Button>
-            )}
-          </Box>
+          <Chip
+            label={data.standar ? 'Standar' : 'Non-Standar'}
+            color={data.standar ? 'success' : 'warning'}
+            icon={<CheckCircle />}
+          />
         </Box>
 
-        {/* Alerts */}
         {error && (
-          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
+          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>
         )}
 
-        {/* Technician Info */}
-        {data.technicianId && (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant='h6' gutterBottom>
-                Informasi Teknisi
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Nama Teknisi:
-                  </Typography>
-                  <Typography variant='body1' fontWeight='bold'>
-                    {data.technicianId.namaLengkap}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Email:
-                  </Typography>
-                  <Typography variant='body1'>
-                    {data.technicianId.email}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        )}
+        {/* Work Order Status Card */}
+        <Card sx={{ mb: 3, border: '1px solid', borderColor: wo?.disetujui === true ? 'success.main' : wo?.disetujui === false ? 'error.main' : 'warning.main' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+              <Box>
+                <Typography variant='h6' gutterBottom>Work Order Survei</Typography>
+                {woLoading ? (
+                  <CircularProgress size={20} />
+                ) : wo ? (
+                  <>
+                    <Chip
+                      label={getWOStatusLabel(wo.disetujui)}
+                      color={getWOStatusColor(wo.disetujui)}
+                      size="small"
+                      sx={{ mb: 1 }}
+                    />
+                    <Typography variant='body2' color='text.secondary'>
+                      Status: {wo.status}
+                    </Typography>
+                    {wo.tim?.length > 0 && (
+                      <Typography variant='body2'>
+                        Tim: {wo.tim.map((t: any) => t.namaLengkap).join(', ')}
+                      </Typography>
+                    )}
+                    {wo.catatan && (
+                      <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
+                        Catatan: {wo.catatan}
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <Alert severity='info' sx={{ mt: 1 }}>Belum ada work order untuk survei ini. Assign teknisi untuk membuat WO.</Alert>
+                )}
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button
+                  variant={wo ? 'outlined' : 'contained'}
+                  startIcon={<GroupAdd />}
+                  onClick={() => {
+                    if (wo?.tim) setSelectedTeknisiIds(wo.tim.map((t: any) => t._id));
+                    setAssignOpen(true);
+                  }}
+                  size="small"
+                >
+                  {wo ? 'Ubah Tim' : 'Assign Teknisi'}
+                </Button>
+                {wo && wo.disetujui === null && (
+                  <>
+                    <Button
+                      variant='contained'
+                      color='success'
+                      size='small'
+                      startIcon={<ThumbUp />}
+                      onClick={() => setApproveOpen(true)}
+                    >
+                      Setujui
+                    </Button>
+                    <Button
+                      variant='outlined'
+                      color='error'
+                      size='small'
+                      startIcon={<ThumbDown />}
+                      onClick={() => setRejectOpen(true)}
+                    >
+                      Tolak
+                    </Button>
+                  </>
+                )}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Survey Details */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant='h6' gutterBottom>
-              Detail Survei
-            </Typography>
+            <Typography variant='h6' gutterBottom>Detail Survei</Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Diameter Pipa:
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Diameter Pipa:</Typography>
                 <Typography variant='h6'>{data.diameterPipa} inch</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Jumlah Penghuni:
-                </Typography>
-                <Typography variant='h6'>
-                  {data.jumlahPenghuni} orang
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Jumlah Penghuni:</Typography>
+                <Typography variant='h6'>{data.jumlahPenghuni} orang</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Koordinat Lokasi:
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Koordinat Lokasi:</Typography>
                 {data.koordinat?.lat != null ? (
                   <>
                     <Typography variant='body1'>
-                      Lat: {data.koordinat.lat}
-                      <br />
-                      Long: {data.koordinat.long}
+                      Lat: {data.koordinat.lat}<br />Long: {data.koordinat.long}
                     </Typography>
-                    <Button
-                      size='small'
-                      startIcon={<LocationOn />}
-                      onClick={openGoogleMaps}
-                      sx={{ mt: 1 }}
-                    >
+                    <Button size='small' startIcon={<LocationOn />} onClick={openGoogleMaps} sx={{ mt: 1 }}>
                       Buka di Google Maps
                     </Button>
                   </>
@@ -357,9 +314,7 @@ export default function SurveyDataDetail() {
                 )}
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Status Standar:
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Status Standar:</Typography>
                 <Chip
                   label={data.standar ? 'Sesuai Standar' : 'Tidak Standar'}
                   color={data.standar ? 'success' : 'warning'}
@@ -369,9 +324,7 @@ export default function SurveyDataDetail() {
               </Grid>
               {data.catatan && (
                 <Grid item xs={12}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Catatan:
-                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>Catatan:</Typography>
                   <Typography variant='body1'>{data.catatan}</Typography>
                 </Grid>
               )}
@@ -382,196 +335,72 @@ export default function SurveyDataDetail() {
         {/* Photos */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant='h6' gutterBottom>
-              Dokumentasi Foto
-            </Typography>
+            <Typography variant='h6' gutterBottom>Dokumentasi Foto</Typography>
             <Grid container spacing={2}>
-              {/* Foto Jaringan */}
-              <Grid item xs={12} md={4}>
-                <Typography variant='body2' gutterBottom>
-                  Foto Jaringan
-                </Typography>
-                <Box
-                  sx={{
-                    position: 'relative',
-                    paddingTop: '75%',
-                    overflow: 'hidden',
-                    borderRadius: 1,
-                    bgcolor: 'grey.200',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      opacity: 0.8,
-                    },
-                  }}
-                  onClick={() =>
-                    handleOpenViewer(data.jaringanUrl, 'Foto Jaringan')
-                  }
-                >
-                  <img
-                    src={data.jaringanUrl}
-                    alt='Jaringan'
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                </Box>
-              </Grid>
-
-              {/* Foto Posisi Bak */}
-              <Grid item xs={12} md={4}>
-                <Typography variant='body2' gutterBottom>
-                  Foto Posisi Bak
-                </Typography>
-                <Box
-                  sx={{
-                    position: 'relative',
-                    paddingTop: '75%',
-                    overflow: 'hidden',
-                    borderRadius: 1,
-                    bgcolor: 'grey.200',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      opacity: 0.8,
-                    },
-                  }}
-                  onClick={() =>
-                    handleOpenViewer(data.posisiBakUrl, 'Foto Posisi Bak')
-                  }
-                >
-                  <img
-                    src={data.posisiBakUrl}
-                    alt='Posisi Bak'
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                </Box>
-              </Grid>
-
-              {/* Foto Posisi Meteran */}
-              <Grid item xs={12} md={4}>
-                <Typography variant='body2' gutterBottom>
-                  Foto Posisi Meteran
-                </Typography>
-                <Box
-                  sx={{
-                    position: 'relative',
-                    paddingTop: '75%',
-                    overflow: 'hidden',
-                    borderRadius: 1,
-                    bgcolor: 'grey.200',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      opacity: 0.8,
-                    },
-                  }}
-                  onClick={() =>
-                    handleOpenViewer(
-                      data.posisiMeteranUrl,
-                      'Foto Posisi Meteran'
-                    )
-                  }
-                >
-                  <img
-                    src={data.posisiMeteranUrl}
-                    alt='Posisi Meteran'
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                </Box>
-              </Grid>
+              {[
+                { url: data.jaringanUrl, label: 'Foto Jaringan' },
+                { url: data.posisiBakUrl, label: 'Foto Posisi Bak' },
+                { url: data.posisiMeteranUrl, label: 'Foto Posisi Meteran' },
+              ].map(({ url, label }) => (
+                <Grid item xs={12} md={4} key={label}>
+                  <Typography variant='body2' gutterBottom>{label}</Typography>
+                  <Box
+                    sx={{ position: 'relative', paddingTop: '75%', overflow: 'hidden', borderRadius: 1, bgcolor: 'grey.200', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+                    onClick={() => handleOpenViewer(url, label)}
+                  >
+                    <img
+                      src={url}
+                      alt={label}
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </Box>
+                </Grid>
+              ))}
             </Grid>
           </CardContent>
         </Card>
-
-        {/* Teknisi DED */}
-        {data.statusSurvei === 'Disetujui' && (
-          <Card sx={{ mb: 3, border: '1px solid', borderColor: data.connectionDataId?.idTeknisiDED ? 'success.main' : 'warning.main' }}>
-            <CardContent>
-              <Typography variant='h6' gutterBottom>Teknisi DED / RAB</Typography>
-              {data.connectionDataId?.idTeknisiDED ? (
-                <>
-                  <Typography variant='body2' color='text.secondary'>Ditugaskan:</Typography>
-                  <Typography variant='body1' fontWeight={600}>{data.connectionDataId.idTeknisiDED.namaLengkap}</Typography>
-                  <Typography variant='body2' color='text.secondary'>{data.connectionDataId.idTeknisiDED.email}</Typography>
-                  {data.connectionDataId.assignedDEDAt && (
-                    <Typography variant='caption' color='text.secondary'>
-                      Assign: {new Date(data.connectionDataId.assignedDEDAt).toLocaleString('id-ID')}
-                    </Typography>
-                  )}
-                </>
-              ) : (
-                <Alert severity='warning' sx={{ mt: 1 }}>
-                  Survei disetujui. Assign teknisi untuk membuat dokumen DED dan RAB.
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Timestamps */}
         <Card>
           <CardContent>
-            <Typography variant='h6' gutterBottom>
-              Informasi Waktu
-            </Typography>
+            <Typography variant='h6' gutterBottom>Informasi Waktu</Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Dibuat pada:
-                </Typography>
-                <Typography variant='body1'>
-                  {new Date(data.createdAt).toLocaleString('id-ID')}
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Dibuat pada:</Typography>
+                <Typography variant='body1'>{new Date(data.createdAt).toLocaleString('id-ID')}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Diperbarui pada:
-                </Typography>
-                <Typography variant='body1'>
-                  {new Date(data.updatedAt).toLocaleString('id-ID')}
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Diperbarui pada:</Typography>
+                <Typography variant='body1'>{new Date(data.updatedAt).toLocaleString('id-ID')}</Typography>
               </Grid>
             </Grid>
           </CardContent>
         </Card>
 
-        {/* Dialog Assign Teknisi DED */}
-        <Dialog open={assignDEDOpen} onClose={() => setAssignDEDOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Assign Teknisi DED / RAB</DialogTitle>
+        {/* Dialog Assign Teknisi */}
+        <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Assign Teknisi Survei</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Pilih teknisi yang akan membuat dokumen DED dan tabel RAB berdasarkan hasil survei.
+              Pilih teknisi yang akan melaksanakan pekerjaan survei. Work order akan dibuat di menu Manajemen WO.
             </Typography>
             {loadingTeknisi ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <CircularProgress />
-              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress /></Box>
             ) : (
               <FormControl fullWidth>
                 <InputLabel>Pilih Teknisi</InputLabel>
                 <Select
-                  value={selectedTeknisiDED}
-                  onChange={(e) => setSelectedTeknisiDED(e.target.value)}
+                  multiple
+                  value={selectedTeknisiIds}
+                  onChange={(e) => setSelectedTeknisiIds(e.target.value as string[])}
                   label="Pilih Teknisi"
+                  renderValue={(selected) =>
+                    teknisiList
+                      .filter((t: any) => selected.includes(t._id))
+                      .map((t: any) => t.namaLengkap)
+                      .join(', ')
+                  }
                 >
-                  <MenuItem value=""><em>-- Pilih Teknisi --</em></MenuItem>
                   {teknisiList.map((t: any) => (
                     <MenuItem key={t._id} value={t._id}>
                       {t.namaLengkap} — {t.email}
@@ -582,31 +411,58 @@ export default function SurveyDataDetail() {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => { setAssignDEDOpen(false); setSelectedTeknisiDED(''); }}>Batal</Button>
+            <Button onClick={() => { setAssignOpen(false); setSelectedTeknisiIds([]); }}>Batal</Button>
             <Button
               variant="contained"
-              disabled={!selectedTeknisiDED || assigning}
-              onClick={() => assignTeknisiDED({
-                variables: { id: data.connectionDataId?._id, technicianId: selectedTeknisiDED },
-              })}
+              disabled={selectedTeknisiIds.length === 0 || assigning}
+              onClick={() => assignTeknisiSurvei({ variables: { surveiId: id, teknisiIds: selectedTeknisiIds } })}
             >
-              {assigning ? <CircularProgress size={20} /> : 'Assign'}
+              {assigning ? <CircularProgress size={20} /> : 'Simpan'}
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Reject Dialog */}
-        <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Tolak Survei</DialogTitle>
+        {/* Dialog Setujui WO */}
+        <Dialog open={approveOpen} onClose={() => setApproveOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Setujui Work Order Survei</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Berikan alasan penolakan. Teknisi akan melakukan survei ulang.
+              Menyetujui WO berarti survei telah selesai dan hasilnya diterima. Admin dapat melanjutkan ke proses RAB.
             </Typography>
             <TextField
               fullWidth
-              label="Alasan Penolakan"
-              value={alasanPenolakan}
-              onChange={(e) => setAlasanPenolakan(e.target.value)}
+              label="Catatan (opsional)"
+              value={catatanWO}
+              onChange={(e) => setCatatanWO(e.target.value)}
+              multiline
+              rows={2}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setApproveOpen(false)}>Batal</Button>
+            <Button
+              variant="contained"
+              color="success"
+              disabled={approving}
+              onClick={() => approveWorkOrder({ variables: { id: wo?._id, disetujui: true, catatan: catatanWO || undefined } })}
+            >
+              {approving ? <CircularProgress size={20} /> : 'Setujui'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog Tolak WO */}
+        <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Tolak Work Order Survei</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Berikan catatan alasan penolakan. Teknisi perlu melakukan perbaikan.
+            </Typography>
+            <TextField
+              fullWidth
+              label="Catatan Penolakan"
+              value={catatanWO}
+              onChange={(e) => setCatatanWO(e.target.value)}
               multiline
               rows={3}
               autoFocus
@@ -617,90 +473,38 @@ export default function SurveyDataDetail() {
             <Button
               variant="contained"
               color="error"
-              disabled={!alasanPenolakan.trim() || rejecting}
-              onClick={() => rejectSurvei({ variables: { id, alasanPenolakan } })}
+              disabled={!catatanWO.trim() || approving}
+              onClick={() => approveWorkOrder({ variables: { id: wo?._id, disetujui: false, catatan: catatanWO } })}
             >
-              {rejecting ? <CircularProgress size={20} /> : 'Tolak Survei'}
+              {approving ? <CircularProgress size={20} /> : 'Tolak'}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Snackbar */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
-        >
+        <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
           <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
             {snackbar.message}
           </Alert>
         </Snackbar>
 
-        {/* Image Viewer Dialog */}
-        <Dialog
-          open={viewerOpen}
-          onClose={() => setViewerOpen(false)}
-          maxWidth='lg'
-          fullWidth
-        >
+        {/* Image Viewer */}
+        <Dialog open={viewerOpen} onClose={() => setViewerOpen(false)} maxWidth='lg' fullWidth>
           <DialogTitle>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant='h6'>{viewerTitle}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <IconButton
-                  size='small'
-                  onClick={handleZoomOut}
-                  disabled={zoom <= 50}
-                >
-                  <ZoomOut />
-                </IconButton>
-                <Typography
-                  variant='body2'
-                  sx={{ minWidth: 60, textAlign: 'center' }}
-                >
-                  {zoom}%
-                </Typography>
-                <IconButton
-                  size='small'
-                  onClick={handleZoomIn}
-                  disabled={zoom >= 300}
-                >
-                  <ZoomIn />
-                </IconButton>
-                <IconButton size='small' onClick={handleResetZoom}>
-                  <RestartAlt />
-                </IconButton>
-                <IconButton onClick={() => setViewerOpen(false)}>
-                  <Close />
-                </IconButton>
+                <IconButton size='small' onClick={() => setZoom(p => Math.max(p - 25, 50))} disabled={zoom <= 50}><ZoomOut /></IconButton>
+                <Typography variant='body2' sx={{ minWidth: 60, textAlign: 'center' }}>{zoom}%</Typography>
+                <IconButton size='small' onClick={() => setZoom(p => Math.min(p + 25, 300))} disabled={zoom >= 300}><ZoomIn /></IconButton>
+                <IconButton size='small' onClick={() => setZoom(100)}><RestartAlt /></IconButton>
+                <IconButton onClick={() => setViewerOpen(false)}><Close /></IconButton>
               </Box>
             </Box>
           </DialogTitle>
           <DialogContent>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: 400,
-                overflow: 'auto',
-              }}
-            >
-              <img
-                src={viewerImage}
-                alt={viewerTitle}
-                style={{
-                  width: `${zoom}%`,
-                  height: 'auto',
-                  transition: 'width 0.3s ease',
-                }}
-              />
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400, overflow: 'auto' }}>
+              <img src={viewerImage} alt={viewerTitle} style={{ width: `${zoom}%`, height: 'auto', transition: 'width 0.3s ease' }} />
             </Box>
           </DialogContent>
         </Dialog>

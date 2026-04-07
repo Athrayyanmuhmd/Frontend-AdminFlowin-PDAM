@@ -2,7 +2,7 @@ import { gql } from '@apollo/client';
 
 /**
  * GraphQL Queries untuk Survey Data
- * Backend: BE_backend/graphql/resolvers/index.js
+ * Backend: BE_backend/graphql/resolvers/domains/survei.ts
  * Note: Backend uses "Survei" (Indonesian spelling)
  */
 
@@ -20,19 +20,11 @@ export const GET_ALL_SURVEY_DATA = gql`
           noHP
         }
       }
-      idTeknisi {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
       urlJaringan
       diameterPipa
       jumlahPenghuni
       standar
       catatan
-      statusSurvei
-      alasanPenolakan
       createdAt
       updatedAt
     }
@@ -47,25 +39,14 @@ export const GET_SURVEY_DATA_BY_ID = gql`
         _id
         NIK
         alamat
+        kelurahan
+        kecamatan
         idPelanggan {
           _id
           namaLengkap
           email
           noHP
         }
-        idTeknisiDED {
-          _id
-          namaLengkap
-          email
-          noHP
-        }
-        assignedDEDAt
-      }
-      idTeknisi {
-        _id
-        namaLengkap
-        email
-        noHP
       }
       koordinat {
         latitude
@@ -78,9 +59,25 @@ export const GET_SURVEY_DATA_BY_ID = gql`
       jumlahPenghuni
       standar
       catatan
-      statusSurvei
-      alasanPenolakan
-      tanggalVerifikasiAdmin
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_WO_BY_SURVEI = gql`
+  query GetWOBySurvei($surveiId: ID!) {
+    getWOBySurvei(surveiId: $surveiId) {
+      _id
+      status
+      disetujui
+      catatan
+      tim {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
       createdAt
       updatedAt
     }
@@ -90,7 +87,6 @@ export const GET_SURVEY_DATA_BY_ID = gql`
 export const CREATE_SURVEI = gql`
   mutation CreateSurvei(
     $idKoneksiData: ID!
-    $idTeknisi: ID!
     $urlJaringan: String!
     $diameterPipa: Float!
     $urlPosisiBak: String!
@@ -102,7 +98,6 @@ export const CREATE_SURVEI = gql`
   ) {
     createSurvei(
       idKoneksiData: $idKoneksiData
-      idTeknisi: $idTeknisi
       urlJaringan: $urlJaringan
       diameterPipa: $diameterPipa
       urlPosisiBak: $urlPosisiBak
@@ -114,7 +109,6 @@ export const CREATE_SURVEI = gql`
     ) {
       _id
       idKoneksiData { _id }
-      idTeknisi { _id namaLengkap }
       urlJaringan
       createdAt
     }

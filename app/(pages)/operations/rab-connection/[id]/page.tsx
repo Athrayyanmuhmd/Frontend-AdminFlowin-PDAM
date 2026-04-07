@@ -19,6 +19,10 @@ import {
   DialogActions,
   TextField,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -29,52 +33,36 @@ import {
   ThumbUp,
   ThumbDown,
   OpenInNew,
+  GroupAdd,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { useGetRABConnection } from '../../../../../lib/graphql/hooks/useRABConnection';
-import { useMutation } from '@apollo/client/react';
-import { APPROVE_RAB, REJECT_RAB } from '../../../../../lib/graphql/queries/rabConnection';
-
-interface RabConnection {
-  _id: string;
-  connectionDataId: {
-    _id: string;
-    nik: string;
-    userId: {
-      _id: string;
-      namaLengkap: string;
-      email: string;
-    };
-  };
-  userId: string;
-  technicianId?: {
-    _id: string;
-    namaLengkap: string;
-    email: string;
-  };
-  totalBiaya: number;
-  isPaid: boolean;
-  urlRab: string;
-  catatan?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { useMutation, useQuery } from '@apollo/client/react';
+import { ASSIGN_TEKNISI_RAB } from '../../../../../lib/graphql/mutations/survei';
+import { APPROVE_WORK_ORDER } from '../../../../../lib/graphql/mutations/workOrder';
+import { GET_ALL_TEKNISI } from '../../../../../lib/graphql/queries/technicians';
+import { GET_WO_BY_RAB } from '../../../../../lib/graphql/queries/rabConnection';
 
 export default function RabConnectionDetail() {
   const params = useParams();
   const router = useRouter();
-  const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const id = params.id as string;
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  // ✅ GraphQL Query - Replace REST API
   const { rabConnection: rabData, loading, error: graphqlError, refetch } = useGetRABConnection(id);
 
-  // Transform GraphQL data to match component interface
+  const { data: woData, loading: woLoading, refetch: refetchWO } = useQuery(GET_WO_BY_RAB, {
+    variables: { rabId: id },
+    fetchPolicy: 'network-only',
+    skip: !id,
+  });
+  const wo = (woData as any)?.getWOByRAB || null;
+
   const data = rabData ? {
     _id: rabData._id,
     connectionDataId: rabData.idKoneksiData ? {
@@ -86,13 +74,9 @@ export default function RabConnectionDetail() {
         email: rabData.idKoneksiData.idPelanggan.email,
       } : null,
     } : null,
-    userId: '',
-    technicianId: undefined,
     totalBiaya: rabData.totalBiaya,
     isPaid: rabData.statusPembayaran === 'Settlement',
-    statusVerifikasiAdmin: (rabData as any).statusVerifikasiAdmin || 'Menunggu',
-    alasanPenolakan: (rabData as any).alasanPenolakan || null,
-    tanggalVerifikasiAdmin: (rabData as any).tanggalVerifikasiAdmin || null,
+    statusPembayaran: rabData.statusPembayaran,
     urlRab: rabData.urlRab || '',
     catatan: rabData.catatan,
     createdAt: rabData.createdAt,
@@ -100,40 +84,57 @@ export default function RabConnectionDetail() {
   } : null;
 
   const [error, setError] = useState(graphqlError?.message || '');
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [alasanInput, setAlasanInput] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
-  const [approveRAB, { loading: approving }] = useMutation(APPROVE_RAB, {
+  // Assign teknisi WO
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [selectedTeknisiIds, setSelectedTeknisiIds] = useState<string[]>([]);
+
+  const { data: teknisiData, loading: loadingTeknisi } = useQuery(GET_ALL_TEKNISI, {
+    skip: !assignOpen,
+    fetchPolicy: 'network-only',
+  });
+  const teknisiList = (teknisiData as any)?.getAllTeknisi || [];
+
+  const [assignTeknisiRAB, { loading: assigning }] = useMutation(ASSIGN_TEKNISI_RAB, {
     onCompleted: () => {
-      refetch();
-      setSnackbar({ open: true, message: 'RAB disetujui. Admin dapat membuat tagihan ke pelanggan.', severity: 'success' });
+      refetchWO();
+      setAssignOpen(false);
+      setSelectedTeknisiIds([]);
+      setSnackbar({ open: true, message: 'Teknisi berhasil di-assign ke work order DED/RAB.', severity: 'success' });
     },
     onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
   });
 
-  const [rejectRAB, { loading: rejecting }] = useMutation(REJECT_RAB, {
+  // Approve / reject WO
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [catatanWO, setCatatanWO] = useState('');
+
+  const [approveWorkOrder, { loading: approving }] = useMutation(APPROVE_WORK_ORDER, {
     onCompleted: () => {
-      refetch();
+      refetchWO();
+      setApproveOpen(false);
       setRejectOpen(false);
-      setAlasanInput('');
-      setSnackbar({ open: true, message: 'RAB ditolak. Teknisi perlu merevisi RAB.', severity: 'success' });
+      setCatatanWO('');
+      setSnackbar({ open: true, message: 'Status work order berhasil diperbarui.', severity: 'success' });
     },
     onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+
+  const getWOStatusColor = (disetujui: boolean | null) => {
+    if (disetujui === true) return 'success';
+    if (disetujui === false) return 'error';
+    return 'default';
   };
 
-  const handleDownloadRAB = () => {
-    if (data?.urlRab) {
-      window.open(data.urlRab, '_blank');
-    }
+  const getWOStatusLabel = (disetujui: boolean | null) => {
+    if (disetujui === true) return 'Disetujui';
+    if (disetujui === false) return 'Ditolak';
+    return 'Menunggu Verifikasi';
   };
 
   if (authLoading || !isAuthenticated) return null;
@@ -141,14 +142,7 @@ export default function RabConnectionDetail() {
   if (loading) {
     return (
       <AdminLayout>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '60vh',
-          }}
-        >
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
           <CircularProgress />
         </Box>
       </AdminLayout>
@@ -160,13 +154,7 @@ export default function RabConnectionDetail() {
       <AdminLayout>
         <Box sx={{ p: 3 }}>
           <Alert severity='error'>{error || 'Data tidak ditemukan'}</Alert>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => router.back()}
-            sx={{ mt: 2 }}
-          >
-            Kembali
-          </Button>
+          <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>Kembali</Button>
         </Box>
       </AdminLayout>
     );
@@ -187,75 +175,15 @@ export default function RabConnectionDetail() {
               {data.connectionDataId?.userId?.namaLengkap || '—'}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Chip
-              label={
-                data.statusVerifikasiAdmin === 'Disetujui' ? 'RAB Disetujui' :
-                data.statusVerifikasiAdmin === 'Ditolak' ? 'RAB Ditolak' : 'Menunggu Verifikasi'
-              }
-              color={
-                data.statusVerifikasiAdmin === 'Disetujui' ? 'success' :
-                data.statusVerifikasiAdmin === 'Ditolak' ? 'error' : 'default'
-              }
-              size="small"
-            />
-            <Chip
-              label={data.isPaid ? 'Sudah Dibayar' : 'Belum Dibayar'}
-              color={data.isPaid ? 'success' : 'warning'}
-              icon={data.isPaid ? <CheckCircle /> : <HourglassEmpty />}
-            />
-          </Box>
+          <Chip
+            label={data.isPaid ? 'Sudah Dibayar' : 'Belum Dibayar'}
+            color={data.isPaid ? 'success' : 'warning'}
+            icon={data.isPaid ? <CheckCircle /> : <HourglassEmpty />}
+          />
         </Box>
 
-        {/* Alerts */}
         {error && (
-          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-
-        {/* Admin Verifikasi RAB */}
-        {data.statusVerifikasiAdmin === 'Menunggu' && (
-          <Card sx={{ mb: 3, border: '1px solid', borderColor: 'warning.main' }}>
-            <CardContent>
-              <Typography variant='h6' gutterBottom>Verifikasi RAB oleh Admin</Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                Periksa dokumen RAB yang diupload teknisi. Jika sesuai, setujui untuk lanjut ke tagihan pelanggan.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button
-                  variant='contained'
-                  color='success'
-                  startIcon={approving ? <CircularProgress size={16} /> : <ThumbUp />}
-                  onClick={() => approveRAB({ variables: { id } })}
-                  disabled={approving || rejecting}
-                >
-                  Setujui RAB
-                </Button>
-                <Button
-                  variant='outlined'
-                  color='error'
-                  startIcon={<ThumbDown />}
-                  onClick={() => setRejectOpen(true)}
-                  disabled={approving || rejecting}
-                >
-                  Tolak RAB
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        )}
-
-        {data.statusVerifikasiAdmin === 'Disetujui' && !data.isPaid && (
-          <Alert severity='success' sx={{ mb: 3 }}>
-            RAB telah disetujui admin. Buat tagihan ke pelanggan dari menu <strong>Penagihan &gt; Generate Tagihan</strong>, lalu tunggu pembayaran sebelum lanjut ke instalasi.
-          </Alert>
-        )}
-
-        {data.statusVerifikasiAdmin === 'Ditolak' && (
-          <Alert severity='error' sx={{ mb: 3 }}>
-            RAB ditolak. Alasan: <strong>{data.alasanPenolakan}</strong>. Teknisi perlu merevisi dan upload ulang RAB.
-          </Alert>
+          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>
         )}
 
         {data.isPaid && (
@@ -264,55 +192,93 @@ export default function RabConnectionDetail() {
           </Alert>
         )}
 
-        {/* Technician Info */}
-        {data.technicianId && (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant='h6' gutterBottom>
-                Informasi Teknisi
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Nama Teknisi:
-                  </Typography>
-                  <Typography variant='body1' fontWeight='bold'>
-                    {(data.technicianId as any)?.namaLengkap}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Email:
-                  </Typography>
-                  <Typography variant='body1'>
-                    {(data.technicianId as any)?.email}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        )}
+        {/* Work Order DED/RAB */}
+        <Card sx={{ mb: 3, border: '1px solid', borderColor: wo?.disetujui === true ? 'success.main' : wo?.disetujui === false ? 'error.main' : 'warning.main' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+              <Box>
+                <Typography variant='h6' gutterBottom>Work Order DED / RAB</Typography>
+                {woLoading ? (
+                  <CircularProgress size={20} />
+                ) : wo ? (
+                  <>
+                    <Chip
+                      label={getWOStatusLabel(wo.disetujui)}
+                      color={getWOStatusColor(wo.disetujui)}
+                      size="small"
+                      sx={{ mb: 1 }}
+                    />
+                    <Typography variant='body2' color='text.secondary'>Status: {wo.status}</Typography>
+                    {wo.tim?.length > 0 && (
+                      <Typography variant='body2'>
+                        Tim: {wo.tim.map((t: any) => t.namaLengkap).join(', ')}
+                      </Typography>
+                    )}
+                    {wo.catatan && (
+                      <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
+                        Catatan: {wo.catatan}
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <Alert severity='info' sx={{ mt: 1 }}>
+                    Belum ada work order untuk RAB ini. Assign teknisi untuk membuat dokumen DED dan RAB.
+                  </Alert>
+                )}
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button
+                  variant={wo ? 'outlined' : 'contained'}
+                  startIcon={<GroupAdd />}
+                  onClick={() => {
+                    if (wo?.tim) setSelectedTeknisiIds(wo.tim.map((t: any) => t._id));
+                    setAssignOpen(true);
+                  }}
+                  size="small"
+                >
+                  {wo ? 'Ubah Tim' : 'Assign Teknisi DED'}
+                </Button>
+                {wo && wo.disetujui === null && (
+                  <>
+                    <Button
+                      variant='contained'
+                      color='success'
+                      size='small'
+                      startIcon={<ThumbUp />}
+                      onClick={() => setApproveOpen(true)}
+                    >
+                      Setujui RAB
+                    </Button>
+                    <Button
+                      variant='outlined'
+                      color='error'
+                      size='small'
+                      startIcon={<ThumbDown />}
+                      onClick={() => setRejectOpen(true)}
+                    >
+                      Tolak RAB
+                    </Button>
+                  </>
+                )}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
 
-        {/* RAB Details */}
+        {/* Budget Details */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant='h6' gutterBottom>
-              Detail Anggaran
-            </Typography>
+            <Typography variant='h6' gutterBottom>Detail Anggaran</Typography>
             <Grid container spacing={3}>
               <Grid item xs={12}>
-                <Typography variant='body2' color='text.secondary'>
-                  Total Biaya:
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Total Biaya:</Typography>
                 <Typography variant='h4' color='primary' fontWeight='bold'>
                   {formatCurrency(data.totalBiaya)}
                 </Typography>
               </Grid>
               {data.catatan && (
                 <Grid item xs={12}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Catatan:
-                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>Catatan:</Typography>
                   <Typography variant='body1'>{data.catatan}</Typography>
                 </Grid>
               )}
@@ -323,43 +289,20 @@ export default function RabConnectionDetail() {
         {/* RAB Document */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant='h6' gutterBottom>
-              Dokumen RAB
-            </Typography>
-            <Box
-              sx={{
-                p: 3,
-                bgcolor: 'grey.100',
-                borderRadius: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+            <Typography variant='h6' gutterBottom>Dokumen RAB</Typography>
+            <Box sx={{ p: 3, bgcolor: 'grey.100', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <AttachFile fontSize='large' color='action' />
                 <Box>
-                  <Typography variant='body1' fontWeight='bold'>
-                    Dokumen RAB.pdf
-                  </Typography>
-                  <Typography variant='caption' color='text.secondary'>
-                    Klik tombol download untuk melihat dokumen
-                  </Typography>
+                  <Typography variant='body1' fontWeight='bold'>Dokumen RAB.pdf</Typography>
+                  <Typography variant='caption' color='text.secondary'>Klik untuk melihat atau mengunduh dokumen</Typography>
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant='outlined'
-                  startIcon={<OpenInNew />}
-                  onClick={handleDownloadRAB}
-                >
+                <Button variant='outlined' startIcon={<OpenInNew />} onClick={() => window.open(data.urlRab, '_blank')}>
                   Buka
                 </Button>
-                <Button
-                  variant='contained'
-                  startIcon={<Download />}
-                  onClick={handleDownloadRAB}
-                >
+                <Button variant='contained' startIcon={<Download />} onClick={() => window.open(data.urlRab, '_blank')}>
                   Download
                 </Button>
               </Box>
@@ -370,37 +313,24 @@ export default function RabConnectionDetail() {
         {/* Payment Status */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant='h6' gutterBottom>
-              Status Pembayaran
-            </Typography>
+            <Typography variant='h6' gutterBottom>Status Pembayaran</Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Status:
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Status:</Typography>
                 <Chip
-                  label={data.isPaid ? 'Sudah Dibayar' : 'Belum Dibayar'}
+                  label={data.statusPembayaran}
                   color={data.isPaid ? 'success' : 'warning'}
                   size='medium'
                   sx={{ mt: 1 }}
                 />
               </Grid>
-              {!data.isPaid && (
-                <Grid item xs={12}>
-                  <Alert severity='warning'>
-                    Pelanggan harus melakukan pembayaran terlebih dahulu sebelum
-                    proses instalasi dapat dilanjutkan.
-                  </Alert>
-                </Grid>
-              )}
-              {data.isPaid && (
-                <Grid item xs={12}>
-                  <Alert severity='success'>
-                    Pembayaran telah dikonfirmasi. Proses instalasi dapat
-                    dilanjutkan.
-                  </Alert>
-                </Grid>
-              )}
+              <Grid item xs={12}>
+                {data.isPaid ? (
+                  <Alert severity='success'>Pembayaran telah dikonfirmasi. Proses instalasi dapat dilanjutkan.</Alert>
+                ) : (
+                  <Alert severity='warning'>Pelanggan harus melakukan pembayaran sebelum proses instalasi dapat dilanjutkan.</Alert>
+                )}
+              </Grid>
             </Grid>
           </CardContent>
         </Card>
@@ -408,67 +338,127 @@ export default function RabConnectionDetail() {
         {/* Timestamps */}
         <Card>
           <CardContent>
-            <Typography variant='h6' gutterBottom>
-              Informasi Waktu
-            </Typography>
+            <Typography variant='h6' gutterBottom>Informasi Waktu</Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Dibuat pada:
-                </Typography>
-                <Typography variant='body1'>
-                  {new Date(data.createdAt).toLocaleString('id-ID')}
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Dibuat pada:</Typography>
+                <Typography variant='body1'>{new Date(data.createdAt).toLocaleString('id-ID')}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Diperbarui pada:
-                </Typography>
-                <Typography variant='body1'>
-                  {new Date(data.updatedAt).toLocaleString('id-ID')}
-                </Typography>
+                <Typography variant='body2' color='text.secondary'>Diperbarui pada:</Typography>
+                <Typography variant='body1'>{new Date(data.updatedAt).toLocaleString('id-ID')}</Typography>
               </Grid>
             </Grid>
           </CardContent>
         </Card>
       </Box>
 
-      {/* Dialog Tolak RAB */}
-      <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Tolak RAB</DialogTitle>
+      {/* Dialog Assign Teknisi DED */}
+      <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Assign Teknisi DED / RAB</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Berikan alasan penolakan. Teknisi perlu merevisi dan upload ulang RAB.
+            Pilih teknisi yang akan membuat dokumen DED dan tabel RAB. Work order akan tercatat di menu Manajemen WO.
+          </Typography>
+          {loadingTeknisi ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress /></Box>
+          ) : (
+            <FormControl fullWidth>
+              <InputLabel>Pilih Teknisi</InputLabel>
+              <Select
+                multiple
+                value={selectedTeknisiIds}
+                onChange={(e) => setSelectedTeknisiIds(e.target.value as string[])}
+                label="Pilih Teknisi"
+                renderValue={(selected) =>
+                  teknisiList
+                    .filter((t: any) => selected.includes(t._id))
+                    .map((t: any) => t.namaLengkap)
+                    .join(', ')
+                }
+              >
+                {teknisiList.map((t: any) => (
+                  <MenuItem key={t._id} value={t._id}>
+                    {t.namaLengkap} — {t.email}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setAssignOpen(false); setSelectedTeknisiIds([]); }}>Batal</Button>
+          <Button
+            variant="contained"
+            disabled={selectedTeknisiIds.length === 0 || assigning}
+            onClick={() => assignTeknisiRAB({ variables: { rabId: id, teknisiIds: selectedTeknisiIds } })}
+          >
+            {assigning ? <CircularProgress size={20} /> : 'Simpan'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Setujui WO RAB */}
+      <Dialog open={approveOpen} onClose={() => setApproveOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Setujui Work Order RAB</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Menyetujui WO berarti dokumen DED/RAB telah diperiksa dan diterima. Pelanggan akan ditagih sesuai total biaya.
           </Typography>
           <TextField
             fullWidth
-            label="Alasan Penolakan"
-            value={alasanInput}
-            onChange={(e) => setAlasanInput(e.target.value)}
+            label="Catatan (opsional)"
+            value={catatanWO}
+            onChange={(e) => setCatatanWO(e.target.value)}
+            multiline
+            rows={2}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApproveOpen(false)}>Batal</Button>
+          <Button
+            variant="contained"
+            color="success"
+            disabled={approving}
+            onClick={() => approveWorkOrder({ variables: { id: wo?._id, disetujui: true, catatan: catatanWO || undefined } })}
+          >
+            {approving ? <CircularProgress size={20} /> : 'Setujui'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Tolak WO RAB */}
+      <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Tolak Work Order RAB</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Berikan catatan alasan penolakan. Teknisi perlu merevisi dokumen DED/RAB.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Catatan Penolakan"
+            value={catatanWO}
+            onChange={(e) => setCatatanWO(e.target.value)}
             multiline
             rows={3}
             autoFocus
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setRejectOpen(false); setAlasanInput(''); }}>Batal</Button>
+          <Button onClick={() => setRejectOpen(false)}>Batal</Button>
           <Button
             variant="contained"
             color="error"
-            disabled={!alasanInput.trim() || rejecting}
-            onClick={() => rejectRAB({ variables: { id, alasanPenolakan: alasanInput } })}
+            disabled={!catatanWO.trim() || approving}
+            onClick={() => approveWorkOrder({ variables: { id: wo?._id, disetujui: false, catatan: catatanWO } })}
           >
-            {rejecting ? <CircularProgress size={20} /> : 'Tolak RAB'}
+            {approving ? <CircularProgress size={20} /> : 'Tolak'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
-      >
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
           {snackbar.message}
         </Alert>

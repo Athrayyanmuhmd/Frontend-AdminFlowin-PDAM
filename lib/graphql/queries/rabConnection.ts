@@ -1,11 +1,5 @@
 import { gql } from '@apollo/client';
 
-/**
- * GraphQL Queries untuk RAB Connection
- * Backend: BE_backend/graphql/resolvers/index.js
- * Note: Backend model has technicianId and userId but GraphQL schema might not expose them
- */
-
 export const GET_ALL_RAB_CONNECTIONS = gql`
   query GetAllRABConnections {
     getAllRABConnections {
@@ -23,7 +17,6 @@ export const GET_ALL_RAB_CONNECTIONS = gql`
       }
       totalBiaya
       statusPembayaran
-      statusVerifikasiAdmin
       urlRab
       catatan
       createdAt
@@ -55,9 +48,6 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
       }
       totalBiaya
       statusPembayaran
-      statusVerifikasiAdmin
-      alasanPenolakan
-      tanggalVerifikasiAdmin
       urlRab
       catatan
       createdAt
@@ -66,24 +56,20 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
   }
 `;
 
-export const APPROVE_RAB = gql`
-  mutation ApproveRAB($id: ID!) {
-    approveRAB(id: $id) {
+export const GET_WO_BY_RAB = gql`
+  query GetWOByRAB($rabId: ID!) {
+    getWOByRAB(rabId: $rabId) {
       _id
-      statusVerifikasiAdmin
-      tanggalVerifikasiAdmin
-      updatedAt
-    }
-  }
-`;
-
-export const REJECT_RAB = gql`
-  mutation RejectRAB($id: ID!, $alasanPenolakan: String!) {
-    rejectRAB(id: $id, alasanPenolakan: $alasanPenolakan) {
-      _id
-      statusVerifikasiAdmin
-      alasanPenolakan
-      tanggalVerifikasiAdmin
+      status
+      disetujui
+      catatan
+      tim {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
+      createdAt
       updatedAt
     }
   }
