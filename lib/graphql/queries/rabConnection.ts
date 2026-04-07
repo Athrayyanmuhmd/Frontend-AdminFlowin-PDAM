@@ -56,6 +56,17 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
   }
 `;
 
+export const GET_RAB_BY_KONEKSI_DATA = gql`
+  query GetRABByKoneksiData($idKoneksiData: ID!) {
+    getRABByKoneksiData(idKoneksiData: $idKoneksiData) {
+      _id
+      totalBiaya
+      statusPembayaran
+      createdAt
+    }
+  }
+`;
+
 export const GET_WO_BY_RAB = gql`
   query GetWOByRAB($rabId: ID!) {
     getWOByRAB(rabId: $rabId) {

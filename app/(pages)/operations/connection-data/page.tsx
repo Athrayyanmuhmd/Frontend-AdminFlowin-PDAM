@@ -350,16 +350,16 @@ export default function ConnectionDataManagement() {
                             </TableCell>
                             <TableCell>{data.luasBangunan} m²</TableCell>
                             <TableCell>
-                              {data.idPelanggan?.noHP ? (
+                              {data.idTeknisi ? (
                                 <Box>
                                   <Typography variant='body2' fontWeight='bold'>
-                                    {data.idPelanggan.namaLengkap}
+                                    {data.idTeknisi.namaLengkap}
                                   </Typography>
                                   <Typography
                                     variant='caption'
                                     color='text.secondary'
                                   >
-                                    {data.idPelanggan.noHP}
+                                    {data.idTeknisi.email || ''}
                                   </Typography>
                                 </Box>
                               ) : (

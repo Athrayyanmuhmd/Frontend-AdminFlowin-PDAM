@@ -65,6 +65,17 @@ export const GET_SURVEY_DATA_BY_ID = gql`
   }
 `;
 
+export const GET_SURVEI_BY_KONEKSI_DATA = gql`
+  query GetSurveiByKoneksiData($idKoneksiData: ID!) {
+    getSurveiByKoneksiData(idKoneksiData: $idKoneksiData) {
+      _id
+      standar
+      catatan
+      createdAt
+    }
+  }
+`;
+
 export const GET_WO_BY_SURVEI = gql`
   query GetWOBySurvei($surveiId: ID!) {
     getWOBySurvei(surveiId: $surveiId) {
