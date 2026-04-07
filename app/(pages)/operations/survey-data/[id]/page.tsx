@@ -34,8 +34,15 @@ import {
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { useGetSurveyData } from '../../../../../lib/graphql/hooks/useSurveyData';
-import { useMutation } from '@apollo/client/react';
-import { APPROVE_SURVEI, REJECT_SURVEI } from '../../../../../lib/graphql/mutations/survei';
+import { useMutation, useQuery } from '@apollo/client/react';
+import { APPROVE_SURVEI, REJECT_SURVEI, ASSIGN_TEKNISI_DED } from '../../../../../lib/graphql/mutations/survei';
+import { GET_ALL_TEKNISI } from '../../../../../lib/graphql/queries/technicians';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
 
 export default function SurveyDataDetail() {
   const params = useParams();
@@ -60,7 +67,9 @@ export default function SurveyDataDetail() {
       userId: graphqlSurvey.idKoneksiData.idPelanggan ? {
         namaLengkap: graphqlSurvey.idKoneksiData.idPelanggan.namaLengkap,
       } : { namaLengkap: '—' },
-    } : { _id: '', nik: '', userId: { namaLengkap: '—' } },
+      idTeknisiDED: (graphqlSurvey.idKoneksiData as any).idTeknisiDED || null,
+      assignedDEDAt: (graphqlSurvey.idKoneksiData as any).assignedDEDAt || null,
+    } : { _id: '', nik: '', userId: { namaLengkap: '—' }, idTeknisiDED: null, assignedDEDAt: null },
     // Teknisi
     technicianId: graphqlSurvey.idTeknisi ? {
       _id: graphqlSurvey.idTeknisi._id,
@@ -96,6 +105,25 @@ export default function SurveyDataDetail() {
     onCompleted: () => {
       refetch();
       setSnackbar({ open: true, message: 'Survei disetujui. Work order akan dibuat.', severity: 'success' });
+    },
+    onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
+  });
+
+  const [assignDEDOpen, setAssignDEDOpen] = useState(false);
+  const [selectedTeknisiDED, setSelectedTeknisiDED] = useState('');
+
+  const { data: teknisiData, loading: loadingTeknisi } = useQuery(GET_ALL_TEKNISI, {
+    skip: !assignDEDOpen,
+    fetchPolicy: 'network-only',
+  });
+  const teknisiList = (teknisiData as any)?.getAllTeknisi || [];
+
+  const [assignTeknisiDED, { loading: assigning }] = useMutation(ASSIGN_TEKNISI_DED, {
+    onCompleted: () => {
+      refetch();
+      setAssignDEDOpen(false);
+      setSelectedTeknisiDED('');
+      setSnackbar({ open: true, message: 'Teknisi DED berhasil di-assign. Teknisi akan membuat dokumen DED dan RAB.', severity: 'success' });
     },
     onError: (err) => setSnackbar({ open: true, message: 'Gagal: ' + err.message, severity: 'error' }),
   });
@@ -216,11 +244,11 @@ export default function SurveyDataDetail() {
                   variant="contained"
                   color="success"
                   size="small"
-                  startIcon={<ThumbUp />}
+                  startIcon={approving ? <CircularProgress size={16} /> : <ThumbUp />}
                   onClick={() => approveSurvei({ variables: { id } })}
                   disabled={approving || rejecting}
                 >
-                  {approving ? <CircularProgress size={16} /> : 'Setujui'}
+                  Setujui
                 </Button>
                 <Button
                   variant="outlined"
@@ -233,6 +261,16 @@ export default function SurveyDataDetail() {
                   Tolak
                 </Button>
               </>
+            )}
+            {data.statusSurvei === 'Disetujui' && (
+              <Button
+                variant="contained"
+                color="secondary"
+                size="small"
+                onClick={() => setAssignDEDOpen(true)}
+              >
+                {data.connectionDataId?.idTeknisiDED ? 'Ganti Teknisi DED' : 'Assign Teknisi DED'}
+              </Button>
             )}
           </Box>
         </Box>
@@ -462,6 +500,31 @@ export default function SurveyDataDetail() {
           </CardContent>
         </Card>
 
+        {/* Teknisi DED */}
+        {data.statusSurvei === 'Disetujui' && (
+          <Card sx={{ mb: 3, border: '1px solid', borderColor: data.connectionDataId?.idTeknisiDED ? 'success.main' : 'warning.main' }}>
+            <CardContent>
+              <Typography variant='h6' gutterBottom>Teknisi DED / RAB</Typography>
+              {data.connectionDataId?.idTeknisiDED ? (
+                <>
+                  <Typography variant='body2' color='text.secondary'>Ditugaskan:</Typography>
+                  <Typography variant='body1' fontWeight={600}>{data.connectionDataId.idTeknisiDED.namaLengkap}</Typography>
+                  <Typography variant='body2' color='text.secondary'>{data.connectionDataId.idTeknisiDED.email}</Typography>
+                  {data.connectionDataId.assignedDEDAt && (
+                    <Typography variant='caption' color='text.secondary'>
+                      Assign: {new Date(data.connectionDataId.assignedDEDAt).toLocaleString('id-ID')}
+                    </Typography>
+                  )}
+                </>
+              ) : (
+                <Alert severity='warning' sx={{ mt: 1 }}>
+                  Survei disetujui. Assign teknisi untuk membuat dokumen DED dan RAB.
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Timestamps */}
         <Card>
           <CardContent>
@@ -488,6 +551,49 @@ export default function SurveyDataDetail() {
             </Grid>
           </CardContent>
         </Card>
+
+        {/* Dialog Assign Teknisi DED */}
+        <Dialog open={assignDEDOpen} onClose={() => setAssignDEDOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Assign Teknisi DED / RAB</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Pilih teknisi yang akan membuat dokumen DED dan tabel RAB berdasarkan hasil survei.
+            </Typography>
+            {loadingTeknisi ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <FormControl fullWidth>
+                <InputLabel>Pilih Teknisi</InputLabel>
+                <Select
+                  value={selectedTeknisiDED}
+                  onChange={(e) => setSelectedTeknisiDED(e.target.value)}
+                  label="Pilih Teknisi"
+                >
+                  <MenuItem value=""><em>-- Pilih Teknisi --</em></MenuItem>
+                  {teknisiList.map((t: any) => (
+                    <MenuItem key={t._id} value={t._id}>
+                      {t.namaLengkap} — {t.email}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { setAssignDEDOpen(false); setSelectedTeknisiDED(''); }}>Batal</Button>
+            <Button
+              variant="contained"
+              disabled={!selectedTeknisiDED || assigning}
+              onClick={() => assignTeknisiDED({
+                variables: { id: data.connectionDataId?._id, technicianId: selectedTeknisiDED },
+              })}
+            >
+              {assigning ? <CircularProgress size={20} /> : 'Assign'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Reject Dialog */}
         <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>

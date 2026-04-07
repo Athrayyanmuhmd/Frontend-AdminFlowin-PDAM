@@ -23,6 +23,22 @@ export const REJECT_SURVEI = gql`
   }
 `;
 
+export const ASSIGN_TEKNISI_DED = gql`
+  mutation AssignTeknisiDED($id: ID!, $technicianId: ID!) {
+    assignTeknisiDED(id: $id, technicianId: $technicianId) {
+      _id
+      idTeknisiDED {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
+      assignedDEDAt
+      updatedAt
+    }
+  }
+`;
+
 export const AKTIVASI_PELANGGAN = gql`
   mutation AktvasiPelanggan($koneksiDataId: ID!) {
     aktivasiPelanggan(koneksiDataId: $koneksiDataId) {

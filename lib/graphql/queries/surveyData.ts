@@ -53,6 +53,13 @@ export const GET_SURVEY_DATA_BY_ID = gql`
           email
           noHP
         }
+        idTeknisiDED {
+          _id
+          namaLengkap
+          email
+          noHP
+        }
+        assignedDEDAt
       }
       idTeknisi {
         _id
