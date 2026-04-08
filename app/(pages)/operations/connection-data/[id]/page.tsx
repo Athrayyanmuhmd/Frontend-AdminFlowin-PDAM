@@ -24,6 +24,12 @@ import {
   Step,
   StepLabel,
   StepContent,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  Checkbox,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -36,7 +42,6 @@ import {
   ZoomOut,
   RestartAlt,
   Visibility,
-  Speed,
   RadioButtonUnchecked,
   Person,
   Assignment,
@@ -45,6 +50,7 @@ import {
   ElectricMeter,
   Build,
   VerifiedUser,
+  GroupAdd,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
@@ -57,7 +63,8 @@ import { GET_SURVEI_BY_KONEKSI_DATA, GET_WO_BY_SURVEI } from '../../../../../lib
 import { GET_RAB_BY_KONEKSI_DATA, GET_WO_BY_RAB } from '../../../../../lib/graphql/queries/rabConnection';
 import { GET_METERAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/meteran';
 import { GET_PEMASANGAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/pemasangan';
-import { AKTIVASI_PELANGGAN } from '../../../../../lib/graphql/mutations/survei';
+import { GET_ALL_TEKNISI } from '../../../../../lib/graphql/queries/technicians';
+import { AKTIVASI_PELANGGAN, ASSIGN_TEKNISI_SURVEI, ASSIGN_TEKNISI_RAB } from '../../../../../lib/graphql/mutations/survei';
 
 const VERIFY_KONEKSI_DATA = gql`
   mutation VerifyKoneksiData($id: ID!, $status: String!, $catatan: String, $alasanPenolakan: String) {
@@ -84,14 +91,17 @@ const APPROVE_WORK_ORDER = gql`
 `;
 
 function formatRupiah(amount: number) {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
 }
 
 export default function ConnectionDataDetail() {
   const params = useParams();
   const router = useRouter();
   const { userRole } = useAdmin();
-
   const id = params.id as string;
 
   const [data, setData] = useState<ConnectionData | null>(null);
@@ -101,26 +111,29 @@ export default function ConnectionDataDetail() {
   const [actionLoading, setActionLoading] = useState(false);
   const [aktivasiDone, setAktivasiDone] = useState(false);
 
-  // Document viewer state
+  // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
   const [zoom, setZoom] = useState(100);
 
-  // Assignment dialog state
+  // Dialogs
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-
-  // Tolak dialog state
   const [tolakDialogOpen, setTolakDialogOpen] = useState(false);
   const [alasanPenolakanInput, setAlasanPenolakanInput] = useState('');
 
-  // WO approval dialog state
+  // WO approval dialog
   const [woApprovalDialogOpen, setWoApprovalDialogOpen] = useState(false);
   const [woApprovalType, setWoApprovalType] = useState<'survei' | 'rab' | null>(null);
-  const [woApprovalValue, setWoApprovalValue] = useState<boolean>(true);
+  const [woApprovalValue, setWoApprovalValue] = useState(true);
   const [woApprovalCatatan, setWoApprovalCatatan] = useState('');
 
-  // GraphQL Queries
+  // WO assign teknisi dialog (inline — no navigate away)
+  const [woAssignDialogOpen, setWoAssignDialogOpen] = useState(false);
+  const [woAssignType, setWoAssignType] = useState<'survei' | 'rab' | null>(null);
+  const [woAssignSelected, setWoAssignSelected] = useState<string[]>([]);
+
+  // ─── GraphQL queries ─────────────────────────────────────────────────────
   const { connectionData: graphqlData, loading: graphqlLoading, error: graphqlError, refetch } = useGetConnectionData(id);
 
   const { data: surveiResult, refetch: refetchSurvei } = useQuery(GET_SURVEI_BY_KONEKSI_DATA, {
@@ -128,57 +141,69 @@ export default function ConnectionDataDetail() {
     fetchPolicy: 'network-only',
     skip: !id,
   });
-  const survei = (surveiResult as any)?.getSurveiByKoneksiData || null;
+  const survei = (surveiResult as any)?.getSurveiByKoneksiData ?? null;
 
   const { data: rabResult, refetch: refetchRAB } = useQuery(GET_RAB_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
     fetchPolicy: 'network-only',
     skip: !id,
   });
-  const rab = (rabResult as any)?.getRABByKoneksiData || null;
+  const rab = (rabResult as any)?.getRABByKoneksiData ?? null;
 
   const { data: woSurveiResult, refetch: refetchWOSurvei } = useQuery(GET_WO_BY_SURVEI, {
     variables: { surveiId: survei?._id },
     fetchPolicy: 'network-only',
     skip: !survei?._id,
   });
-  const woSurvei = (woSurveiResult as any)?.getWOBySurvei || null;
+  const woSurvei = (woSurveiResult as any)?.getWOBySurvei ?? null;
 
   const { data: woRabResult, refetch: refetchWORAB } = useQuery(GET_WO_BY_RAB, {
     variables: { rabId: rab?._id },
     fetchPolicy: 'network-only',
     skip: !rab?._id,
   });
-  const woRab = (woRabResult as any)?.getWOByRAB || null;
+  const woRab = (woRabResult as any)?.getWOByRAB ?? null;
 
   const { data: meteranResult, refetch: refetchMeteran } = useQuery(GET_METERAN_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
     fetchPolicy: 'network-only',
     skip: !id,
   });
-  const meteran = (meteranResult as any)?.getMeteranByKoneksiData || null;
+  const meteran = (meteranResult as any)?.getMeteranByKoneksiData ?? null;
 
-  const { data: pemasanganResult, refetch: refetchPemasangan } = useQuery(GET_PEMASANGAN_BY_KONEKSI_DATA, {
+  const { data: pemasanganResult } = useQuery(GET_PEMASANGAN_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
     fetchPolicy: 'network-only',
     skip: !id,
   });
-  const pemasangan = (pemasanganResult as any)?.getPemasanganByKoneksiData || null;
+  const pemasangan = (pemasanganResult as any)?.getPemasanganByKoneksiData ?? null;
 
-  const [verifyKoneksiDataMutation] = useMutation(VERIFY_KONEKSI_DATA);
-  const [approveWorkOrderMutation] = useMutation(APPROVE_WORK_ORDER);
-  const [aktivasiPelangganMutation] = useMutation(AKTIVASI_PELANGGAN);
+  const { data: teknisiListResult } = useQuery(GET_ALL_TEKNISI, {
+    fetchPolicy: 'network-only',
+    skip: !woAssignDialogOpen,
+  });
+  const allTeknisi = (teknisiListResult as any)?.getAllTeknisi ?? [];
 
+  // ─── Mutations ───────────────────────────────────────────────────────────
+  const [verifyKoneksiData] = useMutation(VERIFY_KONEKSI_DATA);
+  const [approveWorkOrder] = useMutation(APPROVE_WORK_ORDER);
+  const [aktivasiPelanggan] = useMutation(AKTIVASI_PELANGGAN);
+  const [assignTeknisiSurvei] = useMutation(ASSIGN_TEKNISI_SURVEI);
+  const [assignTeknisiRAB] = useMutation(ASSIGN_TEKNISI_RAB);
+
+  // ─── Transform GraphQL data ───────────────────────────────────────────────
   useEffect(() => {
     if (graphqlData) {
-      const transformedData: ConnectionData = {
+      setData({
         _id: graphqlData._id,
-        userId: graphqlData.idPelanggan ? {
-          _id: graphqlData.idPelanggan._id,
-          namaLengkap: graphqlData.idPelanggan.namaLengkap,
-          email: graphqlData.idPelanggan.email,
-          noHP: graphqlData.idPelanggan.noHP,
-        } : null,
+        userId: graphqlData.idPelanggan
+          ? {
+              _id: graphqlData.idPelanggan._id,
+              namaLengkap: graphqlData.idPelanggan.namaLengkap,
+              email: graphqlData.idPelanggan.email,
+              noHP: graphqlData.idPelanggan.noHP,
+            }
+          : null,
         nik: graphqlData.NIK || '',
         nikUrl: graphqlData.NIKUrl || '',
         noKK: graphqlData.noKK || '',
@@ -190,9 +215,9 @@ export default function ConnectionDataDetail() {
         kecamatan: graphqlData.kecamatan,
         luasBangunan: graphqlData.luasBangunan,
         statusVerifikasi: graphqlData.statusVerifikasi,
-        catatan: graphqlData.catatan || null,
-        alasanPenolakan: graphqlData.alasanPenolakan || null,
-        tanggalVerifikasi: graphqlData.tanggalVerifikasi || null,
+        catatan: graphqlData.catatan ?? null,
+        alasanPenolakan: graphqlData.alasanPenolakan ?? null,
+        tanggalVerifikasi: graphqlData.tanggalVerifikasi ?? null,
         isVerifiedByData: graphqlData.statusVerifikasi === 'Disetujui',
         isVerifiedByTechnician: false,
         isAllProcedureDone: false,
@@ -200,40 +225,48 @@ export default function ConnectionDataDetail() {
         rabConnectionId: null,
         catatanTeknisi: null,
         tanggalVerifikasiTeknisi: null,
-        assignedTechnicianId: graphqlData.idTeknisi ? {
-          _id: graphqlData.idTeknisi._id,
-          namaLengkap: graphqlData.idTeknisi.namaLengkap,
-          email: graphqlData.idTeknisi.email,
-          noHP: graphqlData.idTeknisi.noHP,
-        } : null,
-        assignedAt: graphqlData.assignedAt || null,
-        assignedBy: graphqlData.assignedBy ? {
-          _id: graphqlData.assignedBy._id,
-          namaLengkap: graphqlData.assignedBy.namaLengkap,
-          email: graphqlData.assignedBy.email,
-        } : null,
+        assignedTechnicianId: graphqlData.idTeknisi
+          ? {
+              _id: graphqlData.idTeknisi._id,
+              namaLengkap: graphqlData.idTeknisi.namaLengkap,
+              email: graphqlData.idTeknisi.email,
+              noHP: graphqlData.idTeknisi.noHP,
+            }
+          : null,
+        assignedAt: graphqlData.assignedAt ?? null,
+        assignedBy: graphqlData.assignedBy
+          ? {
+              _id: graphqlData.assignedBy._id,
+              namaLengkap: graphqlData.assignedBy.namaLengkap,
+              email: graphqlData.assignedBy.email,
+            }
+          : null,
         createdAt: graphqlData.createdAt,
         updatedAt: graphqlData.updatedAt,
-      };
-      setData(transformedData);
+      } as ConnectionData);
     }
   }, [graphqlData]);
 
-  useEffect(() => {
-    if (graphqlError) setError(graphqlError.message);
-  }, [graphqlError]);
+  useEffect(() => { if (graphqlError) setError(graphqlError.message); }, [graphqlError]);
+  useEffect(() => { setLoading(graphqlLoading); }, [graphqlLoading]);
 
-  useEffect(() => {
-    setLoading(graphqlLoading);
-  }, [graphqlLoading]);
+  // ─── Step conditions ──────────────────────────────────────────────────────
+  const step1Done = data?.statusVerifikasi === 'Disetujui';
+  const step2Done = !!data?.assignedTechnicianId;
+  const step3Done = woSurvei?.disetujui === true;
+  const step4Done = woRab?.disetujui === true;
+  const step5Done = rab?.statusPembayaran === 'Settlement';
+  const step6Done = !!meteran;
+  const step7Done = pemasangan?.statusVerifikasi === 'Disetujui';
+  const step8Done = aktivasiDone || (meteran?.statusAktif === true);
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
   const handleVerifyAdmin = async () => {
     if (!data) return;
     setActionLoading(true);
     setError('');
-    setSuccess('');
     try {
-      await verifyKoneksiDataMutation({
+      await verifyKoneksiData({
         variables: { id: data._id, status: 'Disetujui', catatan: 'Diverifikasi oleh Admin' },
       });
       setSuccess('Dokumen berhasil diverifikasi');
@@ -249,9 +282,8 @@ export default function ConnectionDataDetail() {
     if (!data || !alasanPenolakanInput.trim()) return;
     setActionLoading(true);
     setError('');
-    setSuccess('');
     try {
-      await verifyKoneksiDataMutation({
+      await verifyKoneksiData({
         variables: { id: data._id, status: 'Ditolak', alasanPenolakan: alasanPenolakanInput.trim() },
       });
       setSuccess('Pengajuan berhasil ditolak');
@@ -278,10 +310,10 @@ export default function ConnectionDataDetail() {
     setActionLoading(true);
     setError('');
     try {
-      await approveWorkOrderMutation({
+      await approveWorkOrder({
         variables: { id: woId, disetujui: woApprovalValue, catatan: woApprovalCatatan || null },
       });
-      setSuccess(`WO ${woApprovalValue ? 'disetujui' : 'ditolak'}`);
+      setSuccess(`Work order ${woApprovalValue ? 'disetujui' : 'ditolak'}`);
       setWoApprovalDialogOpen(false);
       if (woApprovalType === 'survei') refetchWOSurvei();
       else refetchWORAB();
@@ -292,14 +324,52 @@ export default function ConnectionDataDetail() {
     }
   };
 
+  const openWoAssignDialog = (type: 'survei' | 'rab') => {
+    setWoAssignType(type);
+    setWoAssignSelected([]);
+    setWoAssignDialogOpen(true);
+  };
+
+  const handleToggleTeknisi = (id: string) => {
+    setWoAssignSelected(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleAssignWO = async () => {
+    if (!woAssignSelected.length) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      if (woAssignType === 'survei' && survei?._id) {
+        await assignTeknisiSurvei({
+          variables: { surveiId: survei._id, teknisiIds: woAssignSelected },
+        });
+        refetchWOSurvei();
+      } else if (woAssignType === 'rab' && rab?._id) {
+        await assignTeknisiRAB({
+          variables: { rabId: rab._id, teknisiIds: woAssignSelected },
+        });
+        refetchWORAB();
+      }
+      setSuccess('Teknisi berhasil ditugaskan ke work order');
+      setWoAssignDialogOpen(false);
+    } catch (err: any) {
+      setError(err.message || 'Gagal assign teknisi ke WO');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAktivasi = async () => {
     if (!data) return;
     setActionLoading(true);
     setError('');
     try {
-      await aktivasiPelangganMutation({ variables: { koneksiDataId: data._id } });
+      await aktivasiPelanggan({ variables: { koneksiDataId: data._id } });
       setSuccess('Pelanggan berhasil diaktifkan! Sambungan air sekarang aktif.');
       setAktivasiDone(true);
+      refetchMeteran();
     } catch (err: any) {
       setError(err.message || 'Gagal mengaktifkan pelanggan');
     } finally {
@@ -314,16 +384,7 @@ export default function ConnectionDataDetail() {
     setViewerOpen(true);
   };
 
-  // ─── Stepper conditions ───────────────────────────────────────────────────
-  const step1Done = data?.statusVerifikasi === 'Disetujui';
-  const step2Done = !!data?.assignedTechnicianId;
-  const step3Done = woSurvei?.disetujui === true;
-  const step4Done = woRab?.disetujui === true;
-  const step5Done = rab?.statusPembayaran === 'Settlement';
-  const step6Done = !!meteran;
-  const step7Done = pemasangan?.statusVerifikasi === 'Disetujui';
-  const step8Done = aktivasiDone;
-
+  // ─── Loading / Error states ───────────────────────────────────────────────
   if (loading) {
     return (
       <AdminLayout>
@@ -339,7 +400,9 @@ export default function ConnectionDataDetail() {
       <AdminLayout>
         <Box sx={{ p: 3 }}>
           <Alert severity="error">Data tidak ditemukan</Alert>
-          <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>Kembali</Button>
+          <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>
+            Kembali
+          </Button>
         </Box>
       </AdminLayout>
     );
@@ -348,7 +411,8 @@ export default function ConnectionDataDetail() {
   return (
     <AdminLayout>
       <Box sx={{ p: 3 }}>
-        {/* Header */}
+
+        {/* ─── Header ──────────────────────────────────────────────────── */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <IconButton onClick={() => router.back()} sx={{ mr: 2 }}>
             <ArrowBack />
@@ -368,32 +432,26 @@ export default function ConnectionDataDetail() {
           )}
         </Box>
 
-        {/* Alerts */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>
-        )}
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
-        {/* ═══════════════════ ALUR PENGAJUAN STEPPER ═══════════════════ */}
+        {/* ─── STEPPER ─────────────────────────────────────────────────── */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>Alur Pengajuan Sambungan Air</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Setiap tahap harus selesai sebelum tahap berikutnya dapat dimulai.
             </Typography>
+
             <Stepper orientation="vertical" nonLinear>
 
-              {/* ─── Step 1: Verifikasi Dokumen Admin ──────────────────────── */}
+              {/* Step 1 — Verifikasi Dokumen Admin */}
               <Step active={!step1Done && data.statusVerifikasi !== 'Ditolak'} completed={step1Done}>
-                <StepLabel
-                  icon={
-                    step1Done ? <CheckCircle color="success" /> :
-                    data.statusVerifikasi === 'Ditolak' ? <Cancel color="error" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  step1Done ? <CheckCircle color="success" /> :
+                  data.statusVerifikasi === 'Ditolak' ? <Cancel color="error" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Description fontSize="small" />
                     <Typography fontWeight={600}>Verifikasi Dokumen Admin</Typography>
@@ -431,15 +489,13 @@ export default function ConnectionDataDetail() {
                 </StepContent>
               </Step>
 
-              {/* ─── Step 2: Penugasan Teknisi Survei ─────────────────────── */}
+              {/* Step 2 — Penugasan Teknisi Survei */}
               <Step active={step1Done && !step2Done} completed={step2Done}>
-                <StepLabel
-                  icon={
-                    !step1Done ? <RadioButtonUnchecked color="disabled" /> :
-                    step2Done ? <CheckCircle color="success" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  !step1Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step2Done ? <CheckCircle color="success" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Person fontSize="small" />
                     <Typography fontWeight={600} color={!step1Done ? 'text.disabled' : 'text.primary'}>
@@ -478,7 +534,7 @@ export default function ConnectionDataDetail() {
                         </Button>
                       ) : (
                         <Typography variant="caption" color="text.secondary">
-                          Menunggu admin menugaskan teknisi
+                          Menunggu admin menugaskan teknisi.
                         </Typography>
                       )}
                     </>
@@ -486,30 +542,31 @@ export default function ConnectionDataDetail() {
                 </StepContent>
               </Step>
 
-              {/* ─── Step 3: Survei Lapangan ───────────────────────────────── */}
+              {/* Step 3 — Survei Lapangan */}
               <Step active={step2Done && !step3Done} completed={step3Done}>
-                <StepLabel
-                  icon={
-                    !step2Done ? <RadioButtonUnchecked color="disabled" /> :
-                    step3Done ? <CheckCircle color="success" /> :
-                    woSurvei?.disetujui === false ? <Cancel color="error" /> :
-                    survei ? <HourglassEmpty color="info" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  !step2Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step3Done ? <CheckCircle color="success" /> :
+                  woSurvei?.disetujui === false ? <Cancel color="error" /> :
+                  survei ? <HourglassEmpty color="info" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Assignment fontSize="small" />
                     <Typography fontWeight={600} color={!step2Done ? 'text.disabled' : 'text.primary'}>
                       Survei Lapangan
                     </Typography>
-                    {step2Done && survei && (
+                    {step2Done && (
                       <Chip size="small"
-                        label={step3Done ? 'WO Disetujui' : woSurvei?.disetujui === false ? 'WO Ditolak' : woSurvei ? 'Menunggu Persetujuan WO' : 'Data Survei Ada'}
-                        color={step3Done ? 'success' : woSurvei?.disetujui === false ? 'error' : 'info'}
+                        label={
+                          step3Done ? 'WO Disetujui' :
+                          woSurvei?.disetujui === false ? 'WO Ditolak' :
+                          woSurvei ? 'Menunggu Persetujuan WO' :
+                          survei ? 'Data Survei Ada' :
+                          'Belum Ada Data Survei'
+                        }
+                        color={step3Done ? 'success' : woSurvei?.disetujui === false ? 'error' : survei ? 'info' : 'warning'}
                       />
-                    )}
-                    {step2Done && !survei && (
-                      <Chip size="small" label="Belum Ada Data Survei" color="warning" />
                     )}
                   </Box>
                 </StepLabel>
@@ -517,74 +574,111 @@ export default function ConnectionDataDetail() {
                   {step2Done && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Teknisi melakukan survei lapangan dan mengisi data survei. Admin kemudian mereview dan menyetujui work order.
+                        Teknisi melakukan survei lapangan dan mengisi data survei. Admin membuat work order, lalu mereview dan menyetujuinya.
                       </Typography>
-                      {!survei ? (
-                        <Typography variant="body2" color="text.secondary">
-                          Menunggu teknisi ({data.assignedTechnicianId?.namaLengkap}) melakukan survei dan mengisi data lapangan.
-                        </Typography>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-                          <Button size="small" variant="outlined" startIcon={<Visibility />}
-                            onClick={() => router.push(`/operations/survey-data/${survei._id}`)}>
-                            Lihat Data Survei
-                          </Button>
-                          {woSurvei && !step3Done && userRole === 'admin' && (
-                            <>
-                              <Button size="small" variant="contained" color="success"
-                                startIcon={<CheckCircle />}
-                                onClick={() => openWoApprovalDialog('survei', true)}>
-                                Setujui WO Survei
-                              </Button>
-                              <Button size="small" variant="outlined" color="error"
-                                startIcon={<Cancel />}
-                                onClick={() => openWoApprovalDialog('survei', false)}>
-                                Tolak WO
-                              </Button>
-                            </>
-                          )}
-                          {!woSurvei && userRole === 'admin' && (
-                            <Button size="small" variant="outlined" color="primary"
-                              onClick={() => router.push(`/operations/survey-data/${survei._id}`)}>
-                              Kelola WO di Halaman Survei
+
+                      {/* No survei yet */}
+                      {!survei && (
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                            Menunggu data survei dari teknisi ({data.assignedTechnicianId?.namaLengkap}).
+                          </Typography>
+                          {userRole === 'admin' && (
+                            <Button size="small" variant="outlined" startIcon={<Assignment />}
+                              onClick={() => router.push(`/operations/survey-data/create?connectionId=${data._id}`)}>
+                              Input Data Survei
                             </Button>
                           )}
                         </Box>
                       )}
-                      {woSurvei?.catatan && (
-                        <Alert severity={woSurvei.disetujui === false ? 'error' : 'info'} sx={{ mt: 1 }}>
-                          Catatan WO: {woSurvei.catatan}
-                        </Alert>
+
+                      {/* Survei exists */}
+                      {survei && (
+                        <Box>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            Data survei sudah ada.{' '}
+                            <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, textDecoration: 'underline' }}
+                              onClick={() => router.push(`/operations/survey-data/${survei._id}`)}>
+                              Lihat detail
+                            </Button>
+                          </Typography>
+
+                          {/* No WO yet — assign teknisi inline */}
+                          {!woSurvei && userRole === 'admin' && (
+                            <Button size="small" variant="contained" startIcon={<GroupAdd />}
+                              onClick={() => openWoAssignDialog('survei')} sx={{ mr: 1 }}>
+                              Buat WO & Tugaskan Teknisi
+                            </Button>
+                          )}
+
+                          {/* WO exists, pending approval */}
+                          {woSurvei && !step3Done && (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>Teknisi WO:</strong>{' '}
+                                {woSurvei.tim?.map((t: any) => t.namaLengkap).join(', ') || '—'}
+                              </Typography>
+                              {userRole === 'admin' && (
+                                <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                  <Button size="small" variant="contained" color="success"
+                                    startIcon={<CheckCircle />}
+                                    onClick={() => openWoApprovalDialog('survei', true)}>
+                                    Setujui WO
+                                  </Button>
+                                  <Button size="small" variant="outlined" color="error"
+                                    startIcon={<Cancel />}
+                                    onClick={() => openWoApprovalDialog('survei', false)}>
+                                    Tolak WO
+                                  </Button>
+                                </Box>
+                              )}
+                            </Box>
+                          )}
+
+                          {/* WO approved */}
+                          {step3Done && (
+                            <Typography variant="body2" color="success.main">
+                              ✓ Work order survei telah disetujui
+                            </Typography>
+                          )}
+
+                          {woSurvei?.catatan && (
+                            <Alert severity={woSurvei.disetujui === false ? 'error' : 'info'} sx={{ mt: 1 }}>
+                              Catatan WO: {woSurvei.catatan}
+                            </Alert>
+                          )}
+                        </Box>
                       )}
                     </>
                   )}
                 </StepContent>
               </Step>
 
-              {/* ─── Step 4: Dokumen DED / RAB ────────────────────────────── */}
+              {/* Step 4 — Dokumen DED / RAB */}
               <Step active={step3Done && !step4Done} completed={step4Done}>
-                <StepLabel
-                  icon={
-                    !step3Done ? <RadioButtonUnchecked color="disabled" /> :
-                    step4Done ? <CheckCircle color="success" /> :
-                    woRab?.disetujui === false ? <Cancel color="error" /> :
-                    rab ? <HourglassEmpty color="info" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  !step3Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step4Done ? <CheckCircle color="success" /> :
+                  woRab?.disetujui === false ? <Cancel color="error" /> :
+                  rab ? <HourglassEmpty color="info" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AccountBalance fontSize="small" />
                     <Typography fontWeight={600} color={!step3Done ? 'text.disabled' : 'text.primary'}>
                       Dokumen DED / RAB
                     </Typography>
-                    {step3Done && rab && (
+                    {step3Done && (
                       <Chip size="small"
-                        label={step4Done ? 'WO Disetujui' : woRab?.disetujui === false ? 'WO Ditolak' : woRab ? 'Menunggu Persetujuan WO' : 'RAB Ada'}
-                        color={step4Done ? 'success' : woRab?.disetujui === false ? 'error' : 'info'}
+                        label={
+                          step4Done ? 'WO Disetujui' :
+                          woRab?.disetujui === false ? 'WO Ditolak' :
+                          woRab ? 'Menunggu Persetujuan WO' :
+                          rab ? 'RAB Ada' :
+                          'Belum Ada RAB'
+                        }
+                        color={step4Done ? 'success' : woRab?.disetujui === false ? 'error' : rab ? 'info' : 'warning'}
                       />
-                    )}
-                    {step3Done && !rab && (
-                      <Chip size="small" label="Belum Ada RAB" color="warning" />
                     )}
                   </Box>
                 </StepLabel>
@@ -592,45 +686,74 @@ export default function ConnectionDataDetail() {
                   {step3Done && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Teknisi membuat dokumen DED dan Rancangan Anggaran Biaya (RAB). Admin mereview dan menyetujui.
+                        Teknisi membuat dokumen DED dan Rancangan Anggaran Biaya (RAB). Admin membuat work order lalu mereview dan menyetujuinya.
                       </Typography>
-                      {!rab ? (
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+
+                      {/* No RAB yet */}
+                      {!rab && (
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                           <Typography variant="body2" color="text.secondary">
                             Menunggu teknisi membuat dokumen DED dan RAB.
                           </Typography>
                           {userRole === 'admin' && (
-                            <Button size="small" variant="outlined"
-                              onClick={() => router.push(`/operations/rab-connection/create?koneksiId=${data._id}`)}>
-                              Buat RAB Baru
+                            <Button size="small" variant="outlined" startIcon={<AccountBalance />}
+                              onClick={() => router.push(`/operations/rab-connection/create?connectionId=${data._id}`)}>
+                              Buat RAB
                             </Button>
                           )}
                         </Box>
-                      ) : (
+                      )}
+
+                      {/* RAB exists */}
+                      {rab && (
                         <Box>
                           <Typography variant="body2" sx={{ mb: 1 }}>
-                            <strong>Total Biaya RAB:</strong> {formatRupiah(rab.totalBiaya)}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Button size="small" variant="outlined" startIcon={<Visibility />}
+                            <strong>Total Biaya RAB:</strong> {formatRupiah(rab.totalBiaya)}{' '}
+                            <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, textDecoration: 'underline' }}
                               onClick={() => router.push(`/operations/rab-connection/${rab._id}`)}>
-                              Lihat Detail RAB
+                              Lihat detail
                             </Button>
-                            {woRab && !step4Done && userRole === 'admin' && (
-                              <>
-                                <Button size="small" variant="contained" color="success"
-                                  startIcon={<CheckCircle />}
-                                  onClick={() => openWoApprovalDialog('rab', true)}>
-                                  Setujui WO RAB
-                                </Button>
-                                <Button size="small" variant="outlined" color="error"
-                                  startIcon={<Cancel />}
-                                  onClick={() => openWoApprovalDialog('rab', false)}>
-                                  Tolak WO
-                                </Button>
-                              </>
-                            )}
-                          </Box>
+                          </Typography>
+
+                          {/* No WO yet — assign inline */}
+                          {!woRab && userRole === 'admin' && (
+                            <Button size="small" variant="contained" startIcon={<GroupAdd />}
+                              onClick={() => openWoAssignDialog('rab')} sx={{ mr: 1 }}>
+                              Buat WO & Tugaskan Teknisi
+                            </Button>
+                          )}
+
+                          {/* WO pending approval */}
+                          {woRab && !step4Done && (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                <strong>Teknisi WO:</strong>{' '}
+                                {woRab.tim?.map((t: any) => t.namaLengkap).join(', ') || '—'}
+                              </Typography>
+                              {userRole === 'admin' && (
+                                <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                  <Button size="small" variant="contained" color="success"
+                                    startIcon={<CheckCircle />}
+                                    onClick={() => openWoApprovalDialog('rab', true)}>
+                                    Setujui WO
+                                  </Button>
+                                  <Button size="small" variant="outlined" color="error"
+                                    startIcon={<Cancel />}
+                                    onClick={() => openWoApprovalDialog('rab', false)}>
+                                    Tolak WO
+                                  </Button>
+                                </Box>
+                              )}
+                            </Box>
+                          )}
+
+                          {/* WO approved */}
+                          {step4Done && (
+                            <Typography variant="body2" color="success.main">
+                              ✓ Work order RAB telah disetujui
+                            </Typography>
+                          )}
+
                           {woRab?.catatan && (
                             <Alert severity={woRab.disetujui === false ? 'error' : 'info'} sx={{ mt: 1 }}>
                               Catatan WO: {woRab.catatan}
@@ -643,15 +766,13 @@ export default function ConnectionDataDetail() {
                 </StepContent>
               </Step>
 
-              {/* ─── Step 5: Pembayaran RAB ────────────────────────────────── */}
+              {/* Step 5 — Pembayaran RAB */}
               <Step active={step4Done && !step5Done} completed={step5Done}>
-                <StepLabel
-                  icon={
-                    !step4Done ? <RadioButtonUnchecked color="disabled" /> :
-                    step5Done ? <CheckCircle color="success" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  !step4Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step5Done ? <CheckCircle color="success" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Payment fontSize="small" />
                     <Typography fontWeight={600} color={!step4Done ? 'text.disabled' : 'text.primary'}>
@@ -659,7 +780,7 @@ export default function ConnectionDataDetail() {
                     </Typography>
                     {step4Done && rab && (
                       <Chip size="small"
-                        label={step5Done ? 'Lunas' : rab.statusPembayaran === 'Pending' ? 'Menunggu Pembayaran' : rab.statusPembayaran}
+                        label={step5Done ? 'Lunas' : 'Menunggu Pembayaran'}
                         color={step5Done ? 'success' : 'warning'}
                       />
                     )}
@@ -669,66 +790,58 @@ export default function ConnectionDataDetail() {
                   {step4Done && rab && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Pelanggan melakukan pembayaran biaya pemasangan sesuai RAB yang telah disetujui.
-                      </Typography>
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Total Tagihan RAB:</strong> {formatRupiah(rab.totalBiaya)}
+                        Pelanggan melakukan pembayaran biaya pemasangan sesuai RAB yang telah disetujui melalui aplikasi.
+                        Status akan otomatis diperbarui setelah konfirmasi payment gateway.
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Status:</strong>{' '}
+                        <strong>Total Tagihan:</strong> {formatRupiah(rab.totalBiaya)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <strong>Status Pembayaran:</strong>{' '}
                         <Chip size="small"
-                          label={step5Done ? 'Lunas (Settlement)' : 'Menunggu Pembayaran'}
+                          label={step5Done ? 'Settlement (Lunas)' : rab.statusPembayaran || 'Pending'}
                           color={step5Done ? 'success' : 'warning'}
                         />
                       </Typography>
-                      {!step5Done && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                          Pembayaran dilakukan oleh pelanggan melalui aplikasi. Status akan otomatis terupdate setelah konfirmasi dari payment gateway.
-                        </Typography>
-                      )}
                     </>
                   )}
                 </StepContent>
               </Step>
 
-              {/* ─── Step 6: Pendaftaran Meteran ──────────────────────────── */}
+              {/* Step 6 — Pendaftaran Meteran */}
               <Step active={step5Done && !step6Done} completed={step6Done}>
-                <StepLabel
-                  icon={
-                    !step5Done ? <RadioButtonUnchecked color="disabled" /> :
-                    step6Done ? <CheckCircle color="success" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  !step5Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step6Done ? <CheckCircle color="success" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <ElectricMeter fontSize="small" />
                     <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
-                      Pendaftaran Meteran (Penerbitan ID)
+                      Pendaftaran Meteran (Penerbitan ID Pelanggan)
                     </Typography>
-                    {step6Done && (
-                      <Chip size="small" label={`No. ${meteran.nomorMeteran}`} color="success" />
-                    )}
+                    {step6Done && <Chip size="small" label={`No. ${meteran.nomorMeteran}`} color="success" />}
                   </Box>
                 </StepLabel>
                 <StepContent>
                   {step5Done && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Admin mendaftarkan meteran baru dan menerbitkan nomor akun (ID) untuk pelanggan.
+                        Admin mendaftarkan meteran baru untuk pelanggan dan menerbitkan nomor akun (ID) resmi.
                       </Typography>
                       {step6Done ? (
                         <Box>
                           <Typography variant="body2"><strong>Nomor Meteran:</strong> {meteran.nomorMeteran}</Typography>
                           <Typography variant="body2"><strong>Nomor Akun:</strong> {meteran.nomorAkun}</Typography>
                           <Typography variant="body2"><strong>Kelompok:</strong> {meteran.idKelompokPelanggan?.namaKelompok || '—'}</Typography>
-                          <Button size="small" variant="text" sx={{ mt: 0.5 }}
+                          <Button size="small" variant="text" sx={{ mt: 0.5, textDecoration: 'underline', p: 0, minWidth: 0 }}
                             onClick={() => router.push(`/operations/meteran/${meteran._id}`)}>
-                            Lihat Detail Meteran
+                            Lihat detail meteran
                           </Button>
                         </Box>
                       ) : userRole === 'admin' ? (
                         <Button size="small" variant="contained" startIcon={<ElectricMeter />}
-                          onClick={() => router.push(`/operations/meteran/create?koneksiId=${data._id}`)}>
+                          onClick={() => router.push(`/operations/meteran/create?connectionId=${data._id}`)}>
                           Daftarkan Meteran Baru
                         </Button>
                       ) : (
@@ -741,29 +854,24 @@ export default function ConnectionDataDetail() {
                 </StepContent>
               </Step>
 
-              {/* ─── Step 7: Pemasangan Meteran ───────────────────────────── */}
+              {/* Step 7 — Pemasangan Meteran */}
               <Step active={step6Done && !step7Done} completed={step7Done}>
-                <StepLabel
-                  icon={
-                    !step6Done ? <RadioButtonUnchecked color="disabled" /> :
-                    step7Done ? <CheckCircle color="success" /> :
-                    pemasangan ? <HourglassEmpty color="info" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  !step6Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step7Done ? <CheckCircle color="success" /> :
+                  pemasangan ? <HourglassEmpty color="info" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Build fontSize="small" />
                     <Typography fontWeight={600} color={!step6Done ? 'text.disabled' : 'text.primary'}>
-                      Pemasangan Meteran
+                      Pemasangan & Pengawasan Meteran
                     </Typography>
-                    {step6Done && pemasangan && (
+                    {step6Done && (
                       <Chip size="small"
-                        label={step7Done ? 'Terverifikasi' : pemasangan.statusVerifikasi === 'Menunggu' ? 'Menunggu Verifikasi' : pemasangan.statusVerifikasi}
-                        color={step7Done ? 'success' : 'warning'}
+                        label={step7Done ? 'Terverifikasi' : pemasangan ? `Status: ${pemasangan.statusVerifikasi}` : 'Belum Dipasang'}
+                        color={step7Done ? 'success' : pemasangan ? 'info' : 'warning'}
                       />
-                    )}
-                    {step6Done && !pemasangan && (
-                      <Chip size="small" label="Belum Dipasang" color="warning" />
                     )}
                   </Box>
                 </StepLabel>
@@ -771,7 +879,7 @@ export default function ConnectionDataDetail() {
                   {step6Done && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Teknisi melakukan pemasangan meteran di lokasi pelanggan. Admin memverifikasi hasil pemasangan.
+                        Teknisi melakukan pemasangan meteran di lokasi. Admin dan supervisor melakukan pengawasan, lalu memverifikasi hasilnya.
                       </Typography>
                       {pemasangan ? (
                         <Box>
@@ -782,17 +890,23 @@ export default function ConnectionDataDetail() {
                               <strong>Tanggal:</strong> {new Date(pemasangan.tanggalPemasangan).toLocaleDateString('id-ID')}
                             </Typography>
                           )}
-                          <Button size="small" variant="outlined" startIcon={<Visibility />} sx={{ mt: 1 }}
-                            onClick={() => router.push(`/operations/pemasangan`)}>
-                            Lihat Detail Pemasangan
-                          </Button>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Button size="small" variant="outlined"
+                              onClick={() => router.push(`/operations/pemasangan`)}>
+                              Halaman Pemasangan
+                            </Button>
+                            <Button size="small" variant="outlined"
+                              onClick={() => router.push(`/operations/pengawasan-pemasangan`)}>
+                              Halaman Pengawasan
+                            </Button>
+                          </Box>
                         </Box>
                       ) : (
-                        <Box>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                           <Typography variant="body2" color="text.secondary">
-                            Menunggu teknisi melakukan pemasangan meteran fisik di lokasi.
+                            Menunggu teknisi melakukan pemasangan meteran fisik.
                           </Typography>
-                          <Button size="small" variant="outlined" startIcon={<Speed />} sx={{ mt: 1 }}
+                          <Button size="small" variant="outlined"
                             onClick={() => router.push(`/operations/pemasangan`)}>
                             Halaman Pemasangan
                           </Button>
@@ -803,15 +917,13 @@ export default function ConnectionDataDetail() {
                 </StepContent>
               </Step>
 
-              {/* ─── Step 8: Aktivasi Pelanggan ───────────────────────────── */}
+              {/* Step 8 — Aktivasi Pelanggan */}
               <Step active={step7Done && !step8Done} completed={step8Done}>
-                <StepLabel
-                  icon={
-                    !step7Done ? <RadioButtonUnchecked color="disabled" /> :
-                    step8Done ? <CheckCircle color="success" /> :
-                    <HourglassEmpty color="warning" />
-                  }
-                >
+                <StepLabel icon={
+                  !step7Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step8Done ? <CheckCircle color="success" /> :
+                  <HourglassEmpty color="warning" />
+                }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <VerifiedUser fontSize="small" />
                     <Typography fontWeight={600} color={!step7Done ? 'text.disabled' : 'text.primary'}>
@@ -824,16 +936,16 @@ export default function ConnectionDataDetail() {
                   {step7Done && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Admin mengaktifkan akun pelanggan dan meteran. Pelanggan akan menerima notifikasi bahwa sambungan air sudah aktif.
+                        Admin mengaktifkan akun pelanggan dan meteran. Pelanggan akan mendapat notifikasi bahwa sambungan air sudah aktif.
                       </Typography>
                       {step8Done ? (
                         <Alert severity="success">
-                          Sambungan air pelanggan telah aktif. Meteran nomor <strong>{meteran?.nomorMeteran}</strong> sudah berjalan.
+                          Sambungan air pelanggan telah aktif. Meteran <strong>{meteran?.nomorMeteran}</strong> sudah berjalan.
                         </Alert>
                       ) : userRole === 'admin' ? (
                         <Button variant="contained" color="success"
-                          onClick={handleAktivasi} disabled={actionLoading}
-                          startIcon={actionLoading ? <CircularProgress size={20} /> : <VerifiedUser />}>
+                          startIcon={actionLoading ? <CircularProgress size={20} /> : <VerifiedUser />}
+                          onClick={handleAktivasi} disabled={actionLoading}>
                           Aktivasi Pelanggan
                         </Button>
                       ) : (
@@ -850,36 +962,28 @@ export default function ConnectionDataDetail() {
           </CardContent>
         </Card>
 
-        {/* ═══════════════════ INFO PELANGGAN ═══════════════════ */}
+        {/* ─── Info Pelanggan ───────────────────────────────────────────── */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>Informasi Pelanggan</Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="body2" color="text.secondary">Nama Lengkap</Typography>
-                <Typography variant="body1">{data.userId?.namaLengkap || 'N/A'}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="body2" color="text.secondary">Email</Typography>
-                <Typography variant="body1">{data.userId?.email || 'N/A'}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="body2" color="text.secondary">Nomor HP</Typography>
-                <Typography variant="body1">{data.userId?.noHP || 'N/A'}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="body2" color="text.secondary">NIK</Typography>
-                <Typography variant="body1">{data.nik || '—'}</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="body2" color="text.secondary">Nomor KK</Typography>
-                <Typography variant="body1">{data.noKK}</Typography>
-              </Grid>
+              {[
+                { label: 'Nama Lengkap', value: data.userId?.namaLengkap },
+                { label: 'Email', value: data.userId?.email },
+                { label: 'Nomor HP', value: data.userId?.noHP },
+                { label: 'NIK', value: data.nik },
+                { label: 'Nomor KK', value: data.noKK },
+              ].map(({ label, value }) => (
+                <Grid item xs={12} md={6} key={label}>
+                  <Typography variant="body2" color="text.secondary">{label}</Typography>
+                  <Typography variant="body1">{value || '—'}</Typography>
+                </Grid>
+              ))}
             </Grid>
           </CardContent>
         </Card>
 
-        {/* ═══════════════════ INFO PROPERTI ═══════════════════ */}
+        {/* ─── Info Properti ────────────────────────────────────────────── */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>Informasi Properti</Typography>
@@ -904,7 +1008,7 @@ export default function ConnectionDataDetail() {
           </CardContent>
         </Card>
 
-        {/* ═══════════════════ DOKUMEN ═══════════════════ */}
+        {/* ─── Dokumen ──────────────────────────────────────────────────── */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>Dokumen Pengajuan</Typography>
@@ -929,20 +1033,20 @@ export default function ConnectionDataDetail() {
           </CardContent>
         </Card>
 
-        {/* ═══════════════════ TIMESTAMPS ═══════════════════ */}
+        {/* ─── Timestamps ───────────────────────────────────────────────── */}
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>Informasi Waktu</Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Typography variant="body2" color="text.secondary">Tanggal Pengajuan:</Typography>
+                <Typography variant="body2" color="text.secondary">Tanggal Pengajuan</Typography>
                 <Typography variant="body1">
                   {data.createdAt ? new Date(data.createdAt).toLocaleString('id-ID') : '—'}
                 </Typography>
               </Grid>
               {data.tanggalVerifikasi && (
                 <Grid item xs={12} md={6}>
-                  <Typography variant="body2" color="text.secondary">Tanggal Verifikasi Admin:</Typography>
+                  <Typography variant="body2" color="text.secondary">Tanggal Verifikasi Admin</Typography>
                   <Typography variant="body1">
                     {new Date(data.tanggalVerifikasi).toLocaleString('id-ID')}
                   </Typography>
@@ -952,22 +1056,19 @@ export default function ConnectionDataDetail() {
           </CardContent>
         </Card>
 
-        {/* ═══════════════════ DIALOGS ═══════════════════ */}
+        {/* ═══════════════ DIALOGS ═══════════════ */}
 
         {/* Tolak Dialog */}
         <Dialog open={tolakDialogOpen} onClose={() => setTolakDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Tolak Pengajuan Sambungan Air</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Masukkan alasan penolakan pengajuan dari <strong>{data?.userId?.namaLengkap}</strong>.
+              Masukkan alasan penolakan untuk <strong>{data?.userId?.namaLengkap}</strong>.
             </Typography>
-            <TextField
-              fullWidth multiline rows={4}
-              label="Alasan Penolakan"
-              value={alasanPenolakanInput}
+            <TextField fullWidth multiline rows={4}
+              label="Alasan Penolakan" value={alasanPenolakanInput}
               onChange={e => setAlasanPenolakanInput(e.target.value)}
-              required
-              error={!alasanPenolakanInput.trim()}
+              required error={!alasanPenolakanInput.trim()}
               helperText={!alasanPenolakanInput.trim() ? 'Alasan penolakan wajib diisi' : ''}
             />
           </DialogContent>
@@ -989,27 +1090,65 @@ export default function ConnectionDataDetail() {
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {woApprovalValue
-                ? 'Konfirmasi persetujuan work order. Proses akan berlanjut ke tahap berikutnya.'
+                ? 'Konfirmasi persetujuan. Proses akan berlanjut ke tahap berikutnya.'
                 : 'Masukkan alasan penolakan work order.'}
             </Typography>
-            <TextField
-              fullWidth multiline rows={3}
-              label={woApprovalValue ? 'Catatan (opsional)' : 'Alasan Penolakan'}
+            <TextField fullWidth multiline rows={3}
+              label={woApprovalValue ? 'Catatan (opsional)' : 'Alasan Penolakan *'}
               value={woApprovalCatatan}
               onChange={e => setWoApprovalCatatan(e.target.value)}
               required={!woApprovalValue}
+              error={!woApprovalValue && !woApprovalCatatan.trim()}
             />
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setWoApprovalDialogOpen(false)}>Batal</Button>
-            <Button
-              variant="contained"
-              color={woApprovalValue ? 'success' : 'error'}
+            <Button variant="contained" color={woApprovalValue ? 'success' : 'error'}
               onClick={handleApproveWO}
               disabled={actionLoading || (!woApprovalValue && !woApprovalCatatan.trim())}
-              startIcon={actionLoading ? <CircularProgress size={20} /> : woApprovalValue ? <CheckCircle /> : <Cancel />}
-            >
+              startIcon={actionLoading ? <CircularProgress size={20} /> : woApprovalValue ? <CheckCircle /> : <Cancel />}>
               {woApprovalValue ? 'Setujui' : 'Tolak'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* WO Assign Teknisi Dialog */}
+        <Dialog open={woAssignDialogOpen} onClose={() => setWoAssignDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            Tugaskan Teknisi ke Work Order {woAssignType === 'survei' ? 'Survei' : 'RAB'}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Pilih satu atau lebih teknisi yang akan menangani pekerjaan ini.
+            </Typography>
+            {allTeknisi.length === 0 ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : (
+              <List dense>
+                {allTeknisi.map((t: any) => (
+                  <ListItem key={t._id} disablePadding>
+                    <ListItemButton onClick={() => handleToggleTeknisi(t._id)}>
+                      <ListItemIcon>
+                        <Checkbox edge="start" checked={woAssignSelected.includes(t._id)} disableRipple />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={t.namaLengkap}
+                        secondary={`${t.divisi} · ${t.noHP}`}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setWoAssignDialogOpen(false)}>Batal</Button>
+            <Button variant="contained" onClick={handleAssignWO}
+              disabled={actionLoading || woAssignSelected.length === 0}
+              startIcon={actionLoading ? <CircularProgress size={20} /> : <GroupAdd />}>
+              Tugaskan ({woAssignSelected.length} dipilih)
             </Button>
           </DialogActions>
         </Dialog>
@@ -1037,7 +1176,7 @@ export default function ConnectionDataDetail() {
           </DialogContent>
         </Dialog>
 
-        {/* Assign Technician Dialog (step 2) */}
+        {/* Assign Technician Dialog (step 2 — KoneksiData) */}
         <AssignTechnicianDialog
           open={assignDialogOpen}
           onClose={() => setAssignDialogOpen(false)}
@@ -1049,6 +1188,7 @@ export default function ConnectionDataDetail() {
             refetch();
           }}
         />
+
       </Box>
     </AdminLayout>
   );
