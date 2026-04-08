@@ -90,13 +90,13 @@ export const GET_WORK_ORDER_BY_ID = gql`
       }
       idPengawasanPemasangan {
         _id
-        terpasang
-        standar
+        hasilPengawasan
+        perluTindakLanjut
       }
       idPengawasanSetelahPemasangan {
         _id
-        terpasang
-        standar
+        hasilPengawasan
+        statusMeteran
       }
       tim {
         _id
