@@ -6,7 +6,6 @@ export const CREATE_WORK_ORDER = gql`
       _id
       idSurvei {
         _id
-        namaKlien
       }
       rabId {
         _id
