@@ -78,6 +78,22 @@ export const GET_PEMASANGAN = gql`
   }
 `;
 
+export const GET_PEMASANGAN_BY_KONEKSI_DATA = gql`
+  query GetPemasanganByKoneksiData($idKoneksiData: ID!) {
+    getPemasanganByKoneksiData(idKoneksiData: $idKoneksiData) {
+      _id
+      statusVerifikasi
+      seriMeteran
+      tanggalPemasangan
+      teknisiId {
+        _id
+        namaLengkap
+      }
+      createdAt
+    }
+  }
+`;
+
 export const GET_PEMASANGAN_BY_STATUS = gql`
   query GetPemasanganByStatus($statusVerifikasi: String!) {
     getPemasanganByStatus(statusVerifikasi: $statusVerifikasi) {

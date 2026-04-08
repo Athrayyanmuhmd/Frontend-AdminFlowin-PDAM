@@ -71,6 +71,22 @@ export const GET_METERAN_BY_ID = gql`
   }
 `;
 
+export const GET_METERAN_BY_KONEKSI_DATA = gql`
+  query GetMeteranByKoneksiData($idKoneksiData: ID!) {
+    getMeteranByKoneksiData(idKoneksiData: $idKoneksiData) {
+      _id
+      nomorMeteran
+      nomorAkun
+      statusAktif
+      idKelompokPelanggan {
+        _id
+        namaKelompok
+      }
+      createdAt
+    }
+  }
+`;
+
 export const GET_METERAN_BY_PELANGGAN = gql`
   query GetMeteranByPelanggan($idPelanggan: ID!) {
     getMeteranByPelanggan(idPelanggan: $idPelanggan) {
