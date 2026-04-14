@@ -2,29 +2,29 @@ import { gql } from '@apollo/client';
 
 /**
  * GraphQL Queries untuk Meteran (Smart Water Meter)
- * Backend: BE_backend/graphql/resolvers/index.js
+ * Disesuaikan dengan Ahmad's schema: PascalCase FK fields
  */
 
 export const GET_ALL_METERAN = gql`
-  query GetAllMeteran {
-    getAllMeteran {
+  query GetAllMeteran($limit: Int, $offset: Int) {
+    getAllMeteran(limit: $limit, offset: $offset) {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
       pemakaianBelumTerbayar
       totalPemakaian
-      idKelompokPelanggan {
+      IdKelompokPelanggan {
         _id
-        namaKelompok
-        hargaDiBawah10mKubik
-        hargaDiAtas10mKubik
-        biayaBeban
+        NamaKelompok
+        TarifRendah
+        TarifTinggi
+        BiayaBeban
       }
-      idKoneksiData {
+      IdKoneksiData {
         _id
-        alamat
-        idPelanggan {
+        Alamat
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -41,24 +41,24 @@ export const GET_METERAN_BY_ID = gql`
   query GetMeteran($id: ID!) {
     getMeteran(id: $id) {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
       pemakaianBelumTerbayar
       totalPemakaian
-      idKelompokPelanggan {
+      IdKelompokPelanggan {
         _id
-        namaKelompok
-        hargaDiBawah10mKubik
-        hargaDiAtas10mKubik
-        biayaBeban
+        NamaKelompok
+        TarifRendah
+        TarifTinggi
+        BiayaBeban
       }
-      idKoneksiData {
+      IdKoneksiData {
         _id
         NIK
-        alamat
-        statusVerifikasi
-        idPelanggan {
+        Alamat
+        StatusPengajuan
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -72,15 +72,15 @@ export const GET_METERAN_BY_ID = gql`
 `;
 
 export const GET_METERAN_BY_KONEKSI_DATA = gql`
-  query GetMeteranByKoneksiData($idKoneksiData: ID!) {
-    getMeteranByKoneksiData(idKoneksiData: $idKoneksiData) {
+  query GetMeteranByKoneksiData($IdKoneksiData: ID!) {
+    getMeteranByKoneksiData(IdKoneksiData: $IdKoneksiData) {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
-      idKelompokPelanggan {
+      IdKelompokPelanggan {
         _id
-        namaKelompok
+        NamaKelompok
       }
       createdAt
     }
@@ -91,18 +91,18 @@ export const GET_METERAN_BY_PELANGGAN = gql`
   query GetMeteranByPelanggan($idPelanggan: ID!) {
     getMeteranByPelanggan(idPelanggan: $idPelanggan) {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
       totalPemakaian
       pemakaianBelumTerbayar
-      idKelompokPelanggan {
+      IdKelompokPelanggan {
         _id
-        namaKelompok
+        NamaKelompok
       }
-      idKoneksiData {
+      IdKoneksiData {
         _id
-        alamat
+        Alamat
       }
       createdAt
       updatedAt
@@ -110,26 +110,6 @@ export const GET_METERAN_BY_PELANGGAN = gql`
   }
 `;
 
-/**
- * Query untuk mendapatkan history usage meteran
- * Untuk monitoring real-time water consumption
- */
-export const GET_HISTORY_USAGE_BY_METERAN = gql`
-  query GetHistoryUsageByMeteran($nomorMeteran: String!) {
-    getHistoryUsageByMeteran(nomorMeteran: $nomorMeteran) {
-      _id
-      nomorMeteran
-      pemakaian
-      tanggal
-      createdAt
-    }
-  }
-`;
-
-/**
- * Query untuk statistik meteran
- * Total meteran, active, offline, dll
- */
 export const GET_METERAN_STATS = gql`
   query GetMeteranStats {
     getDashboardStats {
@@ -139,10 +119,6 @@ export const GET_METERAN_STATS = gql`
   }
 `;
 
-/**
- * Query untuk riwayat penggunaan air bulanan per meteran
- * Digunakan untuk grafik monitoring (line chart bulanan)
- */
 export const GET_RIWAYAT_PENGGUNAAN_BULANAN = gql`
   query GetRiwayatPenggunaanBulanan($meteranId: ID!) {
     getRiwayatPenggunaanBulanan(meteranId: $meteranId) {
@@ -153,10 +129,6 @@ export const GET_RIWAYAT_PENGGUNAAN_BULANAN = gql`
   }
 `;
 
-/**
- * Query untuk riwayat penggunaan air terbaru per meteran
- * Digunakan untuk tabel detail / chart realtime
- */
 export const GET_RIWAYAT_PENGGUNAAN = gql`
   query GetRiwayatPenggunaan($meteranId: ID!, $limit: Int) {
     getRiwayatPenggunaan(meteranId: $meteranId, limit: $limit) {
@@ -167,9 +139,6 @@ export const GET_RIWAYAT_PENGGUNAAN = gql`
   }
 `;
 
-/**
- * Query untuk estimasi biaya berdasarkan pemakaian belum terbayar
- */
 export const GET_ESTIMASI_BIAYA = gql`
   query GetEstimasiBiaya($meteranId: ID!) {
     getEstimasiBiaya(meteranId: $meteranId) {
@@ -186,24 +155,24 @@ export const GET_ESTIMASI_BIAYA = gql`
 
 export const CREATE_METERAN = gql`
   mutation CreateMeteran(
-    $idKelompokPelanggan: ID!
-    $nomorMeteran: String!
-    $nomorAkun: String!
-    $idKoneksiData: ID
+    $IdKelompokPelanggan: ID!
+    $NomorMeteran: String!
+    $NomorAkun: String!
+    $IdKoneksiData: ID
   ) {
     createMeteran(
-      idKelompokPelanggan: $idKelompokPelanggan
-      nomorMeteran: $nomorMeteran
-      nomorAkun: $nomorAkun
-      idKoneksiData: $idKoneksiData
+      IdKelompokPelanggan: $IdKelompokPelanggan
+      NomorMeteran: $NomorMeteran
+      NomorAkun: $NomorAkun
+      IdKoneksiData: $IdKoneksiData
     ) {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
-      idKelompokPelanggan {
+      IdKelompokPelanggan {
         _id
-        namaKelompok
+        NamaKelompok
       }
       createdAt
     }
@@ -213,27 +182,27 @@ export const CREATE_METERAN = gql`
 export const UPDATE_METERAN = gql`
   mutation UpdateMeteran(
     $id: ID!
-    $idKelompokPelanggan: ID
-    $nomorMeteran: String
-    $nomorAkun: String
-    $idKoneksiData: ID
+    $IdKelompokPelanggan: ID
+    $NomorMeteran: String
+    $NomorAkun: String
+    $IdKoneksiData: ID
     $statusAktif: Boolean
   ) {
     updateMeteran(
       id: $id
-      idKelompokPelanggan: $idKelompokPelanggan
-      nomorMeteran: $nomorMeteran
-      nomorAkun: $nomorAkun
-      idKoneksiData: $idKoneksiData
+      IdKelompokPelanggan: $IdKelompokPelanggan
+      NomorMeteran: $NomorMeteran
+      NomorAkun: $NomorAkun
+      IdKoneksiData: $IdKoneksiData
       statusAktif: $statusAktif
     ) {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
-      idKelompokPelanggan {
+      IdKelompokPelanggan {
         _id
-        namaKelompok
+        NamaKelompok
       }
     }
   }
@@ -241,6 +210,20 @@ export const UPDATE_METERAN = gql`
 
 export const DELETE_METERAN = gql`
   mutation DeleteMeteran($id: ID!) {
-    deleteMeteran(id: $id)
+    deleteMeteran(id: $id) {
+      success
+      message
+    }
+  }
+`;
+
+// Stub — endpoint ini tidak ada di backend; hook useMeteran masih import ini
+export const GET_HISTORY_USAGE_BY_METERAN = gql`
+  query GetHistoryUsageByMeteran($nomorMeteran: String!) {
+    getRiwayatPenggunaan(meteranId: $nomorMeteran, limit: 50) {
+      _id
+      penggunaanAir
+      createdAt
+    }
   }
 `;

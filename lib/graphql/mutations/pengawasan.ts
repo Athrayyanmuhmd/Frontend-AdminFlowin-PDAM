@@ -1,5 +1,11 @@
 import { gql } from '@apollo/client';
 
+/**
+ * Mutations untuk Pengawasan Pemasangan & Pengawasan Setelah Pemasangan
+ * Backend schema: input hanya idPemasangan, urlGambar, catatan
+ * Return type: _id, idPemasangan, urlGambar, catatan, createdAt, updatedAt
+ */
+
 export const CREATE_PENGAWASAN_PEMASANGAN = gql`
   mutation CreatePengawasanPemasangan($input: CreatePengawasanPemasanganInput!) {
     createPengawasanPemasangan(input: $input) {
@@ -8,9 +14,8 @@ export const CREATE_PENGAWASAN_PEMASANGAN = gql`
         _id
         seriMeteran
       }
-      hasilPengawasan
-      tanggalPengawasan
-      perluTindakLanjut
+      urlGambar
+      catatan
       createdAt
     }
   }
@@ -20,10 +25,8 @@ export const UPDATE_PENGAWASAN_PEMASANGAN = gql`
   mutation UpdatePengawasanPemasangan($id: ID!, $input: UpdatePengawasanPemasanganInput!) {
     updatePengawasanPemasangan(id: $id, input: $input) {
       _id
-      hasilPengawasan
+      urlGambar
       catatan
-      rekomendasi
-      perluTindakLanjut
       updatedAt
     }
   }
@@ -43,12 +46,8 @@ export const CREATE_PENGAWASAN_SETELAH_PEMASANGAN = gql`
         _id
         seriMeteran
       }
-      hasilPengawasan
-      statusMeteran
-      bacaanAwal
-      hariSetelahPemasangan
-      tanggalPengawasan
-      perluTindakLanjut
+      urlGambar
+      catatan
       createdAt
     }
   }
@@ -58,12 +57,8 @@ export const UPDATE_PENGAWASAN_SETELAH_PEMASANGAN = gql`
   mutation UpdatePengawasanSetelahPemasangan($id: ID!, $input: UpdatePengawasanSetelahPemasanganInput!) {
     updatePengawasanSetelahPemasangan(id: $id, input: $input) {
       _id
-      hasilPengawasan
-      statusMeteran
+      urlGambar
       catatan
-      tindakan
-      rekomendasi
-      perluTindakLanjut
       updatedAt
     }
   }

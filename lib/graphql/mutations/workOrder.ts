@@ -1,94 +1,81 @@
 import { gql } from '@apollo/client';
 
-export const CREATE_WORK_ORDER = gql`
-  mutation CreateWorkOrder($input: CreateWorkOrderInput!) {
-    createWorkOrder(input: $input) {
-      _id
-      idSurvei {
-        _id
-      }
-      rabId {
-        _id
-        totalBiaya
-      }
-      tim {
-        _id
-        namaLengkap
-      }
+const MUTATION_RESPONSE_FRAGMENT = gql`
+  fragment WorkOrderMutationFields on WorkOrderMutationResponse {
+    success
+    message
+    workOrder {
+      id
+      jenisPekerjaan
       status
-      disetujui
-      catatan
-      createdAt
+      statusRespon
+      statusTim
+      catatanTim
       updatedAt
     }
   }
 `;
 
-export const ASSIGN_WORK_ORDER = gql`
-  mutation AssignWorkOrder($id: ID!, $teknisiIds: [ID!]!) {
-    assignWorkOrder(id: $id, teknisiIds: $teknisiIds) {
-      _id
-      tim {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      status
-      updatedAt
+export const BUAT_WORK_ORDER = gql`
+  ${MUTATION_RESPONSE_FRAGMENT}
+  mutation BuatWorkOrder($input: BuatWorkOrderInput!) {
+    buatWorkOrder(input: $input) {
+      ...WorkOrderMutationFields
     }
   }
 `;
 
-export const UPDATE_WORK_ORDER_STATUS = gql`
-  mutation UpdateWorkOrderStatus($id: ID!, $status: EnumWorkStatus!, $catatan: String) {
-    updateWorkOrderStatus(id: $id, status: $status, catatan: $catatan) {
-      _id
-      status
-      catatan
-      updatedAt
+export const REVIEW_PENOLAKAN = gql`
+  ${MUTATION_RESPONSE_FRAGMENT}
+  mutation ReviewPenolakan($input: ReviewPenolakanInput!) {
+    reviewPenolakan(input: $input) {
+      ...WorkOrderMutationFields
     }
   }
 `;
 
-export const APPROVE_WORK_ORDER = gql`
-  mutation ApproveWorkOrder($id: ID!, $disetujui: Boolean!, $catatan: String) {
-    approveWorkOrder(id: $id, disetujui: $disetujui, catatan: $catatan) {
-      _id
-      disetujui
-      catatan
-      status
-      updatedAt
+export const REVIEW_TIM = gql`
+  ${MUTATION_RESPONSE_FRAGMENT}
+  mutation ReviewTim($input: ReviewTimInput!) {
+    reviewTim(input: $input) {
+      ...WorkOrderMutationFields
     }
   }
 `;
 
-export const DELETE_WORK_ORDER = gql`
-  mutation DeleteWorkOrder($id: ID!) {
-    deleteWorkOrder(id: $id) {
+export const REVIEW_HASIL = gql`
+  ${MUTATION_RESPONSE_FRAGMENT}
+  mutation ReviewHasil($input: ReviewHasilInput!) {
+    reviewHasil(input: $input) {
+      ...WorkOrderMutationFields
+    }
+  }
+`;
+
+export const BATALKAN_WORK_ORDER = gql`
+  mutation BatalkanWorkOrder($id: ID!, $catatan: String) {
+    batalkanWorkOrder(id: $id, catatan: $catatan) {
       success
       message
     }
   }
 `;
 
-export const CREATE_WORK_ORDER_FROM_LAPORAN = gql`
-  mutation CreateWorkOrderFromLaporan($idLaporan: ID!, $teknisiIds: [ID!]!, $catatan: String) {
-    createWorkOrderFromLaporan(idLaporan: $idLaporan, teknisiIds: $teknisiIds, catatan: $catatan) {
-      _id
-      idLaporan {
-        _id
-        namaLaporan
-        masalah
-        jenisLaporan
-      }
-      tim {
-        _id
-        namaLengkap
-      }
-      status
-      catatan
-      createdAt
+// ─── Backward-compat stubs (halaman lama masih import ini) ───────────────────
+
+export const UPDATE_WORK_ORDER_STATUS = BATALKAN_WORK_ORDER;
+
+export const APPROVE_WORK_ORDER = REVIEW_HASIL;
+
+export const ASSIGN_WORK_ORDER = BUAT_WORK_ORDER;
+
+export const CREATE_WORK_ORDER_FROM_LAPORAN = BUAT_WORK_ORDER;
+
+export const DELETE_WORK_ORDER = gql`
+  mutation DeleteWorkOrder($id: ID!) {
+    batalkanWorkOrder(id: $id) {
+      success
+      message
     }
   }
 `;

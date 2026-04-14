@@ -237,7 +237,7 @@ export default function CreateSurveyData() {
             <Typography variant='h4'>Buat Survei</Typography>
             <Typography variant='body2' color='text.secondary'>
               {connectionData.NIK ? `NIK: ${connectionData.NIK} — ` : ''}
-              {connectionData.idPelanggan?.namaLengkap || '—'}
+              {connectionData.IdPelanggan?.namaLengkap || '—'}
             </Typography>
           </Box>
         </Box>

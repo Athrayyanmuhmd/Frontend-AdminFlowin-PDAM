@@ -4,10 +4,14 @@ export const CREATE_KELOMPOK_PELANGGAN = gql`
   mutation CreateKelompokPelanggan($input: CreateKelompokPelangganInput!) {
     createKelompokPelanggan(input: $input) {
       _id
-      namaKelompok
-      hargaDiBawah10mKubik
-      hargaDiAtas10mKubik
-      biayaBeban
+      KodeKelompok
+      NamaKelompok
+      Kategori
+      TarifRendah
+      TarifTinggi
+      BatasRendah
+      BiayaBeban
+      IsKesepakatan
       createdAt
       updatedAt
     }
@@ -18,10 +22,14 @@ export const UPDATE_KELOMPOK_PELANGGAN = gql`
   mutation UpdateKelompokPelanggan($id: ID!, $input: UpdateKelompokPelangganInput!) {
     updateKelompokPelanggan(id: $id, input: $input) {
       _id
-      namaKelompok
-      hargaDiBawah10mKubik
-      hargaDiAtas10mKubik
-      biayaBeban
+      KodeKelompok
+      NamaKelompok
+      Kategori
+      TarifRendah
+      TarifTinggi
+      BatasRendah
+      BiayaBeban
+      IsKesepakatan
       createdAt
       updatedAt
     }

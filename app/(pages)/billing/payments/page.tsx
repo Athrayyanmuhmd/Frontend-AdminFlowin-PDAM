@@ -77,7 +77,7 @@ export default function PaymentsPage() {
   // ==================== GraphQL Query ====================
   // Get all settled/successful payments (statusPembayaran = Settlement)
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_TAGIHAN_BY_STATUS, {
-    variables: { status: 'Settlement' },
+    variables: { status: 'SETTLEMENT' },
     fetchPolicy: 'network-only',
   });
 
@@ -99,14 +99,14 @@ export default function PaymentsPage() {
     return (data as any).getTagihanByStatus.map((tagihan: any) => ({
       id: tagihan._id,
       billingId: tagihan._id,
-      accountNumber: tagihan.idMeteran?.nomorAkun || '-',
-      customerName: tagihan.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-',
-      amount: tagihan.totalBiaya || 0,
-      paymentMethod: tagihan.metodePembayaran || '-',
-      paymentDate: tagihan.tanggalPembayaran ? new Date(tagihan.tanggalPembayaran) : new Date(),
+      accountNumber: tagihan.IdMeteran?.NomorAkun || '-',
+      customerName: tagihan.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '-',
+      amount: tagihan.TotalBiaya || 0,
+      paymentMethod: tagihan.MetodePembayaran || '-',
+      paymentDate: tagihan.TanggalPembayaran ? new Date(tagihan.TanggalPembayaran) : new Date(),
       status: 'success' as const, // All Settlement = success
       transactionId: `TRX-${tagihan._id.slice(-8)}`,
-      notes: tagihan.catatan,
+      notes: tagihan.Catatan,
     }));
   }, [data]);
 

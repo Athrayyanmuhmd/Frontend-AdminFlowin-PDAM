@@ -1,256 +1,131 @@
 import { gql } from '@apollo/client';
 
-export const GET_WORK_ORDERS = gql`
-  query GetAllWorkOrders {
-    getAllWorkOrders {
-      _id
-      idSurvei {
-        _id
-        idKoneksiData {
-          _id
-          idPelanggan {
-            namaLengkap
-          }
-        }
-      }
-      rabId {
-        _id
-        totalBiaya
-      }
-      idLaporan {
-        _id
-        namaLaporan
-        masalah
-        jenisLaporan
-        status
-        alamat
-        idPengguna {
-          namaLengkap
-          noHP
-        }
-      }
-      idPenyelesaianLaporan {
-        _id
-        tanggalSelesai
-      }
-      idPemasangan {
-        _id
-        seriMeteran
-      }
-      tim {
-        _id
+// ─── Fragmen WorkOrder (Rafli-aligned schema) ──────────────────────────────────
+
+const WORK_ORDER_FRAGMENT = gql`
+  fragment WorkOrderFields on WorkOrder {
+    id
+    idKoneksiData
+    jenisPekerjaan
+    status
+    statusRespon
+    statusTim
+    catatanTim
+    alasanPenolakan
+    catatanReviewPenolakan
+    catatanReview
+    createdAt
+    updatedAt
+    koneksiData {
+      id
+      alamat
+      statusPengajuan
+      pelanggan {
+        id
         namaLengkap
+        noHp
         email
       }
-      status
-      disetujui
-      catatan
-      createdAt
-      updatedAt
+    }
+    teknisiPenanggungJawab {
+      id
+      namaLengkap
+      nip
+      divisi
+    }
+    tim {
+      id
+      namaLengkap
+      nip
+      divisi
+    }
+  }
+`;
+
+// ─── Queries ───────────────────────────────────────────────────────────────────
+
+export const GET_WORK_ORDERS = gql`
+  ${WORK_ORDER_FRAGMENT}
+  query GetWorkOrders($pagination: PaginationInput, $filter: WorkOrderFilterInput) {
+    workOrders(pagination: $pagination, filter: $filter) {
+      data {
+        ...WorkOrderFields
+      }
+      pagination {
+        total
+        page
+        limit
+        totalPages
+      }
     }
   }
 `;
 
 export const GET_WORK_ORDER_BY_ID = gql`
+  ${WORK_ORDER_FRAGMENT}
   query GetWorkOrder($id: ID!) {
-    getWorkOrder(id: $id) {
-      _id
-      idSurvei {
-        _id
-        idKoneksiData {
-          _id
-          alamat
-          idPelanggan {
-            namaLengkap
-            noHP
-          }
+    workOrder(id: $id) {
+      ...WorkOrderFields
+      workOrderSebelumnya {
+        id
+        jenisPekerjaan
+        status
+      }
+      riwayatRespon {
+        aksi
+        alasan
+        tanggal
+        oleh {
+          id
+          namaLengkap
         }
       }
-      rabId {
-        _id
-        totalBiaya
-        statusPembayaran
-      }
-      idPenyelesaianLaporan {
-        _id
-        urlGambar
+      riwayatReview {
+        status
         catatan
-        tanggalSelesai
-        metadata {
-          durasiPengerjaan
-          materialDigunakan
-          biaya
+        tanggal
+        oleh {
+          id
+          namaLengkap
         }
       }
-      idPemasangan {
-        _id
-        seriMeteran
-        fotoRumah
-        fotoMeteran
-      }
-      idPengawasanPemasangan {
-        _id
-        hasilPengawasan
-        perluTindakLanjut
-      }
-      idPengawasanSetelahPemasangan {
-        _id
-        hasilPengawasan
-        statusMeteran
-      }
-      tim {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      status
-      disetujui
-      catatan
-      createdAt
-      updatedAt
+      idSurvei
+      idRAB
+      idPemasangan
+      idPengawasanPemasangan
+      idPengawasanSetelahPemasangan
+      idPenyelesaianLaporan
     }
   }
 `;
 
-export const GET_WORK_ORDERS_BY_STATUS = gql`
-  query GetWorkOrdersByStatus($status: EnumWorkStatus!) {
-    getWorkOrdersByStatus(status: $status) {
-      _id
-      idSurvei {
-        _id
-        idKoneksiData {
-          idPelanggan {
-            namaLengkap
-          }
-        }
-      }
-      tim {
-        _id
-        namaLengkap
-      }
-      status
-      disetujui
-      catatan
-      createdAt
-      updatedAt
+export const GET_WORK_ORDERS_BY_KONEKSI_DATA = gql`
+  ${WORK_ORDER_FRAGMENT}
+  query GetWorkOrdersByKoneksiData($idKoneksiData: ID!) {
+    workOrdersByKoneksiData(idKoneksiData: $idKoneksiData) {
+      ...WorkOrderFields
     }
   }
 `;
 
-export const GET_WORK_ORDERS_BY_TEKNISI = gql`
-  query GetWorkOrdersByTeknisi($idTeknisi: ID!) {
-    getWorkOrdersByTeknisi(idTeknisi: $idTeknisi) {
-      _id
-      idSurvei {
-        _id
-        idKoneksiData {
-          idPelanggan {
-            namaLengkap
-          }
-        }
+export const GET_WORKFLOW_CHAIN = gql`
+  query GetWorkflowChain($idKoneksiData: ID!) {
+    workflowChain(idKoneksiData: $idKoneksiData) {
+      jenisPekerjaan
+      workOrder {
+        id
+        status
+        statusRespon
+        statusTim
+        catatanTim
+        createdAt
       }
-      rabId {
-        _id
-        totalBiaya
-      }
-      status
-      disetujui
-      catatan
-      createdAt
-      updatedAt
     }
   }
 `;
 
-export const GET_WORK_ORDER_STATS = gql`
-  query GetWorkOrderStats {
-    getDashboardStats {
-      activeWorkOrders
-    }
-  }
-`;
-
-// Alias queries using PekerjaanTeknisi naming
-export const GET_PEKERJAAN_TEKNISI = gql`
-  query GetPekerjaanTeknisi($id: ID!) {
-    getPekerjaanTeknisi(id: $id) {
-      _id
-      idSurvei {
-        _id
-        idKoneksiData {
-          idPelanggan {
-            namaLengkap
-          }
-        }
-      }
-      rabId {
-        _id
-        totalBiaya
-      }
-      idPenyelesaianLaporan {
-        _id
-        tanggalSelesai
-      }
-      tim {
-        _id
-        namaLengkap
-      }
-      status
-      disetujui
-      catatan
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const GET_ALL_PEKERJAAN_TEKNISI = gql`
-  query GetAllPekerjaanTeknisi {
-    getAllPekerjaanTeknisi {
-      _id
-      idSurvei {
-        _id
-        idKoneksiData {
-          idPelanggan {
-            namaLengkap
-          }
-        }
-      }
-      tim {
-        _id
-        namaLengkap
-      }
-      status
-      disetujui
-      catatan
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const GET_PEKERJAAN_TEKNISI_PENDING = gql`
-  query GetPekerjaanTeknisiPendingApproval {
-    getPekerjaanTeknisiPendingApproval {
-      _id
-      idSurvei {
-        _id
-        idKoneksiData {
-          idPelanggan {
-            namaLengkap
-          }
-        }
-      }
-      tim {
-        _id
-        namaLengkap
-      }
-      status
-      disetujui
-      catatan
-      createdAt
-      updatedAt
-    }
+export const CEK_PREREQUISITE_PEKERJAAN = gql`
+  query CekPrerequisitePekerjaan($idKoneksiData: ID!, $jenisPekerjaan: JenisPekerjaan!) {
+    cekPrerequisitePekerjaan(idKoneksiData: $idKoneksiData, jenisPekerjaan: $jenisPekerjaan)
   }
 `;

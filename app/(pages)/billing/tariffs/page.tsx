@@ -47,17 +47,17 @@ import {
 } from '@/lib/graphql/queries/kelompokPelanggan';
 
 interface KelompokForm {
-  namaKelompok: string;
-  hargaDiBawah10mKubik: string;
-  hargaDiAtas10mKubik: string;
-  biayaBeban: string;
+  NamaKelompok: string;
+  TarifRendah: string;
+  TarifTinggi: string;
+  BiayaBeban: string;
 }
 
 const defaultForm: KelompokForm = {
-  namaKelompok: '',
-  hargaDiBawah10mKubik: '',
-  hargaDiAtas10mKubik: '',
-  biayaBeban: '',
+  NamaKelompok: '',
+  TarifRendah: '',
+  TarifTinggi: '',
+  BiayaBeban: '',
 };
 
 export default function TariffsPage() {
@@ -107,10 +107,10 @@ export default function TariffsPage() {
 
   const handleOpenEdit = (k: any) => {
     setForm({
-      namaKelompok: k.namaKelompok || '',
-      hargaDiBawah10mKubik: String(k.hargaDiBawah10mKubik || ''),
-      hargaDiAtas10mKubik: String(k.hargaDiAtas10mKubik || ''),
-      biayaBeban: String(k.biayaBeban || ''),
+      NamaKelompok: k.NamaKelompok || '',
+      TarifRendah: String(k.TarifRendah || ''),
+      TarifTinggi: String(k.TarifTinggi || ''),
+      BiayaBeban: String(k.BiayaBeban || ''),
     });
     setFormError('');
     setEditMode(true);
@@ -124,10 +124,10 @@ export default function TariffsPage() {
   };
 
   const validateForm = () => {
-    if (!form.namaKelompok.trim()) return 'Nama kelompok wajib diisi';
-    if (!form.hargaDiBawah10mKubik || isNaN(Number(form.hargaDiBawah10mKubik))) return 'Harga di bawah 10m³ tidak valid';
-    if (!form.hargaDiAtas10mKubik || isNaN(Number(form.hargaDiAtas10mKubik))) return 'Harga di atas 10m³ tidak valid';
-    if (!form.biayaBeban || isNaN(Number(form.biayaBeban))) return 'Biaya beban tidak valid';
+    if (!form.NamaKelompok.trim()) return 'Nama kelompok wajib diisi';
+    if (!form.TarifRendah || isNaN(Number(form.TarifRendah))) return 'Harga di bawah 10m³ tidak valid';
+    if (!form.TarifTinggi || isNaN(Number(form.TarifTinggi))) return 'Harga di atas 10m³ tidak valid';
+    if (!form.BiayaBeban || isNaN(Number(form.BiayaBeban))) return 'Biaya beban tidak valid';
     return '';
   };
 
@@ -136,10 +136,10 @@ export default function TariffsPage() {
     if (err) { setFormError(err); return; }
 
     const input = {
-      namaKelompok: form.namaKelompok.trim(),
-      hargaDiBawah10mKubik: Number(form.hargaDiBawah10mKubik),
-      hargaDiAtas10mKubik: Number(form.hargaDiAtas10mKubik),
-      biayaBeban: Number(form.biayaBeban),
+      NamaKelompok: form.NamaKelompok.trim(),
+      TarifRendah: Number(form.TarifRendah),
+      TarifTinggi: Number(form.TarifTinggi),
+      BiayaBeban: Number(form.BiayaBeban),
     };
 
     try {
@@ -189,7 +189,7 @@ export default function TariffsPage() {
   }
 
   const minHarga = kelompokList.length > 0
-    ? Math.min(...kelompokList.map((k: any) => k.hargaDiBawah10mKubik || 0))
+    ? Math.min(...kelompokList.map((k: any) => k.TarifRendah || 0))
     : 0;
 
   if (authLoading || !isAuthenticated) return null;
@@ -297,22 +297,22 @@ export default function TariffsPage() {
                     <TableRow key={k._id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip label={k.namaKelompok} color="primary" size="small" />
+                          <Chip label={k.NamaKelompok} color="primary" size="small" />
                         </Box>
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatRupiah(k.hargaDiBawah10mKubik)}
+                          {formatRupiah(k.TarifRendah)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatRupiah(k.hargaDiAtas10mKubik)}
+                          {formatRupiah(k.TarifTinggi)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2">
-                          {formatRupiah(k.biayaBeban)}
+                          {formatRupiah(k.BiayaBeban)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -353,8 +353,8 @@ export default function TariffsPage() {
               <TextField
                 fullWidth
                 label="Nama Kelompok"
-                value={form.namaKelompok}
-                onChange={(e) => setForm(f => ({ ...f, namaKelompok: e.target.value }))}
+                value={form.NamaKelompok}
+                onChange={(e) => setForm(f => ({ ...f, NamaKelompok: e.target.value }))}
                 placeholder="Contoh: Rumah Tangga, Komersial, Industri"
               />
             </Grid>
@@ -363,8 +363,8 @@ export default function TariffsPage() {
                 fullWidth
                 label="Harga di bawah 10m³ (Rp/m³)"
                 type="number"
-                value={form.hargaDiBawah10mKubik}
-                onChange={(e) => setForm(f => ({ ...f, hargaDiBawah10mKubik: e.target.value }))}
+                value={form.TarifRendah}
+                onChange={(e) => setForm(f => ({ ...f, TarifRendah: e.target.value }))}
                 inputProps={{ min: 0 }}
               />
             </Grid>
@@ -373,8 +373,8 @@ export default function TariffsPage() {
                 fullWidth
                 label="Harga di atas 10m³ (Rp/m³)"
                 type="number"
-                value={form.hargaDiAtas10mKubik}
-                onChange={(e) => setForm(f => ({ ...f, hargaDiAtas10mKubik: e.target.value }))}
+                value={form.TarifTinggi}
+                onChange={(e) => setForm(f => ({ ...f, TarifTinggi: e.target.value }))}
                 inputProps={{ min: 0 }}
               />
             </Grid>
@@ -383,8 +383,8 @@ export default function TariffsPage() {
                 fullWidth
                 label="Biaya Beban (Rp/bulan)"
                 type="number"
-                value={form.biayaBeban}
-                onChange={(e) => setForm(f => ({ ...f, biayaBeban: e.target.value }))}
+                value={form.BiayaBeban}
+                onChange={(e) => setForm(f => ({ ...f, BiayaBeban: e.target.value }))}
                 inputProps={{ min: 0 }}
                 helperText="Biaya tetap per bulan di luar pemakaian air"
               />

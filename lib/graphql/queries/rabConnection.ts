@@ -1,5 +1,12 @@
 import { gql } from '@apollo/client';
 
+/**
+ * GraphQL Queries/Mutations untuk RAB Connection
+ * KoneksiData fields are PascalCase: Alamat, IdPelanggan, NoKK, Kelurahan, etc.
+ * StatusPengajuan (NOT statusVerifikasi)
+ * PaymentStatus enum (NOT EnumPaymentStatus)
+ */
+
 export const GET_ALL_RAB_CONNECTIONS = gql`
   query GetAllRABConnections {
     getAllRABConnections {
@@ -7,8 +14,8 @@ export const GET_ALL_RAB_CONNECTIONS = gql`
       idKoneksiData {
         _id
         NIK
-        alamat
-        idPelanggan {
+        Alamat
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -32,14 +39,14 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
       idKoneksiData {
         _id
         NIK
-        noKK
+        NoKK
         IMB
-        alamat
-        kelurahan
-        kecamatan
-        luasBangunan
-        statusVerifikasi
-        idPelanggan {
+        Alamat
+        Kelurahan
+        Kecamatan
+        LuasBangunan
+        StatusPengajuan
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -48,6 +55,8 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
       }
       totalBiaya
       statusPembayaran
+      orderId
+      paymentUrl
       urlRab
       catatan
       createdAt
@@ -67,30 +76,11 @@ export const GET_RAB_BY_KONEKSI_DATA = gql`
   }
 `;
 
-export const GET_WO_BY_RAB = gql`
-  query GetWOByRAB($rabId: ID!) {
-    getWOByRAB(rabId: $rabId) {
-      _id
-      status
-      disetujui
-      catatan
-      tim {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
 export const CREATE_RAB_CONNECTION = gql`
   mutation CreateRABConnection(
     $idKoneksiData: ID!
-    $totalBiaya: Float!
-    $urlRab: String!
+    $totalBiaya: Float
+    $urlRab: String
     $catatan: String
   ) {
     createRABConnection(
@@ -115,7 +105,7 @@ export const UPDATE_RAB_CONNECTION = gql`
     $totalBiaya: Float
     $urlRab: String
     $catatan: String
-    $statusPembayaran: EnumPaymentStatus
+    $statusPembayaran: PaymentStatus
   ) {
     updateRABConnection(
       id: $id
@@ -146,8 +136,8 @@ export const GET_PENDING_RAB = gql`
       idKoneksiData {
         _id
         NIK
-        alamat
-        idPelanggan {
+        Alamat
+        IdPelanggan {
           _id
           namaLengkap
           email

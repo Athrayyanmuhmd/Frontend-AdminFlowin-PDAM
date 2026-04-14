@@ -97,9 +97,9 @@ export default function MeteranListPage() {
 
   // Filter
   const filtered = (allMeteran as any[]).filter((m: any) => {
-    const namaLengkap = m.idKoneksiData?.idPelanggan?.namaLengkap || '';
-    const nomorMeteran = m.nomorMeteran || '';
-    const nomorAkun = m.nomorAkun || '';
+    const namaLengkap = m.IdKoneksiData?.IdPelanggan?.namaLengkap || '';
+    const nomorMeteran = m.NomorMeteran || '';
+    const nomorAkun = m.NomorAkun || '';
     const matchSearch = !searchTerm ||
       namaLengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
       nomorMeteran.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,9 +135,9 @@ export default function MeteranListPage() {
 
   const handleOpenEdit = () => {
     setEditForm({
-      nomorMeteran: selectedMeteran.nomorMeteran,
-      nomorAkun: selectedMeteran.nomorAkun,
-      idKelompokPelanggan: selectedMeteran.idKelompokPelanggan?._id || '',
+      nomorMeteran: selectedMeteran.NomorMeteran,
+      nomorAkun: selectedMeteran.NomorAkun,
+      idKelompokPelanggan: selectedMeteran.IdKelompokPelanggan?._id || '',
       statusAktif: selectedMeteran.statusAktif,
     });
     setOpenEditDialog(true);
@@ -151,9 +151,9 @@ export default function MeteranListPage() {
       await updateMeteran({
         variables: {
           id: selectedMeteran._id,
-          nomorMeteran: editForm.nomorMeteran,
-          nomorAkun: editForm.nomorAkun,
-          idKelompokPelanggan: editForm.idKelompokPelanggan || undefined,
+          NomorMeteran: editForm.nomorMeteran,
+          NomorAkun: editForm.nomorAkun,
+          IdKelompokPelanggan: editForm.idKelompokPelanggan || undefined,
           statusAktif: editForm.statusAktif,
         },
       });
@@ -329,20 +329,20 @@ export default function MeteranListPage() {
                   <TableRow key={m._id} hover>
                     <TableCell>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {m.nomorMeteran}
+                        {m.NomorMeteran}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Akun: {m.nomorAkun}
+                        Akun: {m.NomorAkun}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      {m.idKoneksiData?.idPelanggan ? (
+                      {m.IdKoneksiData?.IdPelanggan ? (
                         <>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {m.idKoneksiData.idPelanggan.namaLengkap}
+                            {m.IdKoneksiData.IdPelanggan.namaLengkap}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {m.idKoneksiData.idPelanggan.email}
+                            {m.IdKoneksiData.IdPelanggan.email}
                           </Typography>
                         </>
                       ) : (
@@ -353,7 +353,7 @@ export default function MeteranListPage() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {m.idKelompokPelanggan?.namaKelompok || '-'}
+                        {m.IdKelompokPelanggan?.NamaKelompok || '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -448,7 +448,7 @@ export default function MeteranListPage() {
               >
                 {(kelompokPelanggan as any[]).map((k: any) => (
                   <MenuItem key={k._id} value={k._id}>
-                    {k.namaKelompok} - {k.kodeKelompok}
+                    {k.NamaKelompok} - {k.KodeKelompok}
                   </MenuItem>
                 ))}
               </Select>
@@ -488,9 +488,9 @@ export default function MeteranListPage() {
           </Alert>
           {selectedMeteran && (
             <Typography>
-              Yakin ingin menghapus meteran <strong>{selectedMeteran.nomorMeteran}</strong>
-              {selectedMeteran.idKoneksiData?.idPelanggan?.namaLengkap
-                ? ` milik ${selectedMeteran.idKoneksiData.idPelanggan.namaLengkap}`
+              Yakin ingin menghapus meteran <strong>{selectedMeteran.NomorMeteran}</strong>
+              {selectedMeteran.IdKoneksiData?.IdPelanggan?.namaLengkap
+                ? ` milik ${selectedMeteran.IdKoneksiData.IdPelanggan.namaLengkap}`
                 : ''}?
             </Typography>
           )}

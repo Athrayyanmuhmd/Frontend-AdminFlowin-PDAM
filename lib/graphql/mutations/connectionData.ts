@@ -1,17 +1,27 @@
 import { gql } from '@apollo/client';
 
 /**
- * GraphQL Mutations untuk Connection Data
- * Backend: BE_backend/graphql/resolvers/index.js
+ * GraphQL Mutations untuk Connection Data (KoneksiData)
+ * Disesuaikan dengan Ahmad's schema: PascalCase fields, StatusPengajuanEnum
  */
 
 export const VERIFY_CONNECTION_DATA = gql`
-  mutation VerifyKoneksiData($id: ID!, $status: String!, $catatan: String, $alasanPenolakan: String) {
-    verifyKoneksiData(id: $id, status: $status, catatan: $catatan, alasanPenolakan: $alasanPenolakan) {
+  mutation VerifyKoneksiData(
+    $id: ID!
+    $status: StatusPengajuanEnum!
+    $catatan: String
+    $alasanPenolakan: String
+  ) {
+    verifyKoneksiData(
+      id: $id
+      status: $status
+      catatan: $catatan
+      alasanPenolakan: $alasanPenolakan
+    ) {
       _id
-      statusVerifikasi
-      alasanPenolakan
-      tanggalVerifikasi
+      StatusPengajuan
+      AlasanPenolakan
+      TanggalVerifikasi
       catatan
       updatedAt
     }
@@ -19,15 +29,38 @@ export const VERIFY_CONNECTION_DATA = gql`
 `;
 
 export const UPDATE_CONNECTION_DATA = gql`
-  mutation UpdateKoneksiData($id: ID!, $input: KoneksiDataInput!) {
+  mutation UpdateKoneksiData($id: ID!, $input: UpdateKoneksiDataInput!) {
     updateKoneksiData(id: $id, input: $input) {
       _id
-      alamat
-      latitude
-      longitude
-      statusVerifikasi
+      Alamat
+      StatusPengajuan
       catatan
       updatedAt
+    }
+  }
+`;
+
+export const DELETE_CONNECTION_DATA = gql`
+  mutation DeleteKoneksiData($id: ID!) {
+    deleteKoneksiData(id: $id) {
+      success
+      message
+    }
+  }
+`;
+
+// Stub — assign teknisi sekarang via Rafli WorkOrder (buatWorkOrder)
+// Diekspor agar halaman yang masih import ini bisa compile
+export const ASSIGN_TEKNISI_DED = gql`
+  mutation AssignTeknisiDED($input: BuatWorkOrderInput!) {
+    buatWorkOrder(input: $input) {
+      success
+      message
+      workOrder {
+        id
+        jenisPekerjaan
+        status
+      }
     }
   }
 `;

@@ -49,29 +49,36 @@ import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
 import { UPDATE_WORK_ORDER_STATUS } from '@/lib/graphql/mutations/workOrder';
 import { useAdmin } from '../../../layouts/AdminProvider';
 
+// Rafli's StatusPekerjaan enum — all lowercase_underscore
 const STATUS_LABELS: Record<string, string> = {
-  Ditugaskan: 'Ditugaskan',
-  SedangDikerjakan: 'Sedang Dikerjakan',
-  Selesai: 'Selesai',
-  Dibatalkan: 'Dibatalkan',
-  Ditunda: 'Ditunda',
-  DitinjauAdmin: 'Ditinjau Admin',
+  menunggu_respon: 'Menunggu Respon',
+  menunggu_tim: 'Menunggu Tim',
+  tim_diajukan: 'Tim Diajukan',
+  ditugaskan: 'Ditugaskan',
+  sedang_dikerjakan: 'Sedang Dikerjakan',
+  dikirim: 'Dikirim',
+  revisi: 'Revisi',
+  selesai: 'Selesai',
+  dibatalkan: 'Dibatalkan',
 };
 
 const STATUS_COLORS: Record<string, 'warning' | 'info' | 'primary' | 'success' | 'error' | 'default'> = {
-  Ditugaskan: 'info',
-  SedangDikerjakan: 'primary',
-  Selesai: 'success',
-  Dibatalkan: 'error',
-  Ditunda: 'warning',
-  DitinjauAdmin: 'default',
+  menunggu_respon: 'warning',
+  menunggu_tim: 'warning',
+  tim_diajukan: 'default',
+  ditugaskan: 'info',
+  sedang_dikerjakan: 'primary',
+  dikirim: 'success',
+  revisi: 'warning',
+  selesai: 'success',
+  dibatalkan: 'error',
 };
 
 function getStatusIcon(status: string) {
-  if (status === 'Selesai') return <CheckCircle fontSize="small" />;
-  if (status === 'SedangDikerjakan') return <Build fontSize="small" />;
-  if (status === 'Ditugaskan') return <Schedule fontSize="small" />;
-  if (status === 'Dibatalkan') return <ErrorIcon fontSize="small" />;
+  if (status === 'selesai' || status === 'dikirim') return <CheckCircle fontSize="small" />;
+  if (status === 'sedang_dikerjakan') return <Build fontSize="small" />;
+  if (status === 'ditugaskan') return <Schedule fontSize="small" />;
+  if (status === 'dibatalkan') return <ErrorIcon fontSize="small" />;
   return <Warning fontSize="small" />;
 }
 
@@ -111,13 +118,13 @@ export default function TechnicianMobileApp() {
     },
   });
 
-  const allWO: any[] = (data as any)?.getAllWorkOrders || [];
+  const allWO: any[] = (data as any)?.workOrders?.data || [];
 
-  // Statistik
-  const activeWO = allWO.filter(w => w.status === 'Ditugaskan' || w.status === 'SedangDikerjakan');
-  const selesaiWO = allWO.filter(w => w.status === 'Selesai');
-  const ditugaskan = allWO.filter(w => w.status === 'Ditugaskan').length;
-  const dikerjakan = allWO.filter(w => w.status === 'SedangDikerjakan').length;
+  // Statistik — Rafli's status enum uses lowercase_underscore
+  const activeWO = allWO.filter(w => w.status === 'ditugaskan' || w.status === 'sedang_dikerjakan');
+  const selesaiWO = allWO.filter(w => w.status === 'selesai' || w.status === 'dikirim');
+  const ditugaskan = allWO.filter(w => w.status === 'ditugaskan').length;
+  const dikerjakan = allWO.filter(w => w.status === 'sedang_dikerjakan').length;
 
   const handleOpenUpdate = (wo: any) => {
     setSelectedWO(wo);
@@ -128,7 +135,7 @@ export default function TechnicianMobileApp() {
 
   const handleSaveStatus = () => {
     if (!selectedWO) return;
-    updateStatus({ variables: { id: selectedWO._id, status: newStatus, catatan } });
+    updateStatus({ variables: { id: selectedWO.id, catatan } });
   };
 
   const renderDashboard = () => (
@@ -181,11 +188,11 @@ export default function TechnicianMobileApp() {
             <Alert severity="info">Tidak ada work order aktif saat ini.</Alert>
           ) : (
             activeWO.slice(0, 3).map((wo) => (
-              <Card key={wo._id} sx={{ mb: 2 }}>
+              <Card key={wo.id} sx={{ mb: 2 }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2" fontWeight={600}>
-                      {wo.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || 'Pelanggan tidak diketahui'}
+                      {wo.koneksiData?.pelanggan?.namaLengkap || 'Pelanggan tidak diketahui'}
                     </Typography>
                     <Chip
                       icon={getStatusIcon(wo.status)}
@@ -198,13 +205,13 @@ export default function TechnicianMobileApp() {
                     <Typography variant="caption" color="text.secondary">{wo.catatan}</Typography>
                   )}
                   <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                    {wo.status === 'Ditugaskan' && (
+                    {wo.status === 'ditugaskan' && (
                       <Button
                         size="small"
                         variant="contained"
                         color="primary"
                         startIcon={<PlayArrow />}
-                        onClick={() => updateStatus({ variables: { id: wo._id, status: 'SedangDikerjakan', catatan: 'Mulai survei lapangan' } })}
+                        onClick={() => updateStatus({ variables: { id: wo.id, catatan: 'Mulai survei lapangan' } })}
                         disabled={updating}
                       >
                         Mulai Survei
@@ -238,11 +245,11 @@ export default function TechnicianMobileApp() {
         <Alert severity="info">Belum ada work order.</Alert>
       ) : (
         allWO.map((wo) => (
-          <Card key={wo._id} sx={{ mb: 2 }}>
+          <Card key={wo.id} sx={{ mb: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                 <Typography variant="body1" fontWeight={600}>
-                  {wo.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}
+                  {wo.koneksiData?.pelanggan?.namaLengkap || '-'}
                 </Typography>
                 <Chip
                   icon={getStatusIcon(wo.status)}
@@ -269,13 +276,13 @@ export default function TechnicianMobileApp() {
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {wo.status === 'Ditugaskan' && (
+                {wo.status === 'ditugaskan' && (
                   <Button
                     size="small"
                     variant="contained"
                     color="primary"
                     startIcon={<PlayArrow />}
-                    onClick={() => updateStatus({ variables: { id: wo._id, status: 'SedangDikerjakan', catatan: 'Mulai survei lapangan' } })}
+                    onClick={() => updateStatus({ variables: { id: wo.id, catatan: 'Mulai survei lapangan' } })}
                     disabled={updating}
                   >
                     Mulai Survei
@@ -286,7 +293,7 @@ export default function TechnicianMobileApp() {
                   variant="outlined"
                   startIcon={<Build />}
                   onClick={() => handleOpenUpdate(wo)}
-                  disabled={wo.status === 'Selesai' || wo.status === 'Dibatalkan'}
+                  disabled={wo.status === 'selesai' || wo.status === 'dibatalkan'}
                 >
                   Update Status
                 </Button>
@@ -388,7 +395,7 @@ export default function TechnicianMobileApp() {
         <DialogTitle>Update Status Work Order</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Pelanggan: <strong>{selectedWO?.idSurvei?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}</strong>
+            Pelanggan: <strong>{selectedWO?.koneksiData?.pelanggan?.namaLengkap || '-'}</strong>
           </Typography>
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Status</InputLabel>

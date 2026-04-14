@@ -51,21 +51,22 @@ import {
 
 // Types
 interface Technician {
-  _id: string;
+  id: string;
   namaLengkap: string;
-  NIP: string;
+  nip: string;
   email: string;
-  noHP: string;
+  noHp: string;
   divisi: string;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
 interface CreateTechnicianData {
   namaLengkap: string;
-  NIP: string;
+  nip: string;
   email: string;
-  noHP: string;
+  noHp: string;
   divisi: string;
   password: string;
 }
@@ -136,10 +137,10 @@ export default function TechnicianManagement() {
   // Form states
   const [formData, setFormData] = useState<CreateTechnicianData>({
     namaLengkap: '',
-    NIP: '',
+    nip: '',
     email: '',
     password: '',
-    noHP: '',
+    noHp: '',
     divisi: 'perencanaan_teknik',
   });
 
@@ -178,8 +179,8 @@ export default function TechnicianManagement() {
     return sorted.filter((tech: Technician) =>
       tech.namaLengkap?.toLowerCase().includes(query) ||
       tech.email?.toLowerCase().includes(query) ||
-      tech.noHP?.toLowerCase().includes(query) ||
-      tech.NIP?.toLowerCase().includes(query)
+      tech.noHp?.toLowerCase().includes(query) ||
+      tech.nip?.toLowerCase().includes(query)
     );
   }, [technicians, searchQuery]);
 
@@ -191,10 +192,10 @@ export default function TechnicianManagement() {
   const resetForm = () => {
     setFormData({
       namaLengkap: '',
-      NIP: '',
+      nip: '',
       email: '',
       password: '',
-      noHP: '',
+      noHp: '',
       divisi: 'perencanaan_teknik',
     });
   };
@@ -208,11 +209,11 @@ export default function TechnicianManagement() {
     setSelectedTechnician(technician);
     setFormData({
       namaLengkap: technician.namaLengkap,
-      NIP: technician.NIP || '',
+      nip: technician.nip || '',
       email: technician.email,
       password: '',
-      noHP: technician.noHP,
-      divisi: technician.divisi || 'PerencanaanTeknik',
+      noHp: technician.noHp,
+      divisi: technician.divisi || 'perencanaan_teknik',
     });
     setEditDialogOpen(true);
   };
@@ -228,17 +229,19 @@ export default function TechnicianManagement() {
 
     if (!formData.namaLengkap.trim()) { setError('Nama lengkap wajib diisi'); return; }
     if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('Email tidak valid'); return; }
-    if (!formData.password || formData.password.length < 6) { setError('Password minimal 6 karakter'); return; }
-    if (!formData.noHP.trim() || !/^[0-9]{10,15}$/.test(formData.noHP.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
+    if (!formData.password || formData.password.length < 8) { setError('Password minimal 8 karakter'); return; }
+    if (!/[A-Z]/.test(formData.password)) { setError('Password harus mengandung minimal 1 huruf kapital'); return; }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) { setError('Password harus mengandung minimal 1 karakter khusus'); return; }
+    if (!formData.noHp.trim() || !/^[0-9]{10,15}$/.test(formData.noHp.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
 
     try {
       await createTeknisi({
         variables: {
           input: {
             namaLengkap: formData.namaLengkap,
-            NIP: formData.NIP,
+            nip: formData.nip,
             email: formData.email,
-            noHP: formData.noHP,
+            noHp: formData.noHp,
             divisi: formData.divisi,
             password: formData.password,
           },
@@ -257,20 +260,20 @@ export default function TechnicianManagement() {
 
     if (!formData.namaLengkap.trim()) { setError('Nama lengkap wajib diisi'); return; }
     if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('Email tidak valid'); return; }
-    if (!formData.noHP.trim() || !/^[0-9]{10,15}$/.test(formData.noHP.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
+    if (!formData.noHp.trim() || !/^[0-9]{10,15}$/.test(formData.noHp.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
 
     try {
       const updateData: any = {
         namaLengkap: formData.namaLengkap,
-        NIP: formData.NIP,
+        nip: formData.nip,
         email: formData.email,
-        noHP: formData.noHP,
+        noHp: formData.noHp,
         divisi: formData.divisi,
       };
 
       await updateTeknisi({
         variables: {
-          id: selectedTechnician._id,
+          id: selectedTechnician.id,
           input: updateData,
         },
       });
@@ -289,7 +292,7 @@ export default function TechnicianManagement() {
     try {
       await deleteTeknisi({
         variables: {
-          id: selectedTechnician._id,
+          id: selectedTechnician.id,
         },
       });
     } catch (err: any) {
@@ -425,7 +428,7 @@ export default function TechnicianManagement() {
                     </TableHead>
                     <TableBody>
                       {paginatedTechnicians.map(tech => (
-                        <TableRow key={tech._id} hover>
+                        <TableRow key={tech.id} hover>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Engineering color='primary' />
@@ -435,7 +438,7 @@ export default function TechnicianManagement() {
                             </Box>
                           </TableCell>
                           <TableCell>{tech.email}</TableCell>
-                          <TableCell>{tech.noHP}</TableCell>
+                          <TableCell>{tech.noHp}</TableCell>
                           <TableCell>{formatDate(tech.createdAt)}</TableCell>
                           <TableCell align='center'>
                             <Tooltip title='Edit'>
@@ -489,9 +492,9 @@ export default function TechnicianManagement() {
                 <TextField
                   fullWidth
                   label='NIP (Opsional)'
-                  value={formData.NIP}
+                  value={formData.nip}
                   onChange={e =>
-                    setFormData({ ...formData, NIP: e.target.value })
+                    setFormData({ ...formData, nip: e.target.value })
                   }
                 />
               </Grid>
@@ -512,9 +515,9 @@ export default function TechnicianManagement() {
                   fullWidth
                   label='Nomor Telepon'
                   required
-                  value={formData.noHP}
+                  value={formData.noHp}
                   onChange={e =>
-                    setFormData({ ...formData, noHP: e.target.value })
+                    setFormData({ ...formData, noHp: e.target.value })
                   }
                 />
               </Grid>
@@ -557,7 +560,7 @@ export default function TechnicianManagement() {
                 actionLoading ||
                 !formData.namaLengkap ||
                 !formData.email ||
-                !formData.noHP ||
+                !formData.noHp ||
                 !formData.password
               }
             >
@@ -590,9 +593,9 @@ export default function TechnicianManagement() {
                 <TextField
                   fullWidth
                   label='NIP (Opsional)'
-                  value={formData.NIP}
+                  value={formData.nip}
                   onChange={e =>
-                    setFormData({ ...formData, NIP: e.target.value })
+                    setFormData({ ...formData, nip: e.target.value })
                   }
                 />
               </Grid>
@@ -611,9 +614,9 @@ export default function TechnicianManagement() {
                 <TextField
                   fullWidth
                   label='Nomor Telepon'
-                  value={formData.noHP}
+                  value={formData.noHp}
                   onChange={e =>
-                    setFormData({ ...formData, noHP: e.target.value })
+                    setFormData({ ...formData, noHp: e.target.value })
                   }
                 />
               </Grid>
@@ -655,7 +658,7 @@ export default function TechnicianManagement() {
                 actionLoading ||
                 !formData.namaLengkap ||
                 !formData.email ||
-                !formData.noHP
+                !formData.noHp
               }
             >
               {actionLoading ? <CircularProgress size={24} /> : 'Simpan'}

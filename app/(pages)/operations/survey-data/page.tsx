@@ -84,9 +84,9 @@ export default function SurveyDataManagement() {
 
     const query = searchQuery.toLowerCase();
     return surveyData.filter((item: any) =>
-      item.idKoneksiData?.idPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
+      item.idKoneksiData?.IdPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
       item.idTeknisi?.namaLengkap?.toLowerCase().includes(query) ||
-      item.idKoneksiData?.alamat?.toLowerCase().includes(query)
+      item.idKoneksiData?.Alamat?.toLowerCase().includes(query)
     );
   }, [surveyData, searchQuery]);
 
@@ -194,13 +194,13 @@ export default function SurveyDataManagement() {
                         <TableRow key={item._id} hover>
                           <TableCell>
                             <Typography variant='body2' fontWeight='bold'>
-                              {item.idKoneksiData?.alamat || 'N/A'}
+                              {item.idKoneksiData?.Alamat || 'N/A'}
                             </Typography>
                             <Typography
                               variant='caption'
                               color='text.secondary'
                             >
-                              {item.idKoneksiData?.idPelanggan?.namaLengkap || 'N/A'}
+                              {item.idKoneksiData?.IdPelanggan?.namaLengkap || 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell>

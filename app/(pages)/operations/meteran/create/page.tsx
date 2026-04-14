@@ -79,10 +79,10 @@ export default function CreateMeteran() {
     try {
       await createMeteranMutation({
         variables: {
-          idKelompokPelanggan: kelompokId,
-          nomorMeteran,
-          nomorAkun,
-          idKoneksiData: connectionId || undefined,
+          IdKelompokPelanggan: kelompokId,
+          NomorMeteran: nomorMeteran,
+          NomorAkun: nomorAkun,
+          IdKoneksiData: connectionId || undefined,
         },
       });
       setSuccess('Meteran berhasil dibuat');
@@ -143,7 +143,7 @@ export default function CreateMeteran() {
             <Typography variant='h4'>Tambah Meteran & Assign Kelompok</Typography>
             <Typography variant='body2' color='text.secondary'>
               {connectionData.NIK ? `NIK: ${connectionData.NIK} — ` : ''}
-              {connectionData.idPelanggan?.namaLengkap || '—'}
+              {connectionData.IdPelanggan?.namaLengkap || '—'}
             </Typography>
           </Box>
         </Box>
@@ -206,12 +206,12 @@ export default function CreateMeteran() {
                       {kelompokList.map((k: any) => (
                         <MenuItem key={k._id} value={k._id}>
                           <Box sx={{ width: '100%' }}>
-                            <Typography variant='body1' fontWeight='bold'>{k.namaKelompok}</Typography>
+                            <Typography variant='body1' fontWeight='bold'>{k.NamaKelompok}</Typography>
                             <Typography variant='caption' color='text.secondary'>
-                              {'<'}10m³: {formatCurrency(k.hargaDiBawah10mKubik)}/m³
+                              {'<'}10m³: {formatCurrency(k.TarifRendah)}/m³
                               {' | '}
-                              {'>'}10m³: {formatCurrency(k.hargaDiAtas10mKubik)}/m³
-                              {k.biayaBeban ? ` | Biaya Beban: ${formatCurrency(k.biayaBeban)}` : ''}
+                              {'>'}10m³: {formatCurrency(k.TarifTinggi)}/m³
+                              {k.BiayaBeban ? ` | Biaya Beban: ${formatCurrency(k.BiayaBeban)}` : ''}
                             </Typography>
                           </Box>
                         </MenuItem>
@@ -229,16 +229,16 @@ export default function CreateMeteran() {
                           </Grid>
                           <Grid item xs={12} md={4}>
                             <Typography variant='body2' color='text.secondary'>Pemakaian {'<'} 10m³:</Typography>
-                            <Typography variant='body1' fontWeight='bold'>{formatCurrency(k.hargaDiBawah10mKubik)}/m³</Typography>
+                            <Typography variant='body1' fontWeight='bold'>{formatCurrency(k.TarifRendah)}/m³</Typography>
                           </Grid>
                           <Grid item xs={12} md={4}>
                             <Typography variant='body2' color='text.secondary'>Pemakaian {'>'} 10m³:</Typography>
-                            <Typography variant='body1' fontWeight='bold'>{formatCurrency(k.hargaDiAtas10mKubik)}/m³</Typography>
+                            <Typography variant='body1' fontWeight='bold'>{formatCurrency(k.TarifTinggi)}/m³</Typography>
                           </Grid>
-                          {k.biayaBeban && (
+                          {k.BiayaBeban && (
                             <Grid item xs={12} md={4}>
                               <Typography variant='body2' color='text.secondary'>Biaya Beban:</Typography>
-                              <Typography variant='body1' fontWeight='bold'>{formatCurrency(k.biayaBeban)}/bulan</Typography>
+                              <Typography variant='body1' fontWeight='bold'>{formatCurrency(k.BiayaBeban)}/bulan</Typography>
                             </Grid>
                           )}
                         </Grid>

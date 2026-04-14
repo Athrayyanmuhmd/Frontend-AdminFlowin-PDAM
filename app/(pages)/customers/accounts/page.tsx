@@ -101,17 +101,17 @@ export default function CustomerAccounts() {
   const { meteran: meteranData, loading, error: graphqlError, refetch } = useGetAllMeteran();
   const { updateMeteran, loading: updateLoading } = useUpdateMeteran();
 
-  // Transform GraphQL meteran data ke CustomerAccount
+  // Transform GraphQL meteran data ke CustomerAccount — GQL returns PascalCase FK fields
   const accounts: CustomerAccount[] = useMemo(() => {
     return meteranData.map((meter: any) => ({
       id: meter._id,
-      customerId: meter.idKoneksiData?.idPelanggan?._id || '',
-      namaLengkap: meter.idKoneksiData?.idPelanggan?.namaLengkap || '-',
-      accountNumber: meter.nomorAkun || '-',
-      meterNumber: meter.nomorMeteran || '-',
+      customerId: meter.IdKoneksiData?.IdPelanggan?._id || '',
+      namaLengkap: meter.IdKoneksiData?.IdPelanggan?.namaLengkap || '-',
+      accountNumber: meter.NomorAkun || '-',
+      meterNumber: meter.NomorMeteran || '-',
       connectionType: 'existing' as const,
       serviceStatus: meter.statusAktif !== false ? 'active' : 'inactive',
-      tariffCategory: meter.idKelompokPelanggan?.namaKelompok || '-',
+      tariffCategory: meter.IdKelompokPelanggan?.NamaKelompok || '-',
       installationDate: meter.createdAt ? new Date(meter.createdAt) : new Date(),
       lastReading: meter.updatedAt ? new Date(meter.updatedAt) : undefined,
       currentReading: meter.totalPemakaian || 0,

@@ -35,6 +35,9 @@ export const GET_DASHBOARD_STATS = gql`
       tunggakanAktif
       laporanTerbuka
       totalTagihanBulanIni
+      koneksiMenunggu
+      koneksiDisetujui
+      koneksiDitolak
     }
   }
 `;
@@ -54,33 +57,30 @@ export const GET_CUSTOMER_STATS = gql`
 `;
 
 /**
- * Query untuk mendapatkan statistik billing
- * Menggunakan getAllBillings untuk menghitung revenue dan collection rate
+ * Query untuk ringkasan status tagihan (dari dashboard resolver)
  */
-export const GET_BILLING_STATS = gql`
-  query GetBillingStats {
-    getAllBillings {
-      _id
-      totalBiaya
-      menunggak
-      statusPembayaran
-      createdAt
+export const GET_BILLING_STATS_DASHBOARD = gql`
+  query GetBillingStatsDashboard {
+    getRingkasanStatusTagihan {
+      totalTagihan
+      totalLunas
+      totalTunggakan
+      totalPending
+      nilaiTotal
+      nilaiLunas
+      nilaiTunggakan
     }
   }
 `;
 
 /**
- * Query untuk mendapatkan statistik work orders
- * Menggunakan getAllWorkOrders untuk menghitung completion rate
+ * Query untuk ringkasan work orders (dari dashboard resolver)
  */
 export const GET_WORK_ORDER_STATS = gql`
   query GetWorkOrderStats {
-    getAllWorkOrders {
-      _id
+    getRingkasanWorkOrder {
       status
-      disetujui
-      createdAt
-      updatedAt
+      jumlah
     }
   }
 `;
@@ -92,8 +92,8 @@ export const GET_METERAN_STATS = gql`
   query GetMeteranStats {
     getAllMeteran {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       createdAt
     }
   }
@@ -101,7 +101,6 @@ export const GET_METERAN_STATS = gql`
 
 /**
  * Query gabungan untuk load semua data dashboard sekaligus
- * Menggunakan single request untuk efficiency
  */
 export const GET_DASHBOARD_ALL_DATA = gql`
   query GetDashboardAllData {
@@ -120,12 +119,14 @@ export const GET_DASHBOARD_ALL_DATA = gql`
       isVerified
       createdAt
     }
-    getAllBillings {
-      _id
-      totalBiaya
-      menunggak
-      statusPembayaran
-      createdAt
+    getRingkasanStatusTagihan {
+      totalTagihan
+      totalLunas
+      totalTunggakan
+      totalPending
+      nilaiTotal
+      nilaiLunas
+      nilaiTunggakan
     }
   }
 `;

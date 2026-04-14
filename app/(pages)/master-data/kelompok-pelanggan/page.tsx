@@ -46,10 +46,10 @@ import {
 
 interface KelompokPelanggan {
   _id: string;
-  namaKelompok: string;
-  hargaDiBawah10mKubik: number;
-  hargaDiAtas10mKubik: number;
-  biayaBeban: number;
+  NamaKelompok: string;
+  TarifRendah: number;
+  TarifTinggi: number;
+  BiayaBeban: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -158,14 +158,14 @@ export default function KelompokPelangganPage() {
     setDialogMode(mode);
     if (mode === 'edit' && kelompok) {
       setEditingId(kelompok._id);
-      setNamaKelompok(kelompok.namaKelompok);
+      setNamaKelompok(kelompok.NamaKelompok);
       setHargaDibawah10(
-        formatCurrencyInput(kelompok.hargaDiBawah10mKubik.toString())
+        formatCurrencyInput(kelompok.TarifRendah.toString())
       );
       setHargaDiatas10(
-        formatCurrencyInput(kelompok.hargaDiAtas10mKubik.toString())
+        formatCurrencyInput(kelompok.TarifTinggi.toString())
       );
-      setBiayaBeban(formatCurrencyInput(kelompok.biayaBeban.toString()));
+      setBiayaBeban(formatCurrencyInput(kelompok.BiayaBeban.toString()));
     } else {
       resetForm();
     }
@@ -215,10 +215,10 @@ export default function KelompokPelangganPage() {
       }
 
       const submitData = {
-        namaKelompok,
-        hargaDiBawah10mKubik: hargaDibawah10Num,
-        hargaDiAtas10mKubik: hargaDiatas10Num,
-        biayaBeban: parseCurrency(biayaBeban) || 0,
+        NamaKelompok: namaKelompok,
+        TarifRendah: hargaDibawah10Num,
+        TarifTinggi: hargaDiatas10Num,
+        BiayaBeban: parseCurrency(biayaBeban) || 0,
       };
 
       // ✅ GraphQL Mutation - Replace REST API
@@ -365,7 +365,7 @@ export default function KelompokPelangganPage() {
                           >
                             <WaterDrop color='primary' />
                             <Typography fontWeight='bold'>
-                              {kelompok.namaKelompok}
+                              {kelompok.NamaKelompok}
                             </Typography>
                           </Box>
                         </TableCell>
@@ -373,7 +373,7 @@ export default function KelompokPelangganPage() {
                           <Chip
                             label={
                               formatCurrency(
-                                kelompok.hargaDiBawah10mKubik
+                                kelompok.TarifRendah
                               ) + '/m³'
                             }
                             color='success'
@@ -383,7 +383,7 @@ export default function KelompokPelangganPage() {
                         <TableCell>
                           <Chip
                             label={
-                              formatCurrency(kelompok.hargaDiAtas10mKubik) +
+                              formatCurrency(kelompok.TarifTinggi) +
                               '/m³'
                             }
                             color='warning'
@@ -391,9 +391,9 @@ export default function KelompokPelangganPage() {
                           />
                         </TableCell>
                         <TableCell>
-                          {kelompok.biayaBeban > 0 ? (
+                          {kelompok.BiayaBeban > 0 ? (
                             <Chip
-                              label={formatCurrency(kelompok.biayaBeban)}
+                              label={formatCurrency(kelompok.BiayaBeban)}
                               color='info'
                               size='small'
                             />

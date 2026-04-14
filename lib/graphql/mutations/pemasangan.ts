@@ -1,12 +1,17 @@
 import { gql } from '@apollo/client';
 
+/**
+ * Mutations untuk Pemasangan & PenyelesaianLaporan
+ * Pemasangan fields: _id, idKoneksiData, seriMeteran, fotoRumah, fotoMeteran, fotoMeteranDanRumah, catatan
+ * PenyelesaianLaporan fields: _id, idLaporan, urlGambar, catatan
+ */
+
 export const CREATE_PEMASANGAN = gql`
   mutation CreatePemasangan($input: CreatePemasanganInput!) {
     createPemasangan(input: $input) {
       _id
       seriMeteran
-      statusVerifikasi
-      tanggalPemasangan
+      catatan
       createdAt
     }
   }
@@ -17,7 +22,6 @@ export const UPDATE_PEMASANGAN = gql`
     updatePemasangan(id: $id, input: $input) {
       _id
       seriMeteran
-      statusVerifikasi
       catatan
       updatedAt
     }
@@ -27,22 +31,6 @@ export const UPDATE_PEMASANGAN = gql`
 export const DELETE_PEMASANGAN = gql`
   mutation DeletePemasangan($id: ID!) {
     deletePemasangan(id: $id)
-  }
-`;
-
-export const VERIFY_PEMASANGAN = gql`
-  mutation VerifyPemasangan($id: ID!, $statusVerifikasi: String!, $catatan: String) {
-    verifyPemasangan(id: $id, statusVerifikasi: $statusVerifikasi, catatan: $catatan) {
-      _id
-      statusVerifikasi
-      diverifikasiOleh {
-        _id
-        namaLengkap
-      }
-      tanggalVerifikasi
-      catatan
-      updatedAt
-    }
   }
 `;
 
@@ -57,16 +45,6 @@ export const CREATE_PENYELESAIAN_LAPORAN = gql`
       }
       urlGambar
       catatan
-      teknisiId {
-        _id
-        namaLengkap
-      }
-      tanggalSelesai
-      metadata {
-        durasiPengerjaan
-        materialDigunakan
-        biaya
-      }
       createdAt
     }
   }
@@ -78,7 +56,6 @@ export const UPDATE_PENYELESAIAN_LAPORAN = gql`
       _id
       urlGambar
       catatan
-      tanggalSelesai
       updatedAt
     }
   }

@@ -69,26 +69,26 @@ export default function MeteranDetail() {
   // ✅ GraphQL Query - Replace REST API
   const { meteran: meteranData, loading, error: graphqlError, refetch } = useGetMeteran(meteranId);
 
-  // Transform GraphQL data to match component interface
+  // Transform GraphQL data — GQL returns PascalCase FK fields (Ahmad's schema)
   const meteran = meteranData ? {
     _id: meteranData._id,
-    noMeteran: meteranData.nomorMeteran,
-    kelompokPelangganId: meteranData.idKelompokPelanggan ? {
-      _id: meteranData.idKelompokPelanggan._id,
-      namaKelompok: meteranData.idKelompokPelanggan.namaKelompok,
-      hargaPenggunaanDibawah10: meteranData.idKelompokPelanggan.hargaDiBawah10mKubik,
-      hargaPenggunaanDiatas10: meteranData.idKelompokPelanggan.hargaDiAtas10mKubik,
-      biayaBeban: meteranData.idKelompokPelanggan.biayaBeban || 0,
+    noMeteran: meteranData.NomorMeteran,
+    kelompokPelangganId: meteranData.IdKelompokPelanggan ? {
+      _id: meteranData.IdKelompokPelanggan._id,
+      namaKelompok: meteranData.IdKelompokPelanggan.NamaKelompok,
+      hargaPenggunaanDibawah10: meteranData.IdKelompokPelanggan.TarifRendah ?? 0,
+      hargaPenggunaanDiatas10: meteranData.IdKelompokPelanggan.TarifTinggi ?? 0,
+      biayaBeban: meteranData.IdKelompokPelanggan.BiayaBeban ?? 0,
     } : null,
-    userId: meteranData.idKoneksiData?.idPelanggan ? {
-      _id: meteranData.idKoneksiData.idPelanggan._id,
-      namaLengkap: meteranData.idKoneksiData.idPelanggan.namaLengkap,
-      noHp: meteranData.idKoneksiData.idPelanggan.noHP,
+    userId: meteranData.IdKoneksiData?.IdPelanggan ? {
+      _id: meteranData.IdKoneksiData.IdPelanggan._id,
+      namaLengkap: meteranData.IdKoneksiData.IdPelanggan.namaLengkap,
+      noHp: meteranData.IdKoneksiData.IdPelanggan.noHP,
     } : null,
-    connectionDataId: meteranData.idKoneksiData ? {
-      _id: meteranData.idKoneksiData._id,
-      nik: meteranData.idKoneksiData.NIK || '',
-      alamat: meteranData.idKoneksiData.alamat,
+    connectionDataId: meteranData.IdKoneksiData ? {
+      _id: meteranData.IdKoneksiData._id,
+      nik: meteranData.IdKoneksiData.NIK || '',
+      alamat: meteranData.IdKoneksiData.Alamat || '',
     } : null,
     totalPemakaian: meteranData.totalPemakaian || 0,
     pemakaianBelumTerbayar: meteranData.pemakaianBelumTerbayar || 0,

@@ -52,18 +52,18 @@ import { useGetAllKelompokPelanggan } from '../../../../../lib/graphql/hooks/use
 
 const CREATE_METERAN = gql`
   mutation CreateMeteran(
-    $idKelompokPelanggan: ID!
-    $nomorMeteran: String!
-    $nomorAkun: String!
+    $IdKelompokPelanggan: ID!
+    $NomorMeteran: String!
+    $NomorAkun: String!
   ) {
     createMeteran(
-      idKelompokPelanggan: $idKelompokPelanggan
-      nomorMeteran: $nomorMeteran
-      nomorAkun: $nomorAkun
+      IdKelompokPelanggan: $IdKelompokPelanggan
+      NomorMeteran: $NomorMeteran
+      NomorAkun: $NomorAkun
     ) {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
     }
   }
@@ -221,9 +221,9 @@ export default function SmartMeterRegistrationPage() {
     try {
       await createMeteran({
         variables: {
-          idKelompokPelanggan: formData.idKelompokPelanggan,
-          nomorMeteran: formData.meterSerialNumber,
-          nomorAkun: formData.accountNumber || `ACC-${Date.now()}`,
+          IdKelompokPelanggan: formData.idKelompokPelanggan,
+          NomorMeteran: formData.meterSerialNumber,
+          NomorAkun: formData.accountNumber || `ACC-${Date.now()}`,
         },
       });
       router.push('/monitoring/smart-meters');
@@ -340,7 +340,7 @@ export default function SmartMeterRegistrationPage() {
                 >
                   {(kelompokPelanggan as any[]).map((k: any) => (
                     <MenuItem key={k._id} value={k._id}>
-                      {k.namaKelompok} - {k.kodeKelompok}
+                      {k.NamaKelompok} - {k.KodeKelompok}
                     </MenuItem>
                   ))}
                 </Select>

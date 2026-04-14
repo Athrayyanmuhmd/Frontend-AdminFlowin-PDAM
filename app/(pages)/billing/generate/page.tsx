@@ -60,14 +60,14 @@ const GET_ALL_METERAN = gql`
   query GetAllMeteranForBilling {
     getAllMeteran {
       _id
-      nomorMeteran
-      nomorAkun
-      idKelompokPelanggan {
+      NomorMeteran
+      NomorAkun
+      IdKelompokPelanggan {
         _id
-        namaKelompok
+        NamaKelompok
       }
-      idKoneksiData {
-        idPelanggan {
+      IdKoneksiData {
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -78,15 +78,15 @@ const GET_ALL_METERAN = gql`
 `;
 
 const GENERATE_TAGIHAN = gql`
-  mutation GenerateTagihanBulanan($periode: String!, $idMeteranList: [ID!]!) {
-    generateTagihanBulanan(periode: $periode, idMeteranList: $idMeteranList) {
+  mutation GenerateTagihanBulanan($Periode: String!, $IdMeteranList: [ID!]!) {
+    generateTagihanBulanan(Periode: $Periode, IdMeteranList: $IdMeteranList) {
       berhasil
       gagal
       pesan
       detailGagal {
-        idMeteran
-        nomorMeteran
-        nomorAkun
+        IdMeteran
+        NomorMeteran
+        NomorAkun
         namaLengkap
         alasan
       }
@@ -129,13 +129,13 @@ export default function GenerateBills() {
   const { data: kelompokData } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
     fetchPolicy: 'cache-first',
   });
-  const kelompokList: Array<{ _id: string; namaKelompok: string }> =
+  const kelompokList: Array<{ _id: string; NamaKelompok: string }> =
     (kelompokData as any)?.getAllKelompokPelanggan || [];
 
   interface DetailGagal {
-    idMeteran: string;
-    nomorMeteran?: string;
-    nomorAkun?: string;
+    IdMeteran: string;
+    NomorMeteran?: string;
+    NomorAkun?: string;
     namaLengkap?: string;
     alasan: string;
   }
@@ -159,11 +159,11 @@ export default function GenerateBills() {
   // Build accounts list from real meteran data
   const allAccounts: AccountForBilling[] = ((meteranData as any)?.getAllMeteran || []).map((m: any) => ({
     id: m._id,
-    accountNumber: m.nomorAkun,
-    customerName: m.idKoneksiData?.idPelanggan?.namaLengkap || '-',
-    meterNumber: m.nomorMeteran,
-    tariffCategory: m.idKelompokPelanggan?.namaKelompok || '-',
-    kelompokId: m.idKelompokPelanggan?._id || '',
+    accountNumber: m.NomorAkun,
+    customerName: m.IdKoneksiData?.IdPelanggan?.namaLengkap || '-',
+    meterNumber: m.NomorMeteran,
+    tariffCategory: m.IdKelompokPelanggan?.NamaKelompok || '-',
+    kelompokId: m.IdKelompokPelanggan?._id || '',
     selected: selectedIds.has(m._id),
   }));
 
@@ -213,7 +213,7 @@ export default function GenerateBills() {
       setGenerationProgress(10);
       const idMeteranList = Array.from(selectedIds);
       const result = await generateTagihanMutation({
-        variables: { periode: formData.periode, idMeteranList },
+        variables: { Periode: formData.periode, IdMeteranList: idMeteranList },
       });
       setGenerationProgress(100);
       const res = (result.data as any)?.generateTagihanBulanan;
@@ -267,7 +267,7 @@ export default function GenerateBills() {
                   >
                     <MenuItem value="all">Semua Kelompok</MenuItem>
                     {kelompokList.map((k) => (
-                      <MenuItem key={k._id} value={k._id}>{k.namaKelompok}</MenuItem>
+                      <MenuItem key={k._id} value={k._id}>{k.NamaKelompok}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -394,7 +394,7 @@ export default function GenerateBills() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">Kelompok</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right', maxWidth: 140 }}>
-                      {formData.kelompokId === 'all' ? 'Semua Kelompok' : (kelompokList.find((k) => k._id === formData.kelompokId)?.namaKelompok || '-')}
+                      {formData.kelompokId === 'all' ? 'Semua Kelompok' : (kelompokList.find((k) => k._id === formData.kelompokId)?.NamaKelompok || '-')}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
@@ -544,12 +544,12 @@ export default function GenerateBills() {
                             <TableRow key={index} sx={{ '&:hover': { bgcolor: 'error.50' } }}>
                               <TableCell>
                                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                  {item.nomorAkun || '-'}
+                                  {item.NomorAkun || '-'}
                                 </Typography>
                               </TableCell>
                               <TableCell>
                                 <Typography variant="body2" color="text.secondary">
-                                  {item.nomorMeteran || '-'}
+                                  {item.NomorMeteran || '-'}
                                 </Typography>
                               </TableCell>
                               <TableCell>{item.namaLengkap || '-'}</TableCell>

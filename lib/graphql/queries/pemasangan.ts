@@ -1,13 +1,20 @@
 import { gql } from '@apollo/client';
 
+/**
+ * GraphQL Queries untuk Pemasangan
+ * Backend schema: Pemasangan hanya punya: _id, idKoneksiData, seriMeteran,
+ * fotoRumah, fotoMeteran, fotoMeteranDanRumah, catatan, createdAt, updatedAt
+ */
+
 export const GET_ALL_PEMASANGAN = gql`
   query GetAllPemasangan {
     getAllPemasangan {
       _id
       idKoneksiData {
         _id
-        alamat
-        idPelanggan {
+        Alamat
+        IdPelanggan {
+          _id
           namaLengkap
           noHP
         }
@@ -17,18 +24,6 @@ export const GET_ALL_PEMASANGAN = gql`
       fotoMeteran
       fotoMeteranDanRumah
       catatan
-      teknisiId {
-        _id
-        namaLengkap
-        divisi
-      }
-      tanggalPemasangan
-      statusVerifikasi
-      diverifikasiOleh {
-        _id
-        namaLengkap
-      }
-      tanggalVerifikasi
       createdAt
       updatedAt
     }
@@ -41,8 +36,9 @@ export const GET_PEMASANGAN = gql`
       _id
       idKoneksiData {
         _id
-        alamat
-        idPelanggan {
+        Alamat
+        IdPelanggan {
+          _id
           namaLengkap
           noHP
           email
@@ -53,25 +49,6 @@ export const GET_PEMASANGAN = gql`
       fotoMeteran
       fotoMeteranDanRumah
       catatan
-      teknisiId {
-        _id
-        namaLengkap
-        divisi
-        email
-        noHP
-      }
-      tanggalPemasangan
-      statusVerifikasi
-      diverifikasiOleh {
-        _id
-        namaLengkap
-      }
-      tanggalVerifikasi
-      detailPemasangan {
-        diameterPipa
-        lokasiPemasangan
-        materialDigunakan
-      }
       createdAt
       updatedAt
     }
@@ -82,36 +59,8 @@ export const GET_PEMASANGAN_BY_KONEKSI_DATA = gql`
   query GetPemasanganByKoneksiData($idKoneksiData: ID!) {
     getPemasanganByKoneksiData(idKoneksiData: $idKoneksiData) {
       _id
-      statusVerifikasi
       seriMeteran
-      tanggalPemasangan
-      teknisiId {
-        _id
-        namaLengkap
-      }
-      createdAt
-    }
-  }
-`;
-
-export const GET_PEMASANGAN_BY_STATUS = gql`
-  query GetPemasanganByStatus($statusVerifikasi: String!) {
-    getPemasanganByStatus(statusVerifikasi: $statusVerifikasi) {
-      _id
-      idKoneksiData {
-        _id
-        alamat
-        idPelanggan {
-          namaLengkap
-        }
-      }
-      seriMeteran
-      teknisiId {
-        _id
-        namaLengkap
-      }
-      statusVerifikasi
-      tanggalPemasangan
+      catatan
       createdAt
     }
   }

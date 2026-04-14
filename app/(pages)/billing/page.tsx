@@ -54,27 +54,7 @@ import {
 } from '@mui/icons-material';
 import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
-import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART } from '@/lib/graphql/queries/billing';
-
-const UPDATE_STATUS_PEMBAYARAN = gql`
-  mutation UpdateStatusPembayaran($id: ID!, $status: EnumPaymentStatus!) {
-    updateStatusPembayaran(id: $id, status: $status) {
-      _id
-      statusPembayaran
-      tanggalPembayaran
-    }
-  }
-`;
-
-const GENERATE_TAGIHAN_BULANAN = gql`
-  mutation GenerateTagihanBulanan($periode: String!, $idMeteranList: [ID!]!) {
-    generateTagihanBulanan(periode: $periode, idMeteranList: $idMeteranList) {
-      berhasil
-      gagal
-      pesan
-    }
-  }
-`;
+import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART, UPDATE_STATUS_PEMBAYARAN, GENERATE_TAGIHAN_BULANAN } from '@/lib/graphql/queries/billing';
 
 const GET_ALL_METERAN_IDS = gql`
   query GetAllMeteranIds {
@@ -154,22 +134,22 @@ export default function BillingManagement() {
 
   // Client-side filter & paginate
   const filtered = allTagihan.filter((bill: any) => {
-    const namaLengkap = bill.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '';
-    const nomorMeteran = bill.idMeteran?.nomorMeteran || '';
-    const nomorAkun = bill.idMeteran?.nomorAkun || '';
+    const namaLengkap = bill.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '';
+    const nomorMeteran = bill.IdMeteran?.NomorMeteran || '';
+    const nomorAkun = bill.IdMeteran?.NomorAkun || '';
     const matchSearch = !searchTerm ||
       namaLengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
       nomorMeteran.toLowerCase().includes(searchTerm.toLowerCase()) ||
       nomorAkun.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = filterStatus === 'all' || bill.statusPembayaran === filterStatus;
+    const matchStatus = filterStatus === 'all' || bill.StatusPembayaran === filterStatus;
 
     // Filter berdasarkan periode tagihan
     let matchPeriod = true;
-    if (filterPeriod !== 'all' && bill.periode) {
-      const num = Number(bill.periode);
+    if (filterPeriod !== 'all' && bill.Periode) {
+      const num = Number(bill.Periode);
       const periodeDate = !isNaN(num) && num > 1_000_000_000_000
         ? new Date(num)
-        : new Date(bill.periode);
+        : new Date(bill.Periode);
       if (!isNaN(periodeDate.getTime())) {
         const billYear = periodeDate.getFullYear();
         const billMonth = periodeDate.getMonth();
@@ -211,15 +191,15 @@ export default function BillingManagement() {
     closeMenuOnly();
     if (!selectedBilling) return;
     const b = selectedBilling;
-    const pelanggan = b.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-';
-    const nomorMeteran = b.idMeteran?.nomorMeteran || '-';
-    const nomorAkun = b.idMeteran?.nomorAkun || '-';
-    const periode = formatPeriode(b.periode);
-    const tenggatWaktu = formatTanggal(b.tenggatWaktu);
-    const totalBiaya = (b.totalBiaya || 0).toLocaleString('id-ID');
-    const biayaAir = (b.biaya || 0).toLocaleString('id-ID');
-    const biayaBeban = (b.biayaBeban || 0).toLocaleString('id-ID');
-    const denda = (b.denda || 0).toLocaleString('id-ID');
+    const pelanggan = b.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '-';
+    const nomorMeteran = b.IdMeteran?.NomorMeteran || '-';
+    const nomorAkun = b.IdMeteran?.NomorAkun || '-';
+    const periode = formatPeriode(b.Periode);
+    const tenggatWaktu = formatTanggal(b.TenggatWaktu);
+    const totalBiaya = (b.TotalBiaya || 0).toLocaleString('id-ID');
+    const biayaAir = (b.Biaya || 0).toLocaleString('id-ID');
+    const biayaBeban = (b.BiayaBeban || 0).toLocaleString('id-ID');
+    const denda = (b.Denda || 0).toLocaleString('id-ID');
     const isMerged = b.isMergedBilling ? `<p style="color:#e53935;font-size:12px">⚠️ Tagihan gabungan (${b.bulanCakupan} bulan)</p>` : '';
     const isDenda = b.jenisBilling === 'denda' ? `<p style="color:#e53935;font-size:12px">⚠️ Tagihan Denda Pemutusan</p>` : '';
 
@@ -237,7 +217,7 @@ export default function BillingManagement() {
   td:last-child { font-weight:600; }
   .total-row td { font-size:16px; color:#1565c0; border-top:2px solid #1565c0; padding-top:12px; }
   .footer { margin-top:32px; font-size:11px; color:#999; text-align:center; border-top:1px solid #eee; padding-top:12px; }
-  .status { font-size:13px; font-weight:bold; color:${b.statusPembayaran === 'Settlement' ? '#2e7d32' : '#c62828'}; }
+  .status { font-size:13px; font-weight:bold; color:${b.StatusPembayaran === 'SETTLEMENT' ? '#2e7d32' : '#c62828'}; }
   @media print { body { padding:20px; } }
 </style></head><body>
   <div class="header">
@@ -251,12 +231,12 @@ export default function BillingManagement() {
     <tr><td>No. Meteran</td><td>${nomorMeteran}</td></tr>
     <tr><td>No. Akun</td><td>${nomorAkun}</td></tr>
     <tr><td>Periode Tagihan</td><td>${periode}</td></tr>
-    <tr><td>Pemakaian Air</td><td>${b.totalPemakaian || 0} m³</td></tr>
+    <tr><td>Pemakaian Air</td><td>${b.TotalPemakaian || 0} m³</td></tr>
     <tr><td>Biaya Pemakaian</td><td>Rp ${biayaAir}</td></tr>
     <tr><td>Biaya Beban</td><td>Rp ${biayaBeban}</td></tr>
-    ${b.denda ? `<tr><td>Denda</td><td>Rp ${denda}</td></tr>` : ''}
+    ${b.Denda ? `<tr><td>Denda</td><td>Rp ${denda}</td></tr>` : ''}
     <tr><td>Jatuh Tempo</td><td>${tenggatWaktu}</td></tr>
-    <tr><td>Status</td><td class="status">${b.statusPembayaran === 'Settlement' ? '✅ Lunas' : '❌ Belum Bayar'}</td></tr>
+    <tr><td>Status</td><td class="status">${b.StatusPembayaran === 'SETTLEMENT' ? '✅ Lunas' : '❌ Belum Bayar'}</td></tr>
     <tr class="total-row"><td>TOTAL TAGIHAN</td><td>Rp ${totalBiaya}</td></tr>
   </table>
   <div class="footer">
@@ -294,7 +274,7 @@ export default function BillingManagement() {
     setActionLoading(true);
     try {
       const result = await generateTagihanBulanan({
-        variables: { periode: generatePeriode, idMeteranList: allMeteranIds },
+        variables: { Periode: generatePeriode, IdMeteranList: allMeteranIds },
       });
       setGenerateResult((result.data as any).generateTagihanBulanan);
       refetch();
@@ -316,7 +296,7 @@ export default function BillingManagement() {
     setActionLoading(true);
     try {
       await updateStatusPembayaran({
-        variables: { id: selectedBilling._id, status: 'Settlement' },
+        variables: { id: selectedBilling._id, status: 'SETTLEMENT' },
       });
       setSnackbar({ open: true, message: 'Status pembayaran berhasil diperbarui', severity: 'success' });
       setOpenPaymentDialog(false);
@@ -334,11 +314,11 @@ export default function BillingManagement() {
   // Status mapping dari ERD enum: Pending | Settlement | Cancel | Expire | Refund | Chargeback | Fraud
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Settlement': return 'success';
-      case 'Pending': return 'warning';
-      case 'Expire': return 'error';
-      case 'Cancel': return 'default';
-      case 'Refund': return 'info';
+      case 'SETTLEMENT': return 'success';
+      case 'PENDING': return 'warning';
+      case 'EXPIRE': return 'error';
+      case 'CANCEL': return 'default';
+      case 'REFUND': return 'info';
       default: return 'default';
     }
   };
@@ -370,20 +350,20 @@ export default function BillingManagement() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'Settlement': return 'Lunas';
-      case 'Pending': return 'Belum Bayar';
-      case 'Expire': return 'Jatuh Tempo';
-      case 'Cancel': return 'Dibatalkan';
-      case 'Refund': return 'Refund';
+      case 'SETTLEMENT': return 'Lunas';
+      case 'PENDING': return 'Belum Bayar';
+      case 'EXPIRE': return 'Jatuh Tempo';
+      case 'CANCEL': return 'Dibatalkan';
+      case 'REFUND': return 'Refund';
       default: return status || '-';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Settlement': return <CheckCircle color="success" />;
-      case 'Pending': return <Schedule color="warning" />;
-      case 'Expire': return <Warning color="error" />;
+      case 'SETTLEMENT': return <CheckCircle color="success" />;
+      case 'PENDING': return <Schedule color="warning" />;
+      case 'EXPIRE': return <Warning color="error" />;
       default: return <Schedule />;
     }
   };
@@ -633,10 +613,10 @@ export default function BillingManagement() {
                     label="Status"
                   >
                     <MenuItem value="all">Semua</MenuItem>
-                    <MenuItem value="Settlement">Lunas</MenuItem>
-                    <MenuItem value="Pending">Belum Bayar</MenuItem>
-                    <MenuItem value="Expire">Jatuh Tempo</MenuItem>
-                    <MenuItem value="Cancel">Dibatalkan</MenuItem>
+                    <MenuItem value="SETTLEMENT">Lunas</MenuItem>
+                    <MenuItem value="PENDING">Belum Bayar</MenuItem>
+                    <MenuItem value="EXPIRE">Jatuh Tempo</MenuItem>
+                    <MenuItem value="CANCEL">Dibatalkan</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -691,44 +671,44 @@ export default function BillingManagement() {
                   <TableRow key={bill._id} hover>
                     <TableCell>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        {bill.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}
+                        {bill.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '-'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {bill.idMeteran?.nomorMeteran || bill.idMeteran?.nomorAkun || '-'}
+                        {bill.IdMeteran?.NomorMeteran || bill.IdMeteran?.NomorAkun || '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {formatPeriode(bill.periode)}
+                        {formatPeriode(bill.Periode)}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {bill.totalPemakaian} m³
+                        {bill.TotalPemakaian} m³
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        Rp {(bill.totalBiaya || 0).toLocaleString('id-ID')}
+                        Rp {(bill.TotalBiaya || 0).toLocaleString('id-ID')}
                       </Typography>
-                      {bill.denda > 0 && (
+                      {bill.Denda > 0 && (
                         <Typography variant="caption" color="error">
-                          + Denda: Rp {bill.denda.toLocaleString('id-ID')}
+                          + Denda: Rp {bill.Denda.toLocaleString('id-ID')}
                         </Typography>
                       )}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {formatTanggal(bill.tenggatWaktu)}
+                        {formatTanggal(bill.TenggatWaktu)}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {getStatusIcon(bill.statusPembayaran)}
+                        {getStatusIcon(bill.StatusPembayaran)}
                         <Chip
-                          label={getStatusLabel(bill.statusPembayaran)}
+                          label={getStatusLabel(bill.StatusPembayaran)}
                           size="small"
-                          color={getStatusColor(bill.statusPembayaran) as any}
+                          color={getStatusColor(bill.StatusPembayaran) as any}
                         />
                       </Box>
                     </TableCell>
@@ -794,7 +774,7 @@ export default function BillingManagement() {
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           Detail Tagihan
-          {selectedBilling && ` - ${selectedBilling.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || ''}`}
+          {selectedBilling && ` - ${selectedBilling.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || ''}`}
         </DialogTitle>
         <DialogContent>
           {selectedBilling && (
@@ -804,14 +784,14 @@ export default function BillingManagement() {
                   Informasi Tagihan
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Pelanggan:</strong> {selectedBilling.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}</Typography>
-                  <Typography><strong>No. Meteran:</strong> {selectedBilling.idMeteran?.nomorMeteran || '-'}</Typography>
-                  <Typography><strong>No. Akun:</strong> {selectedBilling.idMeteran?.nomorAkun || '-'}</Typography>
-                  <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.periode)}</Typography>
-                  <Typography><strong>Pemakaian:</strong> {selectedBilling.totalPemakaian} m³</Typography>
-                  <Typography><strong>Biaya Air:</strong> Rp {(selectedBilling.biaya || 0).toLocaleString('id-ID')}</Typography>
-                  <Typography><strong>Biaya Beban:</strong> Rp {(selectedBilling.biayaBeban || 0).toLocaleString('id-ID')}</Typography>
-                  <Typography><strong>Jatuh Tempo:</strong> {formatTanggal(selectedBilling.tenggatWaktu)}</Typography>
+                  <Typography><strong>Pelanggan:</strong> {selectedBilling.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '-'}</Typography>
+                  <Typography><strong>No. Meteran:</strong> {selectedBilling.IdMeteran?.NomorMeteran || '-'}</Typography>
+                  <Typography><strong>No. Akun:</strong> {selectedBilling.IdMeteran?.NomorAkun || '-'}</Typography>
+                  <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.Periode)}</Typography>
+                  <Typography><strong>Pemakaian:</strong> {selectedBilling.TotalPemakaian} m³</Typography>
+                  <Typography><strong>Biaya Air:</strong> Rp {(selectedBilling.Biaya || 0).toLocaleString('id-ID')}</Typography>
+                  <Typography><strong>Biaya Beban:</strong> Rp {(selectedBilling.BiayaBeban || 0).toLocaleString('id-ID')}</Typography>
+                  <Typography><strong>Jatuh Tempo:</strong> {formatTanggal(selectedBilling.TenggatWaktu)}</Typography>
                 </Box>
               </Grid>
 
@@ -820,19 +800,19 @@ export default function BillingManagement() {
                   Rincian Pembayaran
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Total Tagihan:</strong> Rp {(selectedBilling.totalBiaya || 0).toLocaleString('id-ID')}</Typography>
-                  {selectedBilling.denda > 0 && (
-                    <Typography color="error"><strong>Denda:</strong> Rp {selectedBilling.denda.toLocaleString('id-ID')}</Typography>
+                  <Typography><strong>Total Tagihan:</strong> Rp {(selectedBilling.TotalBiaya || 0).toLocaleString('id-ID')}</Typography>
+                  {selectedBilling.Denda > 0 && (
+                    <Typography color="error"><strong>Denda:</strong> Rp {selectedBilling.Denda.toLocaleString('id-ID')}</Typography>
                   )}
-                  <Typography><strong>Status:</strong> {getStatusLabel(selectedBilling.statusPembayaran)}</Typography>
-                  {selectedBilling.metodePembayaran && (
-                    <Typography><strong>Metode Pembayaran:</strong> {selectedBilling.metodePembayaran}</Typography>
+                  <Typography><strong>Status:</strong> {getStatusLabel(selectedBilling.StatusPembayaran)}</Typography>
+                  {selectedBilling.MetodePembayaran && (
+                    <Typography><strong>Metode Pembayaran:</strong> {selectedBilling.MetodePembayaran}</Typography>
                   )}
-                  {selectedBilling.tanggalPembayaran && (
-                    <Typography><strong>Tanggal Bayar:</strong> {new Date(selectedBilling.tanggalPembayaran).toLocaleDateString('id-ID')}</Typography>
+                  {selectedBilling.TanggalPembayaran && (
+                    <Typography><strong>Tanggal Bayar:</strong> {new Date(selectedBilling.TanggalPembayaran).toLocaleDateString('id-ID')}</Typography>
                   )}
-                  {selectedBilling.catatan && (
-                    <Typography><strong>Catatan:</strong> {selectedBilling.catatan}</Typography>
+                  {selectedBilling.Catatan && (
+                    <Typography><strong>Catatan:</strong> {selectedBilling.Catatan}</Typography>
                   )}
                 </Box>
               </Grid>
@@ -841,7 +821,7 @@ export default function BillingManagement() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Tutup</Button>
-          {selectedBilling?.statusPembayaran === 'Pending' && (
+          {selectedBilling?.StatusPembayaran === 'PENDING' && (
             <Button
               variant="contained"
               color="success"
@@ -915,9 +895,9 @@ export default function BillingManagement() {
           </Alert>
           {selectedBilling && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography><strong>Pelanggan:</strong> {selectedBilling.idMeteran?.idKoneksiData?.idPelanggan?.namaLengkap || '-'}</Typography>
-              <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.periode)}</Typography>
-              <Typography><strong>Jumlah:</strong> Rp {(selectedBilling.totalBiaya || 0).toLocaleString('id-ID')}</Typography>
+              <Typography><strong>Pelanggan:</strong> {selectedBilling.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '-'}</Typography>
+              <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.Periode)}</Typography>
+              <Typography><strong>Jumlah:</strong> Rp {(selectedBilling.TotalBiaya || 0).toLocaleString('id-ID')}</Typography>
             </Box>
           )}
         </DialogContent>

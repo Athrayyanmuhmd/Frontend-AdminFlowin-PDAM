@@ -351,7 +351,7 @@ export default function FinancialReports() {
                                 <Chip label={`${row.jumlahTunggakan} tagihan`} size="small" color="error" />
                               </TableCell>
                               <TableCell align="right" sx={{ fontWeight: 600, color: 'error.main' }}>
-                                Rp {row.totalTunggakan.toLocaleString('id-ID')}
+                                Rp {(row.totalTunggakan ?? 0).toLocaleString('id-ID')}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -439,7 +439,7 @@ export default function FinancialReports() {
                               </TableCell>
                               <TableCell>{row.periode}</TableCell>
                               <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                {row.totalBiaya.toLocaleString('id-ID')}
+                                {(row.totalBiaya ?? 0).toLocaleString('id-ID')}
                               </TableCell>
                               <TableCell align="center">
                                 <Chip

@@ -88,8 +88,8 @@ export default function RabConnectionManagement() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((item: any) =>
         item.idKoneksiData?.NIK?.toLowerCase().includes(query) ||
-        item.idKoneksiData?.idPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
-        item.idKoneksiData?.alamat?.toLowerCase().includes(query)
+        item.idKoneksiData?.IdPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
+        item.idKoneksiData?.Alamat?.toLowerCase().includes(query)
       );
     }
 
@@ -227,12 +227,12 @@ export default function RabConnectionManagement() {
                               variant='caption'
                               color='text.secondary'
                             >
-                              {item.idKoneksiData?.idPelanggan?.namaLengkap || 'N/A'}
+                              {item.idKoneksiData?.IdPelanggan?.namaLengkap || 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant='body2'>
-                              {item.idKoneksiData?.alamat || 'N/A'}
+                              {item.idKoneksiData?.Alamat || 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell align='right'>

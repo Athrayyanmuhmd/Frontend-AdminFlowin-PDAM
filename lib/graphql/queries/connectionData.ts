@@ -1,113 +1,52 @@
 import { gql } from '@apollo/client';
 
 /**
- * GraphQL Queries untuk Connection Data (Data Sambungan)
- * Backend: BE_backend/graphql/resolvers/index.js
+ * GraphQL Queries untuk Connection Data (Data Sambungan / KoneksiData)
+ * Disesuaikan dengan Ahmad's schema: PascalCase fields, StatusPengajuan enum
  */
 
+const KONEKSI_DATA_FIELDS = gql`
+  fragment KoneksiDataFields on KoneksiData {
+    _id
+    IdPelanggan {
+      _id
+      namaLengkap
+      email
+      noHP
+    }
+    NIK
+    NIKUrl
+    NoKK
+    KKUrl
+    IMB
+    IMBUrl
+    Alamat
+    Kelurahan
+    Kecamatan
+    LuasBangunan
+    StatusPengajuan
+    AlasanPenolakan
+    TanggalVerifikasi
+    catatan
+    createdAt
+    updatedAt
+  }
+`;
+
 export const GET_ALL_CONNECTION_DATA = gql`
+  ${KONEKSI_DATA_FIELDS}
   query GetAllKoneksiData {
     getAllKoneksiData {
-      _id
-      idPelanggan {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      NIK
-      NIKUrl
-      noKK
-      KKUrl
-      IMB
-      IMBUrl
-      alamat
-      kelurahan
-      kecamatan
-      luasBangunan
-      statusVerifikasi
-      idTeknisi {
-        _id
-        namaLengkap
-      }
-      assignedAt
-      createdAt
-      updatedAt
+      ...KoneksiDataFields
     }
   }
 `;
 
 export const GET_CONNECTION_DATA_BY_ID = gql`
+  ${KONEKSI_DATA_FIELDS}
   query GetKoneksiData($id: ID!) {
     getKoneksiData(id: $id) {
-      _id
-      idPelanggan {
-        _id
-        namaLengkap
-        email
-        noHP
-        isVerified
-      }
-      NIK
-      NIKUrl
-      noKK
-      KKUrl
-      IMB
-      IMBUrl
-      alamat
-      kelurahan
-      kecamatan
-      luasBangunan
-      statusVerifikasi
-      catatan
-      alasanPenolakan
-      tanggalVerifikasi
-      idTeknisi {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      assignedAt
-      assignedBy {
-        _id
-        namaLengkap
-        email
-      }
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const ASSIGN_TEKNISI_TO_KONEKSI = gql`
-  mutation AssignTeknisiToKoneksi($id: ID!, $technicianId: ID!) {
-    assignTeknisiToKoneksi(id: $id, technicianId: $technicianId) {
-      _id
-      idTeknisi {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      assignedAt
-      assignedBy {
-        _id
-        namaLengkap
-      }
-    }
-  }
-`;
-
-export const UNASSIGN_TEKNISI_FROM_KONEKSI = gql`
-  mutation UnassignTeknisiFromKoneksi($id: ID!) {
-    unassignTeknisiFromKoneksi(id: $id) {
-      _id
-      idTeknisi {
-        _id
-        namaLengkap
-      }
-      assignedAt
+      ...KoneksiDataFields
     }
   }
 `;
@@ -116,34 +55,79 @@ export const GET_PENDING_CONNECTION_DATA = gql`
   query GetPendingKoneksiData {
     getPendingKoneksiData {
       _id
-      idPelanggan {
+      IdPelanggan {
         _id
         namaLengkap
         email
         noHP
       }
-      alamat
-      statusVerifikasi
+      Alamat
+      StatusPengajuan
       createdAt
       updatedAt
     }
   }
 `;
 
-export const GET_VERIFIED_CONNECTION_DATA = gql`
-  query GetVerifiedKoneksiData {
-    getVerifiedKoneksiData {
+export const GET_APPROVED_CONNECTION_DATA = gql`
+  query GetApprovedKoneksiData {
+    getApprovedKoneksiData {
       _id
-      idPelanggan {
+      IdPelanggan {
         _id
         namaLengkap
         email
         noHP
       }
-      alamat
-      statusVerifikasi
+      Alamat
+      StatusPengajuan
+      TanggalVerifikasi
       createdAt
       updatedAt
+    }
+  }
+`;
+
+export const GET_REJECTED_CONNECTION_DATA = gql`
+  query GetRejectedKoneksiData {
+    getRejectedKoneksiData {
+      _id
+      IdPelanggan {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
+      Alamat
+      StatusPengajuan
+      AlasanPenolakan
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+// Stub mutations — assign teknisi sekarang via Rafli WorkOrder
+// Diekspor dari sini (bukan dari mutations/) karena AssignTechnicianDialog masih import dari sini
+export const ASSIGN_TEKNISI_TO_KONEKSI = gql`
+  mutation AssignTeknisiToKoneksi($input: BuatWorkOrderInput!) {
+    buatWorkOrder(input: $input) {
+      success
+      message
+      workOrder {
+        id
+        jenisPekerjaan
+        status
+      }
+    }
+  }
+`;
+
+export const UNASSIGN_TEKNISI_FROM_KONEKSI = gql`
+  mutation UnassignTeknisiFromKoneksi($id: ID!, $catatan: String) {
+    batalkanWorkOrder(id: $id, catatan: $catatan) {
+      success
+      message
     }
   }
 `;

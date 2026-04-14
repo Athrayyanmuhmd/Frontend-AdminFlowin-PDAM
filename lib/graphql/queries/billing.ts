@@ -2,56 +2,22 @@ import { gql } from '@apollo/client';
 
 /**
  * GraphQL Queries untuk Billing/Tagihan
- * Backend Schema: BE_backend/graphql/schemas/typeDefs.js
+ * Disesuaikan dengan Ahmad's schema: PascalCase fields, PaymentStatus UPPERCASE
  */
 
-// Get all billings (tagihan)
 export const GET_ALL_TAGIHAN = gql`
-  query GetAllTagihan {
-    getAllTagihan {
+  query GetAllTagihan($limit: Int, $offset: Int) {
+    getAllTagihan(limit: $limit, offset: $offset) {
       _id
-      idMeteran {
+      userId
+      IdMeteran {
         _id
-        nomorMeteran
-        nomorAkun
-        idPengguna {
+        NomorMeteran
+        NomorAkun
+        IdKoneksiData {
           _id
-          namaLengkap
-          email
-          noHP
-        }
-      }
-      periode
-      penggunaanSebelum
-      penggunaanSekarang
-      totalPemakaian
-      biaya
-      biayaBeban
-      totalBiaya
-      statusPembayaran
-      tanggalPembayaran
-      metodePembayaran
-      tenggatWaktu
-      menunggak
-      denda
-      catatan
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-// Get billings by status (for payments page - Settlement = success)
-export const GET_TAGIHAN_BY_STATUS = gql`
-  query GetTagihanByStatus($status: EnumPaymentStatus!) {
-    getTagihanByStatus(status: $status) {
-      _id
-      idMeteran {
-        _id
-        nomorMeteran
-        nomorAkun
-        idKoneksiData {
-          idPelanggan {
+          Alamat
+          IdPelanggan {
             _id
             namaLengkap
             email
@@ -59,83 +25,140 @@ export const GET_TAGIHAN_BY_STATUS = gql`
           }
         }
       }
-      periode
-      totalPemakaian
-      totalBiaya
-      statusPembayaran
-      tanggalPembayaran
-      metodePembayaran
-      tenggatWaktu
-      denda
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-// Get billings by meter ID (for customer detail page billing history)
-export const GET_TAGIHAN_BY_METERAN = gql`
-  query GetTagihanByMeteran($idMeteran: ID!) {
-    getTagihanByMeteran(idMeteran: $idMeteran) {
-      _id
-      periode
-      penggunaanSebelum
-      penggunaanSekarang
-      totalPemakaian
-      biaya
-      biayaBeban
-      totalBiaya
-      statusPembayaran
-      tanggalPembayaran
-      metodePembayaran
-      tenggatWaktu
-      menunggak
-      denda
-      catatan
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-// Main billing list query - uses real backend schema
-export const GET_BILLINGS = gql`
-  query GetBillings {
-    getAllTagihan {
-      _id
-      idMeteran {
-        _id
-        nomorMeteran
-        nomorAkun
-        idKoneksiData {
-          idPelanggan {
-            _id
-            namaLengkap
-            email
-          }
-        }
-      }
-      periode
-      totalPemakaian
-      biaya
-      biayaBeban
-      totalBiaya
-      statusPembayaran
-      tanggalPembayaran
-      metodePembayaran
-      tenggatWaktu
-      menunggak
-      denda
-      catatan
+      Periode
+      PenggunaanSebelum
+      PenggunaanSekarang
+      TotalPemakaian
+      Biaya
+      BiayaBeban
+      TotalBiaya
+      StatusPembayaran
+      TanggalPembayaran
+      MetodePembayaran
+      TenggatWaktu
+      Menunggak
+      Denda
+      Catatan
       jenisBilling
       bulanCakupan
       isMergedBilling
       createdAt
+      updatedAt
     }
   }
 `;
 
-// Billing stats from real backend schema
+export const GET_TAGIHAN_BY_STATUS = gql`
+  query GetTagihanByStatus($status: PaymentStatus!) {
+    getTagihanByStatus(status: $status) {
+      _id
+      userId
+      IdMeteran {
+        _id
+        NomorMeteran
+        NomorAkun
+        IdKoneksiData {
+          _id
+          IdPelanggan {
+            _id
+            namaLengkap
+            email
+            noHP
+          }
+        }
+      }
+      Periode
+      TotalPemakaian
+      TotalBiaya
+      StatusPembayaran
+      TanggalPembayaran
+      MetodePembayaran
+      TenggatWaktu
+      Denda
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_TAGIHAN_BY_METERAN = gql`
+  query GetTagihanByMeteran($IdMeteran: ID!) {
+    getTagihanByMeteran(IdMeteran: $IdMeteran) {
+      _id
+      Periode
+      PenggunaanSebelum
+      PenggunaanSekarang
+      TotalPemakaian
+      Biaya
+      BiayaBeban
+      TotalBiaya
+      StatusPembayaran
+      TanggalPembayaran
+      MetodePembayaran
+      TenggatWaktu
+      Menunggak
+      Denda
+      Catatan
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_TUNGGAKAN = gql`
+  query GetTunggakan {
+    getTunggakan {
+      _id
+      userId
+      IdMeteran {
+        _id
+        NomorMeteran
+        NomorAkun
+        IdKoneksiData {
+          _id
+          Alamat
+          IdPelanggan {
+            _id
+            namaLengkap
+            noHP
+          }
+        }
+      }
+      Periode
+      TotalBiaya
+      TenggatWaktu
+      Menunggak
+      Denda
+      createdAt
+    }
+  }
+`;
+
+export const GET_DAFTAR_PEMUTUSAN = gql`
+  query GetDaftarPemutusan {
+    getDaftarPemutusan {
+      user {
+        _id
+        namaLengkap
+        email
+        noHP
+      }
+      tagihanTunggakan {
+        _id
+        Periode
+        TotalBiaya
+        StatusPembayaran
+        Menunggak
+      }
+      jumlahBulanTunggak
+      totalTunggakan
+      denda
+      sudahDiputus
+    }
+  }
+`;
+
+// Billing stats from dashboard resolver
 export const GET_BILLING_STATS = gql`
   query GetBillingStats {
     getRingkasanStatusTagihan {
@@ -150,7 +173,6 @@ export const GET_BILLING_STATS = gql`
   }
 `;
 
-// Chart data for billing trend
 export const GET_BILLING_CHART = gql`
   query GetBillingChart {
     getLaporanKeuanganBulanan {
@@ -163,55 +185,54 @@ export const GET_BILLING_CHART = gql`
   }
 `;
 
-export const GET_BILLING_BY_ID = gql`
-  query GetBillingById($id: ID!) {
-    billing(id: $id) {
+// ==================== MUTATIONS ====================
+
+export const GENERATE_TAGIHAN = gql`
+  mutation GenerateTagihan($IdMeteran: ID!, $Periode: String!) {
+    generateTagihan(IdMeteran: $IdMeteran, Periode: $Periode) {
       _id
-      idPengguna {
+      IdMeteran {
         _id
-        namaLengkap
-        email
-        noHP
-        alamat
+        NomorMeteran
+        NomorAkun
       }
-      idMeteran {
-        _id
-        nomorSeri
-        lokasi
-      }
-      bulan
-      tahun
-      tanggalTagihan
-      tanggalJatuhTempo
-      pemakaian
-      totalBiaya
-      statusPembayaran
-      metodePembayaran
-      tanggalPembayaran
-      denda
-      catatan
+      Periode
+      TotalPemakaian
+      TotalBiaya
+      StatusPembayaran
+      TenggatWaktu
       createdAt
+    }
+  }
+`;
+
+export const GENERATE_TAGIHAN_BULANAN = gql`
+  mutation GenerateTagihanBulanan($Periode: String!, $IdMeteranList: [ID!]!) {
+    generateTagihanBulanan(Periode: $Periode, IdMeteranList: $IdMeteranList) {
+      berhasil
+      gagal
+      pesan
+      detailGagal {
+        IdMeteran
+        NomorMeteran
+        NomorAkun
+        namaLengkap
+        alasan
+      }
+    }
+  }
+`;
+
+export const UPDATE_STATUS_PEMBAYARAN = gql`
+  mutation UpdateStatusPembayaran($id: ID!, $status: PaymentStatus!) {
+    updateStatusPembayaran(id: $id, status: $status) {
+      _id
+      StatusPembayaran
+      TanggalPembayaran
       updatedAt
     }
   }
 `;
 
-export const GET_CUSTOMER_BILLINGS = gql`
-  query GetCustomerBillings($customerId: ID!, $filter: BillingFilterInput) {
-    customerBillings(customerId: $customerId, filter: $filter) {
-      _id
-      bulan
-      tahun
-      tanggalTagihan
-      tanggalJatuhTempo
-      pemakaian
-      totalBiaya
-      statusPembayaran
-      metodePembayaran
-      tanggalPembayaran
-      idMeteran {
-        nomorSeri
-      }
-    }
-  }
-`;
+// Backward-compat alias — halaman billing masih import GET_BILLINGS
+export const GET_BILLINGS = GET_ALL_TAGIHAN;

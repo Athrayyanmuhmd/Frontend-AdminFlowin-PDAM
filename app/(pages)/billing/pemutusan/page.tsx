@@ -48,13 +48,13 @@ const GET_DAFTAR_PEMUTUSAN = gql`
       }
       tagihanTunggakan {
         _id
-        periode
-        totalBiaya
-        statusPembayaran
+        Periode
+        TotalBiaya
+        StatusPembayaran
         bulanCakupan
         isMergedBilling
         jenisBilling
-        catatan
+        Catatan
       }
       jumlahBulanTunggak
       totalTunggakan
@@ -261,11 +261,11 @@ export default function PemutusanPage() {
                               {t.jenisBilling === 'denda'
                                 ? 'Denda Pemutusan'
                                 : t.isMergedBilling
-                                  ? `Gabungan: ${t.catatan}`
-                                  : `Periode: ${formatPeriode(t.periode)}`}
+                                  ? `Gabungan: ${t.Catatan}`
+                                  : `Periode: ${formatPeriode(t.Periode)}`}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" display="block">
-                              {formatRupiah(t.totalBiaya)}
+                              {formatRupiah(t.TotalBiaya)}
                             </Typography>
                           </Box>
                         ))}

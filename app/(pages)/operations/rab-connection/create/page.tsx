@@ -182,7 +182,7 @@ export default function CreateRabConnection() {
             <Typography variant='h4'>Buat RAB (Rencana Anggaran Biaya)</Typography>
             <Typography variant='body2' color='text.secondary'>
               {connectionData.NIK ? `NIK: ${connectionData.NIK} — ` : ''}
-              {connectionData.idPelanggan?.namaLengkap || '—'}
+              {connectionData.IdPelanggan?.namaLengkap || '—'}
             </Typography>
           </Box>
         </Box>

@@ -14,11 +14,9 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Chip,
   IconButton,
   Tooltip,
   TextField,
-  MenuItem,
   Grid,
   Dialog,
   DialogTitle,
@@ -27,45 +25,21 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Rating,
-  List,
-  ListItem,
-  ListItemText,
 } from '@mui/material';
 import {
   Visibility,
   Delete,
-  Warning,
-  CheckCircle,
   Search,
-  FilterList,
   Refresh,
-  Star,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   GET_ALL_PENGAWASAN_SETELAH_PEMASANGAN,
-  GET_AVERAGE_CUSTOMER_RATING,
 } from '@/lib/graphql/queries/pengawasan';
 import {
   DELETE_PENGAWASAN_SETELAH_PEMASANGAN,
 } from '@/lib/graphql/mutations/pengawasan';
-import { AKTIVASI_PELANGGAN } from '@/lib/graphql/mutations/survei';
-
-interface ChecklistSetelah {
-  meteranBacaCorrect?: boolean;
-  tidakAdaKebocoran?: boolean;
-  sambunganAman?: boolean;
-  mudahDibaca?: boolean;
-  pelangganPuas?: boolean;
-  dokumentasiLengkap?: boolean;
-}
-
-interface FeedbackPelanggan {
-  rating?: number;
-  komentar?: string;
-}
 
 interface PengawasanSetelah {
   _id: string;
@@ -74,72 +48,25 @@ interface PengawasanSetelah {
     seriMeteran: string;
     idKoneksiData?: {
       _id: string;
-      alamat: string;
-      idPelanggan?: {
+      Alamat: string;
+      IdPelanggan?: {
+        _id: string;
         namaLengkap: string;
         noHP: string;
       };
     };
-    teknisiId?: {
-      _id: string;
-      namaLengkap: string;
-    };
   };
   urlGambar: string[];
   catatan: string;
-  supervisorId: {
-    _id: string;
-    namaLengkap: string;
-    divisi?: string;
-  };
-  tanggalPengawasan?: string;
-  hariSetelahPemasangan?: number;
-  hasilPengawasan: string;
-  statusMeteran: string;
-  bacaanAwal?: number;
-  masalahDitemukan?: string[];
-  tindakan?: string;
-  rekomendasi?: string;
-  perluTindakLanjut: boolean;
-  checklist?: ChecklistSetelah;
-  feedbackPelanggan?: FeedbackPelanggan;
   createdAt: string;
   updatedAt: string;
 }
-
-const hasilColor = (hasil: string) => {
-  if (hasil === 'Baik') return 'success';
-  if (hasil === 'Perlu Perbaikan') return 'warning';
-  if (hasil === 'Bermasalah') return 'error';
-  return 'default';
-};
-
-const statusMeteranColor = (status: string) => {
-  if (status === 'Berfungsi Normal') return 'success';
-  if (status === 'Perlu Kalibrasi') return 'warning';
-  if (status === 'Bermasalah') return 'error';
-  return 'default';
-};
 
 const formatDate = (ts?: string) => {
   if (!ts) return '-';
   const d = new Date(isNaN(Number(ts)) ? ts : Number(ts));
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 };
-
-const ChecklistBadge = ({ val, label }: { val?: boolean; label: string }) => (
-  <Grid item xs={6}>
-    <Typography variant="body2">
-      <b>{label}:</b>{' '}
-      <Chip
-        label={val ? 'Ya' : 'Tidak'}
-        size="small"
-        color={val ? 'success' : 'error'}
-        icon={val ? <CheckCircle /> : <Warning />}
-      />
-    </Typography>
-  </Grid>
-);
 
 export default function PengawasanSetelahPemasanganPage() {
   const router = useRouter();
@@ -151,9 +78,6 @@ export default function PengawasanSetelahPemasanganPage() {
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [filterHasil, setFilterHasil] = useState('');
-  const [filterStatusMeteran, setFilterStatusMeteran] = useState('');
-  const [filterTindakLanjut, setFilterTindakLanjut] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<PengawasanSetelah | null>(null);
   const [openDetail, setOpenDetail] = useState(false);
@@ -162,11 +86,6 @@ export default function PengawasanSetelahPemasanganPage() {
   const [snackMsg, setSnackMsg] = useState('');
 
   const { data, loading, error, refetch } = useQuery(GET_ALL_PENGAWASAN_SETELAH_PEMASANGAN, {
-    fetchPolicy: 'network-only',
-    skip: !isAuthenticated,
-  });
-
-  const { data: ratingData } = useQuery(GET_AVERAGE_CUSTOMER_RATING, {
     fetchPolicy: 'network-only',
     skip: !isAuthenticated,
   });
@@ -181,46 +100,24 @@ export default function PengawasanSetelahPemasanganPage() {
     onError: (err) => setSnackMsg('Gagal menghapus: ' + err.message),
   });
 
-  const [aktivasiPelanggan, { loading: aktivating }] = useMutation(AKTIVASI_PELANGGAN, {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onCompleted: (res: any) => {
-      setSnackMsg(`Pelanggan ${res.aktivasiPelanggan?.namaLengkap ?? ''} berhasil diaktifkan`);
-    },
-    onError: (err) => setSnackMsg('Gagal aktivasi: ' + err.message),
-  });
-
   if (authLoading || !isAuthenticated) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allData: PengawasanSetelah[] = (data as any)?.getAllPengawasanSetelahPemasangan ?? [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const avgRating: number = (ratingData as any)?.getAverageCustomerRating?.averageRating ?? 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalResponden: number = (ratingData as any)?.getAverageCustomerRating?.totalResponden ?? 0;
 
   const filtered = allData.filter((item) => {
-    const matchHasil = !filterHasil || item.hasilPengawasan === filterHasil;
-    const matchStatus = !filterStatusMeteran || item.statusMeteran === filterStatusMeteran;
-    const matchTL =
-      !filterTindakLanjut ||
-      (filterTindakLanjut === 'ya' ? item.perluTindakLanjut : !item.perluTindakLanjut);
-    const pelanggan = item.idPemasangan?.idKoneksiData?.idPelanggan?.namaLengkap ?? '';
+    const pelanggan = item.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap ?? '';
     const seri = item.idPemasangan?.seriMeteran ?? '';
-    const supervisor = item.supervisorId?.namaLengkap ?? '';
-    const matchSearch =
+    const alamat = item.idPemasangan?.idKoneksiData?.Alamat ?? '';
+    return (
       !searchTerm ||
       pelanggan.toLowerCase().includes(searchTerm.toLowerCase()) ||
       seri.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supervisor.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchHasil && matchStatus && matchTL && matchSearch;
+      alamat.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
 
   const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  const statsBaik = allData.filter((d) => d.hasilPengawasan === 'Baik').length;
-  const statsPerbaikan = allData.filter((d) => d.hasilPengawasan === 'Perlu Perbaikan').length;
-  const statsBermasalah = allData.filter((d) => d.hasilPengawasan === 'Bermasalah').length;
-  const statsTindakLanjut = allData.filter((d) => d.perluTindakLanjut).length;
 
   return (
     <AdminLayout>
@@ -229,7 +126,7 @@ export default function PengawasanSetelahPemasanganPage() {
           Pengawasan Setelah Pemasangan
         </Typography>
         <Typography variant="body2" color="text.secondary" mb={3}>
-          Rekap hasil pengawasan pasca pemasangan meteran air dan feedback pelanggan
+          Rekap hasil pengawasan pasca pemasangan meteran air
         </Typography>
 
         {snackMsg && (
@@ -239,48 +136,21 @@ export default function PengawasanSetelahPemasanganPage() {
         )}
 
         {/* Stats */}
-        <Grid container spacing={2} mb={3}>
-          {[
-            { label: 'Baik', value: statsBaik, color: '#4caf50' },
-            { label: 'Perlu Perbaikan', value: statsPerbaikan, color: '#ff9800' },
-            { label: 'Bermasalah', value: statsBermasalah, color: '#f44336' },
-            { label: 'Perlu Tindak Lanjut', value: statsTindakLanjut, color: '#2196f3' },
-          ].map((s) => (
-            <Grid item xs={6} md={3} key={s.label}>
-              <Paper sx={{ p: 2, borderLeft: `4px solid ${s.color}` }}>
-                <Typography variant="h4" fontWeight={700} color={s.color}>
-                  {s.value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {s.label}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
+        <Paper sx={{ p: 2, mb: 3, borderLeft: '4px solid #1976d2' }}>
+          <Typography variant="h4" fontWeight={700} color="primary">
+            {allData.length}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Total Data Pengawasan
+          </Typography>
+        </Paper>
 
-        {/* Rating summary */}
-        {totalResponden > 0 && (
-          <Paper sx={{ p: 2, mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Star color="warning" sx={{ fontSize: 32 }} />
-            <Box>
-              <Typography variant="h6" fontWeight={700}>
-                {avgRating.toFixed(1)} / 5.0
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Rata-rata rating pelanggan dari {totalResponden} responden
-              </Typography>
-            </Box>
-            <Rating value={avgRating} precision={0.1} readOnly />
-          </Paper>
-        )}
-
-        {/* Filters */}
+        {/* Search & Refresh */}
         <Paper sx={{ p: 2, mb: 2 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={8}>
               <TextField
-                label="Cari pelanggan / seri / supervisor"
+                label="Cari pelanggan / seri meteran / alamat"
                 size="small"
                 fullWidth
                 value={searchTerm}
@@ -288,52 +158,7 @@ export default function PengawasanSetelahPemasanganPage() {
                 InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} /> }}
               />
             </Grid>
-            <Grid item xs={6} md={3}>
-              <TextField
-                select
-                label="Hasil Pengawasan"
-                size="small"
-                fullWidth
-                value={filterHasil}
-                onChange={(e) => { setFilterHasil(e.target.value); setPage(0); }}
-                InputProps={{ startAdornment: <FilterList sx={{ mr: 1, color: 'text.secondary' }} /> }}
-              >
-                <MenuItem value="">Semua</MenuItem>
-                <MenuItem value="Baik">Baik</MenuItem>
-                <MenuItem value="Perlu Perbaikan">Perlu Perbaikan</MenuItem>
-                <MenuItem value="Bermasalah">Bermasalah</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={6} md={2}>
-              <TextField
-                select
-                label="Status Meteran"
-                size="small"
-                fullWidth
-                value={filterStatusMeteran}
-                onChange={(e) => { setFilterStatusMeteran(e.target.value); setPage(0); }}
-              >
-                <MenuItem value="">Semua</MenuItem>
-                <MenuItem value="Berfungsi Normal">Berfungsi Normal</MenuItem>
-                <MenuItem value="Perlu Kalibrasi">Perlu Kalibrasi</MenuItem>
-                <MenuItem value="Bermasalah">Bermasalah</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={6} md={2}>
-              <TextField
-                select
-                label="Tindak Lanjut"
-                size="small"
-                fullWidth
-                value={filterTindakLanjut}
-                onChange={(e) => { setFilterTindakLanjut(e.target.value); setPage(0); }}
-              >
-                <MenuItem value="">Semua</MenuItem>
-                <MenuItem value="ya">Perlu Tindak Lanjut</MenuItem>
-                <MenuItem value="tidak">Tidak Perlu</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={6} md={2}>
+            <Grid item xs={12} md={4}>
               <Button
                 variant="outlined"
                 startIcon={<Refresh />}
@@ -365,19 +190,15 @@ export default function PengawasanSetelahPemasanganPage() {
                       <TableCell>No</TableCell>
                       <TableCell>Pelanggan</TableCell>
                       <TableCell>Seri Meteran</TableCell>
-                      <TableCell>Supervisor</TableCell>
-                      <TableCell>Hari ke-</TableCell>
-                      <TableCell>Hasil</TableCell>
-                      <TableCell>Status Meteran</TableCell>
-                      <TableCell>Rating</TableCell>
-                      <TableCell>Tindak Lanjut</TableCell>
+                      <TableCell>Foto</TableCell>
+                      <TableCell>Tanggal</TableCell>
                       <TableCell align="center">Aksi</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {paginated.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                           Tidak ada data pengawasan setelah pemasangan
                         </TableCell>
                       </TableRow>
@@ -387,55 +208,15 @@ export default function PengawasanSetelahPemasanganPage() {
                           <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
                           <TableCell>
                             <Typography variant="body2" fontWeight={600}>
-                              {item.idPemasangan?.idKoneksiData?.idPelanggan?.namaLengkap ?? '-'}
+                              {item.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap ?? '-'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {item.idPemasangan?.idKoneksiData?.alamat ?? '-'}
+                              {item.idPemasangan?.idKoneksiData?.Alamat ?? '-'}
                             </Typography>
                           </TableCell>
                           <TableCell>{item.idPemasangan?.seriMeteran ?? '-'}</TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {item.supervisorId?.namaLengkap ?? '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {item.hariSetelahPemasangan != null ? `H+${item.hariSetelahPemasangan}` : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={item.hasilPengawasan}
-                              color={hasilColor(item.hasilPengawasan) as 'success' | 'warning' | 'error' | 'default'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={item.statusMeteran}
-                              color={statusMeteranColor(item.statusMeteran) as 'success' | 'warning' | 'error' | 'default'}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {item.feedbackPelanggan?.rating != null ? (
-                              <Rating
-                                value={item.feedbackPelanggan.rating}
-                                readOnly
-                                size="small"
-                              />
-                            ) : (
-                              <Typography variant="caption" color="text.secondary">
-                                -
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {item.perluTindakLanjut ? (
-                              <Chip label="Perlu" color="warning" size="small" icon={<Warning />} />
-                            ) : (
-                              <Chip label="Tidak" color="success" size="small" icon={<CheckCircle />} />
-                            )}
-                          </TableCell>
+                          <TableCell>{item.urlGambar?.length ?? 0} foto</TableCell>
+                          <TableCell>{formatDate(item.createdAt)}</TableCell>
                           <TableCell align="center">
                             <Tooltip title="Detail">
                               <IconButton
@@ -492,140 +273,42 @@ export default function PengawasanSetelahPemasanganPage() {
                   </Typography>
                   <Typography variant="body2">
                     <b>Pelanggan:</b>{' '}
-                    {selectedItem.idPemasangan?.idKoneksiData?.idPelanggan?.namaLengkap ?? '-'}
+                    {selectedItem.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap ?? '-'}
                   </Typography>
                   <Typography variant="body2">
-                    <b>Alamat:</b> {selectedItem.idPemasangan?.idKoneksiData?.alamat ?? '-'}
+                    <b>No. HP:</b>{' '}
+                    {selectedItem.idPemasangan?.idKoneksiData?.IdPelanggan?.noHP ?? '-'}
                   </Typography>
                   <Typography variant="body2">
-                    <b>Teknisi Pemasang:</b>{' '}
-                    {selectedItem.idPemasangan?.teknisiId?.namaLengkap ?? '-'}
+                    <b>Alamat:</b> {selectedItem.idPemasangan?.idKoneksiData?.Alamat ?? '-'}
                   </Typography>
                 </Paper>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                    Hasil Pengawasan
+                    Informasi Waktu
                   </Typography>
                   <Typography variant="body2">
-                    <b>Supervisor:</b> {selectedItem.supervisorId?.namaLengkap ?? '-'}
-                    {selectedItem.supervisorId?.divisi && ` (${selectedItem.supervisorId.divisi})`}
+                    <b>Dibuat:</b> {formatDate(selectedItem.createdAt)}
                   </Typography>
                   <Typography variant="body2">
-                    <b>Tanggal:</b> {formatDate(selectedItem.tanggalPengawasan ?? selectedItem.createdAt)}
+                    <b>Diperbarui:</b> {formatDate(selectedItem.updatedAt)}
                   </Typography>
-                  {selectedItem.hariSetelahPemasangan != null && (
-                    <Typography variant="body2">
-                      <b>Hari setelah pasang:</b> H+{selectedItem.hariSetelahPemasangan}
-                    </Typography>
-                  )}
-                  {selectedItem.bacaanAwal != null && (
-                    <Typography variant="body2">
-                      <b>Bacaan Awal:</b> {selectedItem.bacaanAwal} m³
-                    </Typography>
-                  )}
-                  <Box mt={1} display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={selectedItem.hasilPengawasan}
-                      color={hasilColor(selectedItem.hasilPengawasan) as 'success' | 'warning' | 'error' | 'default'}
-                    />
-                    <Chip
-                      label={selectedItem.statusMeteran}
-                      color={statusMeteranColor(selectedItem.statusMeteran) as 'success' | 'warning' | 'error' | 'default'}
-                    />
-                    {selectedItem.perluTindakLanjut && (
-                      <Chip label="Perlu Tindak Lanjut" color="warning" icon={<Warning />} />
-                    )}
-                  </Box>
                 </Paper>
               </Grid>
 
-              {/* Checklist */}
-              {selectedItem.checklist && (
+              {/* Catatan */}
+              {selectedItem.catatan && (
                 <Grid item xs={12}>
                   <Paper variant="outlined" sx={{ p: 2 }}>
                     <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                      Checklist Pasca Pemasangan
+                      Catatan
                     </Typography>
-                    <Grid container spacing={1}>
-                      <ChecklistBadge val={selectedItem.checklist.meteranBacaCorrect} label="Meteran Baca Correct" />
-                      <ChecklistBadge val={selectedItem.checklist.tidakAdaKebocoran} label="Tidak Ada Kebocoran" />
-                      <ChecklistBadge val={selectedItem.checklist.sambunganAman} label="Sambungan Aman" />
-                      <ChecklistBadge val={selectedItem.checklist.mudahDibaca} label="Mudah Dibaca" />
-                      <ChecklistBadge val={selectedItem.checklist.pelangganPuas} label="Pelanggan Puas" />
-                      <ChecklistBadge val={selectedItem.checklist.dokumentasiLengkap} label="Dokumentasi Lengkap" />
-                    </Grid>
+                    <Typography variant="body2">{selectedItem.catatan}</Typography>
                   </Paper>
                 </Grid>
               )}
-
-              {/* Feedback Pelanggan */}
-              {selectedItem.feedbackPelanggan && (
-                <Grid item xs={12} md={6}>
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                      Feedback Pelanggan
-                    </Typography>
-                    {selectedItem.feedbackPelanggan.rating != null && (
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <Rating value={selectedItem.feedbackPelanggan.rating} readOnly />
-                        <Typography variant="body2" fontWeight={600}>
-                          {selectedItem.feedbackPelanggan.rating}/5
-                        </Typography>
-                      </Box>
-                    )}
-                    {selectedItem.feedbackPelanggan.komentar && (
-                      <Typography variant="body2" fontStyle="italic">
-                        "{selectedItem.feedbackPelanggan.komentar}"
-                      </Typography>
-                    )}
-                  </Paper>
-                </Grid>
-              )}
-
-              {/* Masalah & Tindakan */}
-              {(selectedItem.masalahDitemukan?.length || selectedItem.tindakan || selectedItem.rekomendasi) && (
-                <Grid item xs={12} md={selectedItem.feedbackPelanggan ? 6 : 12}>
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                      Masalah & Tindakan
-                    </Typography>
-                    {selectedItem.masalahDitemukan && selectedItem.masalahDitemukan.length > 0 && (
-                      <>
-                        <Typography variant="body2" fontWeight={600}>Masalah Ditemukan:</Typography>
-                        <List dense disablePadding>
-                          {selectedItem.masalahDitemukan.map((m, i) => (
-                            <ListItem key={i} disablePadding>
-                              <ListItemText primary={`• ${m}`} />
-                            </ListItem>
-                          ))}
-                        </List>
-                      </>
-                    )}
-                    {selectedItem.tindakan && (
-                      <Typography variant="body2" mt={1}>
-                        <b>Tindakan:</b> {selectedItem.tindakan}
-                      </Typography>
-                    )}
-                    {selectedItem.rekomendasi && (
-                      <Typography variant="body2" mt={1}>
-                        <b>Rekomendasi:</b> {selectedItem.rekomendasi}
-                      </Typography>
-                    )}
-                  </Paper>
-                </Grid>
-              )}
-
-              {/* Catatan */}
-              <Grid item xs={12}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                    Catatan
-                  </Typography>
-                  <Typography variant="body2">{selectedItem.catatan}</Typography>
-                </Paper>
-              </Grid>
 
               {/* Foto */}
               {selectedItem.urlGambar?.length > 0 && (
@@ -653,19 +336,6 @@ export default function PengawasanSetelahPemasanganPage() {
           )}
         </DialogContent>
         <DialogActions>
-          {selectedItem?.hasilPengawasan === 'Baik' && selectedItem?.idPemasangan?.idKoneksiData?._id && (
-            <Button
-              variant="contained"
-              color="success"
-              disabled={aktivating}
-              onClick={() => aktivasiPelanggan({
-                variables: { koneksiDataId: selectedItem.idPemasangan.idKoneksiData!._id },
-              })}
-              startIcon={aktivating ? <CircularProgress size={16} /> : <CheckCircle />}
-            >
-              Aktivasi Pelanggan
-            </Button>
-          )}
           <Button onClick={() => setOpenDetail(false)}>Tutup</Button>
         </DialogActions>
       </Dialog>

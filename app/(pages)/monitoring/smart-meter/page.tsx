@@ -139,15 +139,15 @@ const COLORS = ['#4caf50', '#ff9800', '#2196f3', '#f44336'];
  */
 function mapBackendToSmartMeter(meteranList: any[]): SmartMeter[] {
   return meteranList.map((meteran) => {
-    const customerName = meteran.idKoneksiData?.idPelanggan?.namaLengkap || 'Pelanggan Unknown';
-    const address = meteran.idKoneksiData?.alamat || 'Alamat tidak tersedia';
-    const latitude = meteran.idKoneksiData?.koordinat?.latitude || -5.5483;
-    const longitude = meteran.idKoneksiData?.koordinat?.longitude || 95.3238;
+    const customerName = meteran.IdKoneksiData?.IdPelanggan?.namaLengkap || 'Pelanggan Unknown';
+    const address = meteran.IdKoneksiData?.Alamat || 'Alamat tidak tersedia';
+    const latitude = meteran.IdKoneksiData?.koordinat?.latitude || -5.5483;
+    const longitude = meteran.IdKoneksiData?.koordinat?.longitude || 95.3238;
 
     return {
       id: meteran._id,
-      serialNumber: meteran.nomorMeteran,
-      customerId: meteran.idKoneksiData?.idPelanggan?._id || '',
+      serialNumber: meteran.NomorMeteran,
+      customerId: meteran.IdKoneksiData?.IdPelanggan?._id || '',
       customerName,
       location: { address, latitude, longitude },
       // Status default 'online' — akan diupdate saat IoT terintegrasi

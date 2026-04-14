@@ -1,48 +1,16 @@
 import { gql } from '@apollo/client';
 
-export const ASSIGN_TEKNISI_SURVEI = gql`
-  mutation AssignTeknisiSurvei($surveiId: ID!, $teknisiIds: [ID!]!) {
-    assignTeknisiSurvei(surveiId: $surveiId, teknisiIds: $teknisiIds) {
-      _id
-      status
-      disetujui
-      tim {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      updatedAt
-    }
-  }
-`;
+/**
+ * Survei-related mutations
+ * 
+ * NOTE: assignTeknisiSurvei, assignTeknisiRAB, dan aktivasiPelanggan
+ * TIDAK ADA di backend schema. Fungsi assign teknisi dilakukan melalui
+ * WorkOrder system (buatWorkOrder + reviewTim).
+ * 
+ * Mutations untuk CRUD survei ada di queries/surveyData.ts
+ * (CREATE_SURVEI, UPDATE_SURVEI, DELETE_SURVEI)
+ */
 
-export const ASSIGN_TEKNISI_RAB = gql`
-  mutation AssignTeknisiRAB($rabId: ID!, $teknisiIds: [ID!]!) {
-    assignTeknisiRAB(rabId: $rabId, teknisiIds: $teknisiIds) {
-      _id
-      status
-      disetujui
-      tim {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      updatedAt
-    }
-  }
-`;
-
-export const AKTIVASI_PELANGGAN = gql`
-  mutation AktvasiPelanggan($koneksiDataId: ID!) {
-    aktivasiPelanggan(koneksiDataId: $koneksiDataId) {
-      _id
-      namaLengkap
-      email
-      isVerified
-      accountStatus
-      updatedAt
-    }
-  }
-`;
+// File ini sengaja dikosongkan karena mutation-mutation sebelumnya
+// tidak ada di backend GraphQL schema.
+// Gunakan WorkOrder mutations untuk assign teknisi ke survei/RAB.

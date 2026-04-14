@@ -168,13 +168,13 @@ export default function CustomerDetailPage() {
     const m = list[0];
     return {
       _id: m._id,
-      meterNumber: m.nomorMeteran || 'N/A',
-      accountNumber: m.nomorAkun || 'N/A',
-      tariffCategory: m.idKelompokPelanggan?.namaKelompok || 'N/A',
+      meterNumber: m.NomorMeteran || 'N/A',
+      accountNumber: m.NomorAkun || 'N/A',
+      tariffCategory: m.IdKelompokPelanggan?.NamaKelompok || 'N/A',
       installationDate: m.createdAt ? new Date(m.createdAt) : null,
       totalUsage: m.totalPemakaian || 0,
       unpaidUsage: m.pemakaianBelumTerbayar || 0,
-      alamat: m.idKoneksiData?.alamat || '-',
+      alamat: m.IdKoneksiData?.Alamat || '-',
     };
   }, [meteranData]);
 
@@ -186,7 +186,7 @@ export default function CustomerDetailPage() {
     error: billingError,
     data: billingData,
   } = useQuery(GET_TAGIHAN_BY_METERAN, {
-    variables: { idMeteran: meteranId || '' },
+    variables: { IdMeteran: meteranId || '' },
     skip: !meteranId || tabValue !== 0,
     fetchPolicy: 'network-only',
   });
@@ -195,19 +195,20 @@ export default function CustomerDetailPage() {
     if (!(billingData as any)?.getTagihanByMeteran) return [];
     return (billingData as any).getTagihanByMeteran.map((bill: any) => ({
       id: bill._id,
-      period: bill.periode,
-      usage: bill.totalPemakaian || 0,
-      amount: bill.totalBiaya || 0,
+      period: bill.Periode,
+      usage: bill.TotalPemakaian || 0,
+      amount: bill.TotalBiaya || 0,
       status:
-        bill.statusPembayaran === 'Settlement' ||
-        bill.statusPembayaran === 'Lunas'
+        bill.StatusPembayaran === 'SETTLEMENT' ||
+        bill.StatusPembayaran === 'Settlement' ||
+        bill.StatusPembayaran === 'Lunas'
           ? 'paid'
           : 'unpaid',
-      paidDate: bill.tanggalPembayaran ? new Date(bill.tanggalPembayaran) : null,
-      biayaAir: bill.biaya || 0,
-      biayaBeban: bill.biayaBeban || 0,
-      pemakaianAwal: bill.penggunaanSebelum || 0,
-      pemakaianAkhir: bill.penggunaanSekarang || 0,
+      paidDate: bill.TanggalPembayaran ? new Date(bill.TanggalPembayaran) : null,
+      biayaAir: bill.Biaya || 0,
+      biayaBeban: bill.BiayaBeban || 0,
+      pemakaianAwal: bill.PenggunaanSebelum || 0,
+      pemakaianAkhir: bill.PenggunaanSekarang || 0,
     }));
   }, [billingData]);
 

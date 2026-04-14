@@ -4,6 +4,7 @@ import { gql } from '@apollo/client';
  * GraphQL Queries untuk Survey Data
  * Backend: BE_backend/graphql/resolvers/domains/survei.ts
  * Note: Backend uses "Survei" (Indonesian spelling)
+ * KoneksiData fields are PascalCase: Alamat, IdPelanggan, Kelurahan, Kecamatan
  */
 
 export const GET_ALL_SURVEY_DATA = gql`
@@ -12,8 +13,8 @@ export const GET_ALL_SURVEY_DATA = gql`
       _id
       idKoneksiData {
         _id
-        alamat
-        idPelanggan {
+        Alamat
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -38,10 +39,10 @@ export const GET_SURVEY_DATA_BY_ID = gql`
       idKoneksiData {
         _id
         NIK
-        alamat
-        kelurahan
-        kecamatan
-        idPelanggan {
+        Alamat
+        Kelurahan
+        Kecamatan
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -76,36 +77,17 @@ export const GET_SURVEI_BY_KONEKSI_DATA = gql`
   }
 `;
 
-export const GET_WO_BY_SURVEI = gql`
-  query GetWOBySurvei($surveiId: ID!) {
-    getWOBySurvei(surveiId: $surveiId) {
-      _id
-      status
-      disetujui
-      catatan
-      tim {
-        _id
-        namaLengkap
-        email
-        noHP
-      }
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
 export const CREATE_SURVEI = gql`
   mutation CreateSurvei(
     $idKoneksiData: ID!
-    $urlJaringan: String!
-    $diameterPipa: Float!
-    $urlPosisiBak: String!
-    $posisiMeteran: String!
-    $jumlahPenghuni: String!
-    $standar: Boolean!
+    $urlJaringan: String
+    $diameterPipa: Float
+    $urlPosisiBak: String
+    $posisiMeteran: String
+    $jumlahPenghuni: Int
+    $standar: Boolean
     $catatan: String
-    $koordinat: GeolocationInput
+    $koordinat: KoordinatInput
   ) {
     createSurvei(
       idKoneksiData: $idKoneksiData
@@ -133,10 +115,10 @@ export const UPDATE_SURVEI = gql`
     $diameterPipa: Float
     $urlPosisiBak: String
     $posisiMeteran: String
-    $jumlahPenghuni: String
+    $jumlahPenghuni: Int
     $standar: Boolean
     $catatan: String
-    $koordinat: GeolocationInput
+    $koordinat: KoordinatInput
   ) {
     updateSurvei(
       id: $id

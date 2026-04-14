@@ -1,5 +1,12 @@
 import { gql } from '@apollo/client';
 
+/**
+ * GraphQL Queries untuk Pengawasan Pemasangan & Pengawasan Setelah Pemasangan
+ * Backend schema (keduanya identik): _id, idPemasangan, urlGambar, catatan, createdAt, updatedAt
+ * Pemasangan nested: _id, idKoneksiData, seriMeteran, fotoRumah, fotoMeteran, fotoMeteranDanRumah, catatan
+ * KoneksiData nested (PascalCase): _id, Alamat, IdPelanggan { namaLengkap, noHP }
+ */
+
 export const GET_ALL_PENGAWASAN_PEMASANGAN = gql`
   query GetAllPengawasanPemasangan {
     getAllPengawasanPemasangan {
@@ -9,35 +16,16 @@ export const GET_ALL_PENGAWASAN_PEMASANGAN = gql`
         seriMeteran
         idKoneksiData {
           _id
-          alamat
-          idPelanggan {
+          Alamat
+          IdPelanggan {
+            _id
             namaLengkap
             noHP
           }
         }
-        teknisiId {
-          _id
-          namaLengkap
-        }
       }
       urlGambar
       catatan
-      supervisorId {
-        _id
-        namaLengkap
-        divisi
-      }
-      tanggalPengawasan
-      hasilPengawasan
-      temuan
-      rekomendasi
-      perluTindakLanjut
-      checklist {
-        kualitasSambunganPipa
-        posisiMeteran
-        kebersihanPemasangan
-        kepatuhanK3
-      }
       createdAt
       updatedAt
     }
@@ -53,8 +41,9 @@ export const GET_PENGAWASAN_PEMASANGAN = gql`
         seriMeteran
         idKoneksiData {
           _id
-          alamat
-          idPelanggan {
+          Alamat
+          IdPelanggan {
+            _id
             namaLengkap
             noHP
           }
@@ -62,52 +51,8 @@ export const GET_PENGAWASAN_PEMASANGAN = gql`
       }
       urlGambar
       catatan
-      supervisorId {
-        _id
-        namaLengkap
-        divisi
-      }
-      tanggalPengawasan
-      hasilPengawasan
-      temuan
-      rekomendasi
-      perluTindakLanjut
-      checklist {
-        kualitasSambunganPipa
-        posisiMeteran
-        kebersihanPemasangan
-        kepatuhanK3
-      }
       createdAt
       updatedAt
-    }
-  }
-`;
-
-export const GET_PENGAWASAN_PEMASANGAN_PROBLEMATIC = gql`
-  query GetPengawasanPemasanganProblematic {
-    getPengawasanPemasanganProblematic {
-      _id
-      idPemasangan {
-        _id
-        seriMeteran
-        idKoneksiData {
-          _id
-          alamat
-          idPelanggan {
-            namaLengkap
-          }
-        }
-      }
-      hasilPengawasan
-      temuan
-      rekomendasi
-      perluTindakLanjut
-      tanggalPengawasan
-      supervisorId {
-        _id
-        namaLengkap
-      }
     }
   }
 `;
@@ -121,45 +66,16 @@ export const GET_ALL_PENGAWASAN_SETELAH_PEMASANGAN = gql`
         seriMeteran
         idKoneksiData {
           _id
-          alamat
-          idPelanggan {
+          Alamat
+          IdPelanggan {
+            _id
             namaLengkap
             noHP
           }
         }
-        teknisiId {
-          _id
-          namaLengkap
-        }
       }
       urlGambar
       catatan
-      supervisorId {
-        _id
-        namaLengkap
-        divisi
-      }
-      tanggalPengawasan
-      hariSetelahPemasangan
-      hasilPengawasan
-      statusMeteran
-      bacaanAwal
-      masalahDitemukan
-      tindakan
-      rekomendasi
-      perluTindakLanjut
-      checklist {
-        meteranBacaCorrect
-        tidakAdaKebocoran
-        sambunganAman
-        mudahDibaca
-        pelangganPuas
-        dokumentasiLengkap
-      }
-      feedbackPelanggan {
-        rating
-        komentar
-      }
       createdAt
       updatedAt
     }
@@ -175,8 +91,9 @@ export const GET_PENGAWASAN_SETELAH_PEMASANGAN = gql`
         seriMeteran
         idKoneksiData {
           _id
-          alamat
-          idPelanggan {
+          Alamat
+          IdPelanggan {
+            _id
             namaLengkap
             noHP
           }
@@ -184,71 +101,8 @@ export const GET_PENGAWASAN_SETELAH_PEMASANGAN = gql`
       }
       urlGambar
       catatan
-      supervisorId {
-        _id
-        namaLengkap
-        divisi
-      }
-      tanggalPengawasan
-      hariSetelahPemasangan
-      hasilPengawasan
-      statusMeteran
-      bacaanAwal
-      masalahDitemukan
-      tindakan
-      rekomendasi
-      perluTindakLanjut
-      checklist {
-        meteranBacaCorrect
-        tidakAdaKebocoran
-        sambunganAman
-        mudahDibaca
-        pelangganPuas
-        dokumentasiLengkap
-      }
-      feedbackPelanggan {
-        rating
-        komentar
-      }
       createdAt
       updatedAt
-    }
-  }
-`;
-
-export const GET_PENGAWASAN_SETELAH_PROBLEMATIC = gql`
-  query GetPengawasanSetelahPemasanganProblematic {
-    getPengawasanSetelahPemasanganProblematic {
-      _id
-      idPemasangan {
-        _id
-        seriMeteran
-        idKoneksiData {
-          _id
-          alamat
-          idPelanggan {
-            namaLengkap
-          }
-        }
-      }
-      hasilPengawasan
-      statusMeteran
-      masalahDitemukan
-      perluTindakLanjut
-      tanggalPengawasan
-      supervisorId {
-        _id
-        namaLengkap
-      }
-    }
-  }
-`;
-
-export const GET_AVERAGE_CUSTOMER_RATING = gql`
-  query GetAverageCustomerRating {
-    getAverageCustomerRating {
-      averageRating
-      totalResponden
     }
   }
 `;

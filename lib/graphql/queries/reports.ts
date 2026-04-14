@@ -93,7 +93,7 @@ export const GET_ALL_LAPORAN = gql`
       jenisLaporan
       status
       catatan
-      imageUrl
+      imageURL
       koordinat {
         latitude
         longitude
@@ -111,7 +111,7 @@ export const GET_ALL_LAPORAN = gql`
 `;
 
 export const GET_LAPORAN_BY_STATUS = gql`
-  query GetLaporanByStatus($status: EnumWorkStatusPelanggan!) {
+  query GetLaporanByStatus($status: WorkStatusPelanggan!) {
     getLaporanByStatus(status: $status) {
       _id
       namaLaporan
@@ -139,7 +139,7 @@ export const GET_LAPORAN_BY_ID = gql`
       jenisLaporan
       status
       catatan
-      imageUrl
+      imageURL
       koordinat {
         latitude
         longitude
@@ -158,7 +158,7 @@ export const GET_LAPORAN_BY_ID = gql`
 `;
 
 export const UPDATE_LAPORAN_STATUS = gql`
-  mutation UpdateLaporanStatus($id: ID!, $status: EnumWorkStatusPelanggan!) {
+  mutation UpdateLaporanStatus($id: ID!, $status: WorkStatusPelanggan!) {
     updateLaporanStatus(id: $id, status: $status) {
       _id
       status

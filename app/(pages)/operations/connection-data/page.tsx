@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -20,11 +19,10 @@ import {
   Paper,
   Chip,
   IconButton,
-  Menu,
-  MenuItem,
   FormControl,
   InputLabel,
   Select,
+  MenuItem,
   Tooltip,
   Pagination,
   CircularProgress,
@@ -38,132 +36,72 @@ import {
   HourglassEmpty,
   Cancel,
   Refresh,
-  Description,
 } from '@mui/icons-material';
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import { GET_ALL_CONNECTION_DATA } from '@/lib/graphql/queries/connectionData';
 
-// Import interface from service for type compatibility
-import type { ConnectionData } from '../../../services/connectionData.service';
+// Status from Ahmad's GQL enum
+const STATUS_LABELS: Record<string, { label: string; color: 'success' | 'error' | 'warning'; icon: React.ReactElement }> = {
+  APPROVED: { label: 'Disetujui', color: 'success', icon: <CheckCircle /> },
+  REJECTED: { label: 'Ditolak',   color: 'error',   icon: <Cancel /> },
+  PENDING:  { label: 'Menunggu',  color: 'warning',  icon: <HourglassEmpty /> },
+};
 
 export default function ConnectionDataManagement() {
   const router = useRouter();
-  const { userRole } = useAdmin();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery]           = useState('');
+  const [statusFilter, setStatusFilter]         = useState<string>('all');
+  const [page, setPage]                         = useState(1);
+  const rowsPerPage                             = 10;
 
-  // Filters
-  const [adminVerifyFilter, setAdminVerifyFilter] = useState<string>('all');
-  const [technicianVerifyFilter, setTechnicianVerifyFilter] = useState<string>('all');
-  const [procedureFilter, setProcedureFilter] = useState<string>('all');
-
-  // Pagination
-  const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
-
-  // ✅ GraphQL Query - Replace REST API
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_CONNECTION_DATA, {
     fetchPolicy: 'network-only',
   });
 
-  const connectionData = (data as any)?.getAllKoneksiData || [];
+  const connectionData: any[] = (data as any)?.getAllKoneksiData ?? [];
 
-  // Handle errors
   useEffect(() => {
-    if (graphqlError) {
-      console.error('GraphQL Error loading connection data:', graphqlError);
-    }
+    if (graphqlError) console.error('GraphQL Error loading connection data:', graphqlError);
   }, [graphqlError]);
 
-  // Client-side filtering
+  // Client-side filtering — all field names match Ahmad's PascalCase GQL schema
   const filteredData = useMemo(() => {
     let filtered = [...connectionData];
 
-    // Filter by admin verification (statusVerifikasi)
-    if (adminVerifyFilter === 'disetujui') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Disetujui');
-    } else if (adminVerifyFilter === 'menunggu') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Menunggu');
-    } else if (adminVerifyFilter === 'ditolak') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Ditolak');
+    // Filter by StatusPengajuan enum (PENDING | APPROVED | REJECTED)
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((item: any) => item.StatusPengajuan === statusFilter);
     }
 
-    // Filter by technician assignment (idTeknisi presence)
-    if (technicianVerifyFilter === 'verified') {
-      filtered = filtered.filter((item: any) => !!item.idTeknisi);
-    } else if (technicianVerifyFilter === 'pending') {
-      filtered = filtered.filter((item: any) => !item.idTeknisi);
-    }
-
-    // Filter by procedure status
-    if (procedureFilter === 'done') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi === 'Disetujui' && !!item.idTeknisi);
-    } else if (procedureFilter === 'pending') {
-      filtered = filtered.filter((item: any) => item.statusVerifikasi !== 'Disetujui' || !item.idTeknisi);
-    }
-
-    // Search filter
+    // Search: nama, email, NIK, alamat
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase();
       filtered = filtered.filter((item: any) =>
-        item.idPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
-        item.alamat?.toLowerCase().includes(query) ||
-        item.idPelanggan?.email?.toLowerCase().includes(query) ||
-        item.NIK?.toLowerCase().includes(query)
+        item.IdPelanggan?.namaLengkap?.toLowerCase().includes(q) ||
+        item.IdPelanggan?.email?.toLowerCase().includes(q) ||
+        item.NIK?.toLowerCase().includes(q) ||
+        item.Alamat?.toLowerCase().includes(q)
       );
     }
 
     return filtered;
-  }, [connectionData, adminVerifyFilter, technicianVerifyFilter, procedureFilter, searchQuery]);
+  }, [connectionData, statusFilter, searchQuery]);
 
-  const error = graphqlError?.message || '';
+  useEffect(() => { setPage(1); }, [searchQuery, statusFilter]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, adminVerifyFilter, technicianVerifyFilter, procedureFilter]);
+  const getStatusInfo = (item: any) =>
+    STATUS_LABELS[item.StatusPengajuan] ?? STATUS_LABELS.PENDING;
 
-  const getVerificationStatus = (data: any) => {
-    if (data.statusVerifikasi === 'Disetujui') {
-      return { label: 'Disetujui', color: 'success' as const, icon: <CheckCircle /> };
-    }
-    if (data.statusVerifikasi === 'Ditolak') {
-      return { label: 'Ditolak', color: 'error' as const, icon: <Cancel /> };
-    }
-    return { label: 'Menunggu', color: 'warning' as const, icon: <HourglassEmpty /> };
-  };
-
-  const handleViewDetail = (id: string) => {
-    router.push(`/operations/connection-data/${id}`);
-  };
-
-  const handlePageChange = (
-    event: React.ChangeEvent<unknown>,
-    value: number
-  ) => {
-    setPage(value);
-  };
-
-  // Paginated data
-  const paginatedData = filteredData.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
+  const paginatedData = filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   return (
     <AdminLayout>
       <Box sx={{ p: 3 }}>
         {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
             <Typography variant='h4' gutterBottom>
               Data Sambungan Air
@@ -172,12 +110,7 @@ export default function ConnectionDataManagement() {
               Kelola data pengajuan sambungan air dari pelanggan
             </Typography>
           </Box>
-          <Button
-            variant='contained'
-            startIcon={<Refresh />}
-            onClick={() => refetch()}
-            disabled={loading}
-          >
+          <Button variant='contained' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading}>
             Refresh
           </Button>
         </Box>
@@ -185,82 +118,48 @@ export default function ConnectionDataManagement() {
         {/* Filters */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Grid container spacing={2} alignItems='center'>
-              <Grid item xs={12} md={4}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+              <Box sx={{ flex: '1 1 280px', minWidth: 200 }}>
                 <TextField
                   fullWidth
-                  placeholder='Cari NIK, KK, Nama, Email, Alamat...'
+                  placeholder='Cari NIK, Nama, Email, Alamat...'
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Search />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position='start'>
+                          <Search />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
                 />
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={3}>
+              <Box sx={{ flex: '0 1 220px', minWidth: 160 }}>
                 <FormControl fullWidth size='small'>
-                  <InputLabel>Verifikasi Admin</InputLabel>
+                  <InputLabel>Status Pengajuan</InputLabel>
                   <Select
-                    value={adminVerifyFilter}
-                    label='Verifikasi Admin'
-                    onChange={(e: SelectChangeEvent) =>
-                      setAdminVerifyFilter(e.target.value)
-                    }
+                    value={statusFilter}
+                    label='Status Pengajuan'
+                    onChange={(e: SelectChangeEvent) => setStatusFilter(e.target.value)}
                   >
                     <MenuItem value='all'>Semua</MenuItem>
-                    <MenuItem value='disetujui'>Disetujui</MenuItem>
-                    <MenuItem value='menunggu'>Menunggu</MenuItem>
-                    <MenuItem value='ditolak'>Ditolak</MenuItem>
+                    <MenuItem value='PENDING'>Menunggu</MenuItem>
+                    <MenuItem value='APPROVED'>Disetujui</MenuItem>
+                    <MenuItem value='REJECTED'>Ditolak</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth size='small'>
-                  <InputLabel>Verifikasi Teknisi</InputLabel>
-                  <Select
-                    value={technicianVerifyFilter}
-                    label='Verifikasi Teknisi'
-                    onChange={(e: SelectChangeEvent) =>
-                      setTechnicianVerifyFilter(e.target.value)
-                    }
-                  >
-                    <MenuItem value='all'>Semua</MenuItem>
-                    <MenuItem value='verified'>Terverifikasi</MenuItem>
-                    <MenuItem value='pending'>Belum Verifikasi</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={2}>
-                <FormControl fullWidth size='small'>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={procedureFilter}
-                    label='Status'
-                    onChange={(e: SelectChangeEvent) =>
-                      setProcedureFilter(e.target.value)
-                    }
-                  >
-                    <MenuItem value='all'>Semua</MenuItem>
-                    <MenuItem value='done'>Selesai</MenuItem>
-                    <MenuItem value='pending'>Proses</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
 
         {/* Error Alert */}
-        {error && (
+        {graphqlError && (
           <Alert severity='error' sx={{ mb: 3 }}>
-            {error}
+            {graphqlError.message}
           </Alert>
         )}
 
@@ -268,14 +167,7 @@ export default function ConnectionDataManagement() {
         <Card>
           <CardContent>
             {loading ? (
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  minHeight: 400,
-                }}
-              >
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
                 <CircularProgress />
               </Box>
             ) : filteredData.length === 0 ? (
@@ -284,107 +176,72 @@ export default function ConnectionDataManagement() {
                   Tidak ada data sambungan
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  {searchQuery
-                    ? 'Coba kata kunci pencarian yang berbeda'
-                    : 'Belum ada pengajuan sambungan'}
+                  {searchQuery ? 'Coba kata kunci pencarian yang berbeda' : 'Belum ada pengajuan sambungan'}
                 </Typography>
               </Box>
             ) : (
               <>
-                <TableContainer>
+                <TableContainer component={Paper} variant='outlined'>
                   <Table>
                     <TableHead>
                       <TableRow>
                         <TableCell>Pelanggan</TableCell>
-                        <TableCell>NIK / KK</TableCell>
+                        <TableCell>NIK / No KK</TableCell>
                         <TableCell>Alamat</TableCell>
                         <TableCell>Luas Bangunan</TableCell>
-                        <TableCell>Teknisi Ditugaskan</TableCell>
                         <TableCell>Status</TableCell>
                         <TableCell align='center'>Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paginatedData.map(data => {
-                        const status = getVerificationStatus(data);
+                      {paginatedData.map((item: any) => {
+                        const statusInfo = getStatusInfo(item);
                         return (
-                          <TableRow key={data._id} hover>
+                          <TableRow key={item._id} hover>
                             <TableCell>
-                              <Box>
-                                <Typography variant='body2' fontWeight='bold'>
-                                  {data.idPelanggan?.namaLengkap || 'N/A'}
-                                </Typography>
-                                <Typography
-                                  variant='caption'
-                                  color='text.secondary'
-                                >
-                                  {data.idPelanggan?.email || 'N/A'}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant='body2'>
-                                {data.NIK}
+                              <Typography variant='body2' fontWeight='bold'>
+                                {item.IdPelanggan?.namaLengkap || 'N/A'}
                               </Typography>
-                              <Typography
-                                variant='caption'
-                                color='text.secondary'
-                              >
-                                KK: {data.noKK}
+                              <Typography variant='caption' color='text.secondary'>
+                                {item.IdPelanggan?.email || ''}
                               </Typography>
                             </TableCell>
+
                             <TableCell>
-                              <Typography
-                                variant='body2'
-                                noWrap
-                                sx={{ maxWidth: 200 }}
-                              >
-                                {data.alamat}
-                              </Typography>
-                              <Typography
-                                variant='caption'
-                                color='text.secondary'
-                              >
-                                {data.kelurahan}, {data.kecamatan}
+                              <Typography variant='body2'>{item.NIK || '-'}</Typography>
+                              <Typography variant='caption' color='text.secondary'>
+                                KK: {item.NoKK || '-'}
                               </Typography>
                             </TableCell>
-                            <TableCell>{data.luasBangunan} m²</TableCell>
+
                             <TableCell>
-                              {data.idTeknisi ? (
-                                <Box>
-                                  <Typography variant='body2' fontWeight='bold'>
-                                    {data.idTeknisi.namaLengkap}
-                                  </Typography>
-                                  <Typography
-                                    variant='caption'
-                                    color='text.secondary'
-                                  >
-                                    {data.idTeknisi.email || ''}
-                                  </Typography>
-                                </Box>
-                              ) : (
-                                <Chip
-                                  label='Belum Ditugaskan'
-                                  size='small'
-                                  variant='outlined'
-                                  color='default'
-                                />
-                              )}
+                              <Typography variant='body2' noWrap sx={{ maxWidth: 200 }}>
+                                {item.Alamat || '-'}
+                              </Typography>
+                              <Typography variant='caption' color='text.secondary'>
+                                {[item.Kelurahan, item.Kecamatan].filter(Boolean).join(', ')}
+                              </Typography>
                             </TableCell>
+
+                            <TableCell>
+                              {item.LuasBangunan != null ? `${item.LuasBangunan} m²` : '-'}
+                            </TableCell>
+
                             <TableCell>
                               <Chip
-                                label={status.label}
-                                color={status.color}
+                                label={statusInfo.label}
+                                color={statusInfo.color}
                                 size='small'
-                                icon={status.icon}
+                                icon={statusInfo.icon}
                               />
                             </TableCell>
+
                             <TableCell align='center'>
                               <Tooltip title='Lihat Detail'>
                                 <IconButton
                                   size='small'
                                   color='primary'
-                                  onClick={() => handleViewDetail(data._id)}
+                                  onClick={() => router.push(`/operations/connection-data/${item._id}`)}
                                 >
                                   <Visibility />
                                 </IconButton>
@@ -397,12 +254,11 @@ export default function ConnectionDataManagement() {
                   </Table>
                 </TableContainer>
 
-                {/* Pagination */}
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                   <Pagination
                     count={Math.ceil(filteredData.length / rowsPerPage)}
                     page={page}
-                    onChange={handlePageChange}
+                    onChange={(_, v) => setPage(v)}
                     color='primary'
                   />
                 </Box>

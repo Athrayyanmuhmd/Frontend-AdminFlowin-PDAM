@@ -2,7 +2,8 @@ import { gql } from '@apollo/client';
 
 /**
  * GraphQL Queries & Mutations untuk Teknisi
- * Backend Schema: BE_backend/graphql/schemas/typeDefs.js
+ * Backend Schema: BE_backend/graphql/schemas/typeDefs/teknisi.ts
+ * Teknisi type uses camelCase; `id` (not `_id`), `nip`, `noHp`
  */
 
 // ==================== QUERIES ====================
@@ -10,12 +11,14 @@ import { gql } from '@apollo/client';
 export const GET_ALL_TEKNISI = gql`
   query GetAllTeknisi {
     getAllTeknisi {
-      _id
+      id
       namaLengkap
-      NIP
+      nip
       email
-      noHP
+      noHp
       divisi
+      isActive
+      pekerjaanSekarang
       createdAt
       updatedAt
     }
@@ -25,12 +28,14 @@ export const GET_ALL_TEKNISI = gql`
 export const GET_TEKNISI = gql`
   query GetTeknisi($id: ID!) {
     getTeknisi(id: $id) {
-      _id
+      id
       namaLengkap
-      NIP
+      nip
       email
-      noHP
+      noHp
       divisi
+      isActive
+      pekerjaanSekarang
       createdAt
       updatedAt
     }
@@ -38,14 +43,16 @@ export const GET_TEKNISI = gql`
 `;
 
 export const GET_TEKNISI_BY_DIVISI = gql`
-  query GetTeknisiByDivisi($divisi: EnumDivisiTeknisi!) {
+  query GetTeknisiByDivisi($divisi: DivisiTeknisi!) {
     getTeknisiByDivisi(divisi: $divisi) {
-      _id
+      id
       namaLengkap
-      NIP
+      nip
       email
-      noHP
+      noHp
       divisi
+      isActive
+      pekerjaanSekarang
       createdAt
       updatedAt
     }
@@ -57,12 +64,13 @@ export const GET_TEKNISI_BY_DIVISI = gql`
 export const CREATE_TEKNISI = gql`
   mutation CreateTeknisi($input: CreateTeknisiInput!) {
     createTeknisi(input: $input) {
-      _id
+      id
       namaLengkap
-      NIP
+      nip
       email
-      noHP
+      noHp
       divisi
+      isActive
       createdAt
     }
   }
@@ -71,12 +79,13 @@ export const CREATE_TEKNISI = gql`
 export const UPDATE_TEKNISI = gql`
   mutation UpdateTeknisi($id: ID!, $input: UpdateTeknisiInput!) {
     updateTeknisi(id: $id, input: $input) {
-      _id
+      id
       namaLengkap
-      NIP
+      nip
       email
-      noHP
+      noHp
       divisi
+      isActive
       updatedAt
     }
   }

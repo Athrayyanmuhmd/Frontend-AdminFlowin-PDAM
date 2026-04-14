@@ -53,22 +53,22 @@ const GET_ALL_METERAN_LIST = gql`
   query GetAllMeteranList {
     getAllMeteran {
       _id
-      nomorMeteran
-      nomorAkun
+      NomorMeteran
+      NomorAkun
       statusAktif
       pemakaianBelumTerbayar
       totalPemakaian
-      idKelompokPelanggan {
+      IdKelompokPelanggan {
         _id
-        namaKelompok
-        hargaDiBawah10mKubik
-        hargaDiAtas10mKubik
-        biayaBeban
+        NamaKelompok
+        TarifRendah
+        TarifTinggi
+        BiayaBeban
       }
-      idKoneksiData {
+      IdKoneksiData {
         _id
-        alamat
-        idPelanggan {
+        Alamat
+        IdPelanggan {
           _id
           namaLengkap
           email
@@ -119,9 +119,9 @@ export default function SmartMetersListPage() {
   const totalPemakaian = allMeteran.reduce((sum: number, m: any) => sum + (m.pemakaianBelumTerbayar || 0), 0);
 
   const filtered = allMeteran.filter((m: any) => {
-    const nama = m.idKoneksiData?.idPelanggan?.namaLengkap || '';
-    const nomorMeteran = m.nomorMeteran || '';
-    const nomorAkun = m.nomorAkun || '';
+    const nama = m.IdKoneksiData?.IdPelanggan?.namaLengkap || '';
+    const nomorMeteran = m.NomorMeteran || '';
+    const nomorAkun = m.NomorAkun || '';
     const matchSearch =
       !searchTerm ||
       nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -358,7 +358,7 @@ export default function SmartMetersListPage() {
                   </TableRow>
                 ) : (
                   paginated.map((m: any) => {
-                    const pelanggan = m.idKoneksiData?.idPelanggan;
+                    const pelanggan = m.IdKoneksiData?.IdPelanggan;
                     const pemakaian = m.pemakaianBelumTerbayar || 0;
                     return (
                       <TableRow key={m._id} hover>
@@ -366,13 +366,13 @@ export default function SmartMetersListPage() {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Speed sx={{ fontSize: 18, color: 'primary.main' }} />
                             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace' }}>
-                              {m.nomorMeteran}
+                              {m.NomorMeteran}
                             </Typography>
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                            {m.nomorAkun}
+                            {m.NomorAkun}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -390,11 +390,11 @@ export default function SmartMetersListPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {m.idKoneksiData?.alamat ? (
+                          {m.IdKoneksiData?.Alamat ? (
                             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
                               <LocationOn sx={{ fontSize: 14, color: 'text.secondary', mt: 0.3 }} />
-                              <Typography variant="body2" sx={{ maxWidth: 160 }} noWrap title={m.idKoneksiData.alamat}>
-                                {m.idKoneksiData.alamat}
+                              <Typography variant="body2" sx={{ maxWidth: 160 }} noWrap title={m.IdKoneksiData.Alamat}>
+                                {m.IdKoneksiData.Alamat}
                               </Typography>
                             </Box>
                           ) : (
@@ -403,7 +403,7 @@ export default function SmartMetersListPage() {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={m.idKelompokPelanggan?.namaKelompok || '—'}
+                            label={m.IdKelompokPelanggan?.NamaKelompok || '—'}
                             size="small"
                             variant="outlined"
                             color="primary"
