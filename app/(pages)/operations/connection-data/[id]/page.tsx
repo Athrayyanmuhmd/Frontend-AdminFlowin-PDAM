@@ -447,7 +447,7 @@ export default function ConnectionDataDetailPage() {
                         <Box>
                           {woSurvei && (
                             <Box sx={{ mb: 1 }}>
-                              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                              <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
                                 <strong>Work Order Survei:</strong> {getWoStatusChip(woSurvei)}
                               </Typography>
                               {woSurvei.teknisiPenanggungJawab && (
@@ -497,7 +497,7 @@ export default function ConnectionDataDetailPage() {
                       )}
                       {survei && (
                         <Box>
-                          <Typography variant="body2" sx={{ mb: 1 }}>
+                          <Typography variant="body2" component="div" sx={{ mb: 1 }}>
                             Data survei sudah ada.{' '}
                             <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, textDecoration: 'underline' }}
                               onClick={() => router.push(`/operations/survey-data/${survei._id}`)}>
@@ -505,7 +505,7 @@ export default function ConnectionDataDetailPage() {
                             </Button>
                           </Typography>
                           {woSurvei && (
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" component="div" color="text.secondary">
                               Work Order: {getWoStatusChip(woSurvei)}
                             </Typography>
                           )}
@@ -547,7 +547,7 @@ export default function ConnectionDataDetailPage() {
                         <Box>
                           {woRab && (
                             <Box sx={{ mb: 1 }}>
-                              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                              <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
                                 <strong>Work Order RAB:</strong> {getWoStatusChip(woRab)}
                               </Typography>
                               {woRab.teknisiPenanggungJawab && (
@@ -592,7 +592,7 @@ export default function ConnectionDataDetailPage() {
                       )}
                       {rab && (
                         <Box>
-                          <Typography variant="body2" sx={{ mb: 1 }}>
+                          <Typography variant="body2" component="div" sx={{ mb: 1 }}>
                             <strong>Total Biaya RAB:</strong> {formatRupiah(rab.totalBiaya)}{' '}
                             <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, textDecoration: 'underline' }}
                               onClick={() => router.push(`/operations/rab-connection/${rab._id}`)}>
@@ -600,7 +600,7 @@ export default function ConnectionDataDetailPage() {
                             </Button>
                           </Typography>
                           {woRab && (
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" component="div" color="text.secondary">
                               Work Order: {getWoStatusChip(woRab)}
                             </Typography>
                           )}
@@ -640,7 +640,7 @@ export default function ConnectionDataDetailPage() {
                       <Typography variant="body2">
                         <strong>Total Tagihan:</strong> {formatRupiah(rab.totalBiaya)}
                       </Typography>
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                      <Typography variant="body2" component="div" sx={{ mt: 0.5 }}>
                         <strong>Status Pembayaran:</strong>{' '}
                         <Chip size="small"
                           label={step5Done ? 'Settlement (Lunas)' : rab.statusPembayaran || 'Pending'}
@@ -729,7 +729,7 @@ export default function ConnectionDataDetailPage() {
                         <Box>
                           {woPemasangan && (
                             <Box sx={{ mb: 1 }}>
-                              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                              <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
                                 <strong>Work Order Pemasangan:</strong> {getWoStatusChip(woPemasangan)}
                               </Typography>
                               {woPemasangan.teknisiPenanggungJawab && (
