@@ -206,7 +206,7 @@ export default function ConnectionDataDetailPage() {
     setActionLoading(true);
     setErrorMsg(null);
     try {
-      await buatWorkOrder({
+      const result = await buatWorkOrder({
         variables: {
           input: {
             idKoneksiData: id,
@@ -215,6 +215,11 @@ export default function ConnectionDataDetailPage() {
           },
         },
       });
+      const wo = (result?.data as any)?.buatWorkOrder;
+      if (wo?.success === false) {
+        setErrorMsg(wo.message || 'Gagal membuat work order');
+        return;
+      }
       setSuccess(`Work order ${woCreateType} berhasil dibuat`);
       setWoCreateDialogOpen(false);
       refetchWO();
@@ -230,7 +235,7 @@ export default function ConnectionDataDetailPage() {
     setActionLoading(true);
     setErrorMsg(null);
     try {
-      await reviewHasil({
+      const result = await reviewHasil({
         variables: {
           input: {
             workOrderId: woReviewId,
@@ -239,6 +244,11 @@ export default function ConnectionDataDetailPage() {
           },
         },
       });
+      const wo = (result?.data as any)?.reviewHasil;
+      if (wo?.success === false) {
+        setErrorMsg(wo.message || 'Gagal review work order');
+        return;
+      }
       setSuccess(`Work order berhasil ${woReviewApprove ? 'disetujui' : 'ditolak'}`);
       setWoReviewDialogOpen(false);
       refetchWO();
