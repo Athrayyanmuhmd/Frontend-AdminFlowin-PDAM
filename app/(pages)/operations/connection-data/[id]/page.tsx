@@ -27,6 +27,7 @@ import { GET_PEMASANGAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queri
 import { GET_WORK_ORDERS_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/workOrder';
 import { BUAT_WORK_ORDER, REVIEW_HASIL } from '../../../../../lib/graphql/mutations/workOrder';
 import { GET_ALL_TEKNISI } from '../../../../../lib/graphql/queries/technicians';
+import { UPDATE_METERAN } from '../../../../../lib/graphql/queries/meteran';
 
 // Helpers
 function formatRupiah(amount: number | undefined | null): string {
@@ -129,6 +130,7 @@ export default function ConnectionDataDetailPage() {
   const [verifyKoneksiData] = useMutation(VERIFY_CONNECTION_DATA);
   const [buatWorkOrder] = useMutation(BUAT_WORK_ORDER);
   const [reviewHasil] = useMutation(REVIEW_HASIL);
+  const [updateMeteran] = useMutation(UPDATE_METERAN);
 
   // Derived WO data
   const woSurvei = useMemo(() => workOrders.find((wo: any) => wo.jenisPekerjaan === 'survei'), [workOrders]);
@@ -140,7 +142,7 @@ export default function ConnectionDataDetailPage() {
   const step2Done = isApproved;
   const step3Done = step2Done && !!survei;
   const step4Done = step3Done && !!rab;
-  const step5Done = step4Done && rab?.statusPembayaran === 'SETTLEMENT';
+  const step5Done = step4Done && rab?.statusPembayaran === 'settlement';
   const step6Done = step5Done && !!meteran;
   const step7Done = step6Done && !!pemasangan;
   const step8Done = step7Done && !!meteran?.statusAktif;
@@ -257,6 +259,21 @@ export default function ConnectionDataDetailPage() {
       refetchPemasangan();
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal review work order');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAktifkanMeteran = async () => {
+    if (!meteran?._id) return;
+    setActionLoading(true);
+    setErrorMsg(null);
+    try {
+      await updateMeteran({ variables: { id: meteran._id, statusAktif: true } });
+      setSuccess('Meteran berhasil diaktifkan. Pelanggan sekarang aktif.');
+      refetchMeteran();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Gagal mengaktifkan meteran');
     } finally {
       setActionLoading(false);
     }
@@ -737,6 +754,20 @@ export default function ConnectionDataDetailPage() {
                                   <strong>Teknisi:</strong> {woPemasangan.teknisiPenanggungJawab.namaLengkap}
                                 </Typography>
                               )}
+                              {woPemasangan.status === 'dikirim' && userRole === 'admin' && (
+                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                  <Button size="small" variant="contained" color="success"
+                                    startIcon={<CheckCircle />}
+                                    onClick={() => openWoReviewDialog('pemasangan', true, woPemasangan.id)}>
+                                    Setujui Hasil
+                                  </Button>
+                                  <Button size="small" variant="outlined" color="error"
+                                    startIcon={<Cancel />}
+                                    onClick={() => openWoReviewDialog('pemasangan', false, woPemasangan.id)}>
+                                    Tolak Hasil
+                                  </Button>
+                                </Box>
+                              )}
                             </Box>
                           )}
                           {!woPemasangan && userRole === 'admin' && (
@@ -800,9 +831,19 @@ export default function ConnectionDataDetailPage() {
                         <Alert severity="success">
                           Sambungan air pelanggan telah aktif. Meteran <strong>{meteran?.NomorMeteran}</strong> sudah berjalan.
                         </Alert>
+                      ) : userRole === 'admin' ? (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Klik tombol di bawah untuk mengaktifkan meteran dan menyelesaikan proses sambungan pelanggan.
+                          </Typography>
+                          <Button variant="contained" color="success" startIcon={<CheckCircle />}
+                            onClick={handleAktifkanMeteran} disabled={actionLoading}>
+                            {actionLoading ? <CircularProgress size={20} /> : 'Aktifkan Meteran'}
+                          </Button>
+                        </Box>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          Menunggu aktivasi meteran setelah proses pengawasan selesai.
+                          Menunggu aktivasi meteran oleh admin.
                         </Typography>
                       )}
                     </>
