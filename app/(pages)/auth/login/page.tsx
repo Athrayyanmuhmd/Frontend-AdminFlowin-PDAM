@@ -43,11 +43,15 @@ export default function AdminLogin() {
       return;
     }
 
-    const success = await login(email, password, role);
-    if (success) {
-      router.push('/dashboard');
-    } else {
-      setError('Email atau password salah');
+    try {
+      const success = await login(email, password, role);
+      if (success) {
+        router.push('/dashboard');
+      } else {
+        setError('Login gagal. Periksa kembali email dan password.');
+      }
+    } catch (err: any) {
+      setError(err?.message ?? 'Email atau password salah');
     }
   };
 

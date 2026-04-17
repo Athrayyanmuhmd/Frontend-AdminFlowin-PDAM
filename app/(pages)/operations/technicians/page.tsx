@@ -147,28 +147,35 @@ export default function TechnicianManagement() {
   // ==================== Data Processing ====================
   const technicians = (data as any)?.getAllTeknisi || [];
 
+  // Helper: parse epoch-ms string OR ISO string → Date (null-safe)
+  const parseDate = (val: string | undefined | null): Date | null => {
+    if (!val) return null;
+    // Epoch ms as all-digit string (e.g. "1718000000000" from Rafli's String scalar)
+    if (/^\d+$/.test(val)) {
+      const d = new Date(Number(val));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   // Helper function to format date safely
   const formatDate = (dateString: string | undefined | null): string => {
-    if (!dateString) return '-';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '-';
-      return date.toLocaleDateString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return '-';
-    }
+    const date = parseDate(dateString);
+    if (!date) return '-';
+    return date.toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
 
   // Sort technicians by createdAt (newest first), then apply filter
   const filteredTechnicians = useMemo(() => {
     // First, sort by createdAt descending (newest first)
     const sorted = [...technicians].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      const dateA = parseDate(a.createdAt)?.getTime() ?? 0;
+      const dateB = parseDate(b.createdAt)?.getTime() ?? 0;
       return dateB - dateA; // Descending order (newest first)
     });
 
@@ -228,6 +235,8 @@ export default function TechnicianManagement() {
     setSuccess('');
 
     if (!formData.namaLengkap.trim()) { setError('Nama lengkap wajib diisi'); return; }
+    if (!formData.nip.trim()) { setError('NIP wajib diisi'); return; }
+    if (!/^[0-9]+$/.test(formData.nip.trim())) { setError('NIP harus berupa angka'); return; }
     if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('Email tidak valid'); return; }
     if (!formData.password || formData.password.length < 8) { setError('Password minimal 8 karakter'); return; }
     if (!/[A-Z]/.test(formData.password)) { setError('Password harus mengandung minimal 1 huruf kapital'); return; }
@@ -491,10 +500,13 @@ export default function TechnicianManagement() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label='NIP (Opsional)'
+                  label='NIP'
+                  required
+                  placeholder='Contoh: 199001012020121001'
+                  helperText='Hanya angka, tanpa spasi atau tanda baca'
                   value={formData.nip}
                   onChange={e =>
-                    setFormData({ ...formData, nip: e.target.value })
+                    setFormData({ ...formData, nip: e.target.value.replace(/\D/g, '') })
                   }
                 />
               </Grid>
@@ -559,6 +571,7 @@ export default function TechnicianManagement() {
               disabled={
                 actionLoading ||
                 !formData.namaLengkap ||
+                !formData.nip ||
                 !formData.email ||
                 !formData.noHp ||
                 !formData.password
@@ -592,10 +605,11 @@ export default function TechnicianManagement() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label='NIP (Opsional)'
+                  label='NIP'
+                  helperText='Hanya angka, tanpa spasi atau tanda baca'
                   value={formData.nip}
                   onChange={e =>
-                    setFormData({ ...formData, nip: e.target.value })
+                    setFormData({ ...formData, nip: e.target.value.replace(/\D/g, '') })
                   }
                 />
               </Grid>

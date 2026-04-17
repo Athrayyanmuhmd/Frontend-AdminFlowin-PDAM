@@ -16,6 +16,7 @@ export const GET_ALL_CUSTOMERS = gql`
       noHP
       profilePicture
       isVerified
+      accountStatus
       createdAt
       updatedAt
     }
@@ -31,6 +32,7 @@ export const GET_CUSTOMER = gql`
       noHP
       profilePicture
       isVerified
+      accountStatus
       createdAt
       updatedAt
     }
@@ -56,6 +58,40 @@ export const DELETE_CUSTOMER = gql`
     deletePelanggan(id: $id) {
       success
       message
+    }
+  }
+`;
+
+// Pemutusan sambungan — min 3 bulan tunggak, buat billing denda, set accountStatus: inactive
+export const DEACTIVATE_CUSTOMER = gql`
+  mutation DeactivateCustomer($userId: ID!) {
+    deactivateCustomer(userId: $userId) {
+      _id
+      namaLengkap
+      accountStatus
+    }
+  }
+`;
+
+// Aktifkan kembali setelah bayar tunggakan di loket
+export const KONFIRMASI_BAYAR_LOKET = gql`
+  mutation KonfirmasiPembayaranLoket($userId: ID!) {
+    konfirmasiPembayaranLoket(userId: $userId) {
+      _id
+      namaLengkap
+      accountStatus
+    }
+  }
+`;
+
+// Aktivasi pelanggan baru — aktifkan akun + meter setelah semua tahap pemasangan selesai
+export const AKTIVASI_PELANGGAN = gql`
+  mutation AktivasiPelanggan($koneksiDataId: ID!) {
+    aktivasiPelanggan(koneksiDataId: $koneksiDataId) {
+      _id
+      namaLengkap
+      accountStatus
+      isVerified
     }
   }
 `;

@@ -2,370 +2,423 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  IconButton,
-  Tooltip,
-  TextField,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Alert,
-  CircularProgress,
+  Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Chip, Avatar, Tooltip, Pagination, CircularProgress, Alert, Snackbar,
+  Stack, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Divider,
+  IconButton, Badge,
 } from '@mui/material';
 import {
-  Visibility,
-  Delete,
-  Search,
-  Refresh,
+  Search, Visibility, Refresh, ThumbUp, ThumbDown, CheckCircle,
+  HourglassEmpty, Cancel, Image as ImageIcon, Assignment,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { useAdmin } from '../../../layouts/AdminProvider';
-import {
-  GET_ALL_PENGAWASAN_SETELAH_PEMASANGAN,
-} from '@/lib/graphql/queries/pengawasan';
-import {
-  DELETE_PENGAWASAN_SETELAH_PEMASANGAN,
-} from '@/lib/graphql/mutations/pengawasan';
+import { GET_ALL_PENGAWASAN_SETELAH_PEMASANGAN } from '@/lib/graphql/queries/pengawasan';
+import { REVIEW_PENGAWASAN_SETELAH_PEMASANGAN } from '@/lib/graphql/mutations/pemasangan';
 
-interface PengawasanSetelah {
-  _id: string;
-  idPemasangan: {
-    _id: string;
-    seriMeteran: string;
-    idKoneksiData?: {
-      _id: string;
-      Alamat: string;
-      IdPelanggan?: {
-        _id: string;
-        namaLengkap: string;
-        noHP: string;
-      };
-    };
-  };
-  urlGambar: string[];
-  catatan: string;
-  createdAt: string;
-  updatedAt: string;
+function parseFlexDate(val: string | number | null | undefined): Date | null {
+  if (!val) return null;
+  const num = typeof val === 'number' ? val : (/^\d+$/.test(String(val)) ? Number(val) : NaN);
+  if (!isNaN(num)) return new Date(num);
+  const d = new Date(val as string);
+  return isNaN(d.getTime()) ? null : d;
 }
+const fmtDate = (v: string | number | null | undefined) => {
+  const d = parseFlexDate(v);
+  return d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+};
+const fmtDateTime = (v: string | number | null | undefined) => {
+  const d = parseFlexDate(v);
+  return d ? d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+};
 
-const formatDate = (ts?: string) => {
-  if (!ts) return '-';
-  const d = new Date(isNaN(Number(ts)) ? ts : Number(ts));
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+const STATUS_LABEL: Record<string, string> = {
+  menunggu_review: 'Menunggu Review',
+  disetujui: 'Disetujui',
+  ditolak: 'Ditolak',
+};
+const STATUS_COLOR: Record<string, 'warning' | 'success' | 'error' | 'default'> = {
+  menunggu_review: 'warning',
+  disetujui: 'success',
+  ditolak: 'error',
 };
 
 export default function PengawasanSetelahPemasanganPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading, userRole } = useAdmin();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItem, setSelectedItem] = useState<PengawasanSetelah | null>(null);
-  const [openDetail, setOpenDetail] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<PengawasanSetelah | null>(null);
-  const [snackMsg, setSnackMsg] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 10;
+
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewApprove, setReviewApprove] = useState(true);
+  const [catatanReview, setCatatanReview] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, msg: '', ok: true });
+  const toast = (msg: string, ok = true) => setSnackbar({ open: true, msg, ok });
 
   const { data, loading, error, refetch } = useQuery(GET_ALL_PENGAWASAN_SETELAH_PEMASANGAN, {
     fetchPolicy: 'network-only',
-    skip: !isAuthenticated,
+  });
+  const allData: any[] = (data as any)?.getAllPengawasanSetelahPemasangan || [];
+
+  const [reviewMutation, { loading: reviewing }] = useMutation(REVIEW_PENGAWASAN_SETELAH_PEMASANGAN, {
+    onCompleted: () => {
+      refetch();
+      setReviewOpen(false);
+      setCatatanReview('');
+      toast(reviewApprove ? 'Pengawasan setelah pemasangan disetujui' : 'Pengawasan setelah pemasangan ditolak');
+    },
+    onError: (e) => toast(e.message, false),
   });
 
-  const [deletePengawasan, { loading: deleting }] = useMutation(DELETE_PENGAWASAN_SETELAH_PEMASANGAN, {
-    onCompleted: () => {
-      setSnackMsg('Data pengawasan berhasil dihapus');
-      setOpenDeleteDialog(false);
-      setDeleteTarget(null);
-      refetch();
-    },
-    onError: (err) => setSnackMsg('Gagal menghapus: ' + err.message),
+  const filtered = allData.filter(item => {
+    const name = item.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap || '';
+    const seri = item.idPemasangan?.seriMeteran || '';
+    const alamat = item.idPemasangan?.idKoneksiData?.Alamat || '';
+    return !search || [name, seri, alamat].some(s => s.toLowerCase().includes(search.toLowerCase()));
   });
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const rows = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  const counts = {
+    total: allData.length,
+    menunggu: allData.filter(d => d.statusAdmin === 'menunggu_review' || !d.statusAdmin).length,
+    disetujui: allData.filter(d => d.statusAdmin === 'disetujui').length,
+    ditolak: allData.filter(d => d.statusAdmin === 'ditolak').length,
+  };
+
+  const openReview = (item: any, approve: boolean) => {
+    setSelectedItem(item);
+    setReviewApprove(approve);
+    setCatatanReview('');
+    setReviewOpen(true);
+  };
+
+  const handleReview = () => {
+    if (!selectedItem) return;
+    reviewMutation({ variables: { id: selectedItem._id, disetujui: reviewApprove, catatan: catatanReview || undefined } });
+  };
 
   if (authLoading || !isAuthenticated) return null;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allData: PengawasanSetelah[] = (data as any)?.getAllPengawasanSetelahPemasangan ?? [];
-
-  const filtered = allData.filter((item) => {
-    const pelanggan = item.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap ?? '';
-    const seri = item.idPemasangan?.seriMeteran ?? '';
-    const alamat = item.idPemasangan?.idKoneksiData?.Alamat ?? '';
-    return (
-      !searchTerm ||
-      pelanggan.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      seri.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      alamat.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-
-  const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const isAdmin = userRole === 'admin';
 
   return (
-    <AdminLayout>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h5" fontWeight={700} mb={1}>
-          Pengawasan Setelah Pemasangan
-        </Typography>
-        <Typography variant="body2" color="text.secondary" mb={3}>
-          Rekap hasil pengawasan pasca pemasangan meteran air
-        </Typography>
+    <AdminLayout title="Pengawasan Setelah Pemasangan">
+      <Box sx={{ mb: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box>
+            <Typography variant="h5" fontWeight={700}>Pengawasan Setelah Pemasangan</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Review hasil pengawasan pasca-pemasangan meteran air
+            </Typography>
+          </Box>
+          <Button variant="outlined" size="small" startIcon={<Refresh />} onClick={() => refetch()} disabled={loading}>
+            Refresh
+          </Button>
+        </Box>
 
-        {snackMsg && (
-          <Alert severity="info" onClose={() => setSnackMsg('')} sx={{ mb: 2 }}>
-            {snackMsg}
-          </Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>Gagal memuat: {error.message}</Alert>}
 
-        {/* Stats */}
-        <Paper sx={{ p: 2, mb: 3, borderLeft: '4px solid #1976d2' }}>
-          <Typography variant="h4" fontWeight={700} color="primary">
-            {allData.length}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Total Data Pengawasan
-          </Typography>
-        </Paper>
-
-        {/* Search & Refresh */}
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={8}>
-              <TextField
-                label="Cari pelanggan / seri meteran / alamat"
-                size="small"
-                fullWidth
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-                InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} /> }}
-              />
+        {/* Summary Cards */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {[
+            { label: 'Total',          value: counts.total,    color: '#1976d2', icon: <Assignment /> },
+            { label: 'Menunggu Review', value: counts.menunggu, color: counts.menunggu > 0 ? '#ed6c02' : '#9e9e9e', icon: <HourglassEmpty /> },
+            { label: 'Disetujui',      value: counts.disetujui,color: '#2e7d32', icon: <CheckCircle /> },
+            { label: 'Ditolak',        value: counts.ditolak,  color: '#d32f2f', icon: <Cancel /> },
+          ].map(s => (
+            <Grid item xs={6} md={3} key={s.label}>
+              <Card variant="outlined" sx={{ borderRadius: 2, borderColor: s.label === 'Menunggu Review' && s.value > 0 ? 'warning.main' : 'divider' }}>
+                <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar sx={{ bgcolor: s.color, width: 36, height: 36, fontSize: 18 }}>{s.icon}</Avatar>
+                    <Box>
+                      <Typography variant="h5" fontWeight={700} lineHeight={1.2}>{s.value}</Typography>
+                      <Typography variant="caption" color="text.secondary">{s.label}</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Button
-                variant="outlined"
-                startIcon={<Refresh />}
-                onClick={() => refetch()}
-                fullWidth
-              >
-                Refresh
-              </Button>
-            </Grid>
-          </Grid>
-        </Paper>
+          ))}
+        </Grid>
+
+        {/* Search */}
+        <Card variant="outlined" sx={{ mb: 2, borderRadius: 2 }}>
+          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <TextField fullWidth size="small"
+              placeholder="Cari nama pelanggan, seri meteran, alamat..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
+            />
+          </CardContent>
+        </Card>
 
         {/* Table */}
-        <Paper>
+        <Card variant="outlined" sx={{ borderRadius: 2 }}>
           {loading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress />
-            </Box>
-          ) : error ? (
-            <Alert severity="error" sx={{ m: 2 }}>
-              Gagal memuat data: {error.message}
-            </Alert>
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>
           ) : (
             <>
               <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: 'primary.50' }}>
-                      <TableCell>No</TableCell>
-                      <TableCell>Pelanggan</TableCell>
-                      <TableCell>Seri Meteran</TableCell>
-                      <TableCell>Foto</TableCell>
-                      <TableCell>Tanggal</TableCell>
-                      <TableCell align="center">Aksi</TableCell>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableHead sx={{ bgcolor: 'grey.50' }}>
+                    <TableRow>
+                      <TableCell width={44} sx={{ fontWeight: 600 }}>No</TableCell>
+                      <TableCell width={180} sx={{ fontWeight: 600 }}>Pelanggan</TableCell>
+                      <TableCell width={130} sx={{ fontWeight: 600 }}>Seri Meteran</TableCell>
+                      <TableCell width={80} sx={{ fontWeight: 600 }} align="center">Foto</TableCell>
+                      <TableCell width={130} sx={{ fontWeight: 600 }} align="center">Status Review</TableCell>
+                      <TableCell width={90} sx={{ fontWeight: 600 }}>Tanggal</TableCell>
+                      <TableCell width={isAdmin ? 130 : 56} sx={{ fontWeight: 600 }} align="center">Aksi</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {paginated.length === 0 ? (
+                    {rows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                          Tidak ada data pengawasan setelah pemasangan
+                        <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                          <Typography color="text.secondary">Tidak ada data</Typography>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      paginated.map((item, idx) => (
-                        <TableRow key={item._id} hover>
-                          <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
+                    ) : rows.map((item, idx) => {
+                      const status = item.statusAdmin || 'menunggu_review';
+                      const needsReview = status === 'menunggu_review';
+                      const photoCount = item.urlGambar?.length || 0;
+
+                      return (
+                        <TableRow key={item._id} hover
+                          sx={{
+                            bgcolor: needsReview ? 'rgba(255,152,0,0.06)' : undefined,
+                            borderLeft: `3px solid ${needsReview ? '#ed6c02' : 'transparent'}`,
+                          }}
+                        >
                           <TableCell>
-                            <Typography variant="body2" fontWeight={600}>
-                              {item.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap ?? '-'}
+                            {needsReview ? (
+                              <Tooltip title="Perlu review" arrow>
+                                <Badge color="warning" variant="dot">
+                                  <Typography variant="body2" fontWeight={600}>{(page - 1) * PER_PAGE + idx + 1}</Typography>
+                                </Badge>
+                              </Tooltip>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">{(page - 1) * PER_PAGE + idx + 1}</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={600} noWrap>
+                              {item.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap || '—'}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {item.idPemasangan?.idKoneksiData?.Alamat ?? '-'}
+                            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                              {item.idPemasangan?.idKoneksiData?.Alamat || '—'}
                             </Typography>
                           </TableCell>
-                          <TableCell>{item.idPemasangan?.seriMeteran ?? '-'}</TableCell>
-                          <TableCell>{item.urlGambar?.length ?? 0} foto</TableCell>
-                          <TableCell>{formatDate(item.createdAt)}</TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontFamily="monospace" noWrap>
+                              {item.idPemasangan?.seriMeteran || '—'}
+                            </Typography>
+                          </TableCell>
                           <TableCell align="center">
-                            <Tooltip title="Detail">
-                              <IconButton
-                                size="small"
-                                onClick={() => { setSelectedItem(item); setOpenDetail(true); }}
-                              >
-                                <Visibility fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Hapus">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => { setDeleteTarget(item); setOpenDeleteDialog(true); }}
-                              >
-                                <Delete fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
+                            {photoCount > 0 ? (
+                              <Chip icon={<ImageIcon sx={{ fontSize: '14px !important' }} />}
+                                label={`${photoCount} foto`} size="small" color="info" variant="outlined" sx={{ fontSize: 11 }} />
+                            ) : (
+                              <Typography variant="caption" color="text.disabled">—</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip size="small"
+                              label={STATUS_LABEL[status] || status}
+                              color={STATUS_COLOR[status] || 'default'}
+                              sx={{ fontSize: 11 }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">{fmtDate(item.createdAt)}</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Stack direction="row" spacing={0.5} justifyContent="center">
+                              <Tooltip title="Lihat Detail">
+                                <IconButton size="small" onClick={() => { setSelectedItem(item); setDetailOpen(true); }}>
+                                  <Visibility fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              {isAdmin && status === 'menunggu_review' && (
+                                <>
+                                  <Tooltip title="Setujui">
+                                    <IconButton size="small" color="success" onClick={() => openReview(item, true)}>
+                                      <ThumbUp fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Tolak">
+                                    <IconButton size="small" color="error" onClick={() => openReview(item, false)}>
+                                      <ThumbDown fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
+                            </Stack>
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
-              <TablePagination
-                component="div"
-                count={filtered.length}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-                rowsPerPageOptions={[10, 25, 50]}
-                labelRowsPerPage="Baris per halaman:"
-              />
+
+              {totalPages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" size="small" />
+                </Box>
+              )}
+              <Box sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Menampilkan {rows.length} dari {filtered.length} data
+                </Typography>
+              </Box>
             </>
           )}
-        </Paper>
+        </Card>
       </Box>
 
-      {/* Detail Dialog */}
-      <Dialog open={openDetail} onClose={() => setOpenDetail(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Detail Pengawasan Setelah Pemasangan</DialogTitle>
+      {/* ─── Detail Dialog ────────────────────────────────────────────────────── */}
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Detail Pengawasan Setelah Pemasangan</DialogTitle>
         <DialogContent dividers>
           {selectedItem && (
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                    Info Pemasangan
-                  </Typography>
-                  <Typography variant="body2">
-                    <b>Seri Meteran:</b> {selectedItem.idPemasangan?.seriMeteran ?? '-'}
-                  </Typography>
-                  <Typography variant="body2">
-                    <b>Pelanggan:</b>{' '}
-                    {selectedItem.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap ?? '-'}
-                  </Typography>
-                  <Typography variant="body2">
-                    <b>No. HP:</b>{' '}
-                    {selectedItem.idPemasangan?.idKoneksiData?.IdPelanggan?.noHP ?? '-'}
-                  </Typography>
-                  <Typography variant="body2">
-                    <b>Alamat:</b> {selectedItem.idPemasangan?.idKoneksiData?.Alamat ?? '-'}
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                    Informasi Waktu
-                  </Typography>
-                  <Typography variant="body2">
-                    <b>Dibuat:</b> {formatDate(selectedItem.createdAt)}
-                  </Typography>
-                  <Typography variant="body2">
-                    <b>Diperbarui:</b> {formatDate(selectedItem.updatedAt)}
-                  </Typography>
-                </Paper>
-              </Grid>
-
-              {/* Catatan */}
-              {selectedItem.catatan && (
-                <Grid item xs={12}>
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                      Catatan
-                    </Typography>
-                    <Typography variant="body2">{selectedItem.catatan}</Typography>
-                  </Paper>
-                </Grid>
+            <Stack spacing={2}>
+              {selectedItem.statusAdmin && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="caption" color="text.secondary">Status Review:</Typography>
+                  <Chip size="small"
+                    label={STATUS_LABEL[selectedItem.statusAdmin] || selectedItem.statusAdmin}
+                    color={STATUS_COLOR[selectedItem.statusAdmin] || 'default'}
+                  />
+                </Box>
               )}
+              {selectedItem.catatanAdmin && (
+                <Alert severity={selectedItem.statusAdmin === 'ditolak' ? 'error' : 'info'} sx={{ py: 0.5 }}>
+                  <strong>Catatan Admin:</strong> {selectedItem.catatanAdmin}
+                </Alert>
+              )}
+              <Divider />
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="caption" color="text.secondary">Pelanggan</Typography>
+                  <Typography variant="body1" fontWeight={600}>{selectedItem.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap || '—'}</Typography>
+                  <Typography variant="caption" color="text.secondary">{selectedItem.idPemasangan?.idKoneksiData?.IdPelanggan?.noHP || ''}</Typography>
 
-              {/* Foto */}
-              {selectedItem.urlGambar?.length > 0 && (
-                <Grid item xs={12}>
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" fontWeight={700} mb={1}>
-                      Dokumentasi Foto ({selectedItem.urlGambar.length})
-                    </Typography>
-                    <Box display="flex" gap={1} flexWrap="wrap">
-                      {selectedItem.urlGambar.map((url, i) => (
-                        <Button
-                          key={i}
-                          variant="outlined"
-                          size="small"
-                          onClick={() => window.open(url, '_blank')}
-                        >
-                          Foto {i + 1}
-                        </Button>
-                      ))}
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>Alamat</Typography>
+                  <Typography variant="body2">{selectedItem.idPemasangan?.idKoneksiData?.Alamat || '—'}</Typography>
+
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>Seri Meteran</Typography>
+                  <Typography variant="body1" fontFamily="monospace" fontWeight={600}>{selectedItem.idPemasangan?.seriMeteran || '—'}</Typography>
+
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>Tanggal</Typography>
+                  <Typography variant="body2">{fmtDateTime(selectedItem.createdAt)}</Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  {selectedItem.catatan && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Catatan Teknisi</Typography>
+                      <Typography variant="body2">{selectedItem.catatan}</Typography>
                     </Box>
-                  </Paper>
+                  )}
                 </Grid>
+              </Grid>
+
+              {selectedItem.urlGambar?.length > 0 && (
+                <>
+                  <Divider />
+                  <Typography variant="subtitle2" color="text.secondary">Dokumentasi Foto ({selectedItem.urlGambar.length})</Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    {selectedItem.urlGambar.map((url: string, i: number) => (
+                      <Box key={i} sx={{ textAlign: 'center' }}>
+                        <Box component="img" src={url} alt={`foto-${i}`}
+                          sx={{ width: 120, height: 90, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', cursor: 'pointer' }}
+                          onClick={() => window.open(url, '_blank')} />
+                        <Typography variant="caption" color="text.secondary" display="block">Foto {i + 1}</Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                </>
               )}
-            </Grid>
+            </Stack>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDetail(false)}>Tutup</Button>
+          {isAdmin && selectedItem?.statusAdmin === 'menunggu_review' && (
+            <>
+              <Button variant="contained" color="success" startIcon={<ThumbUp />}
+                onClick={() => { setDetailOpen(false); openReview(selectedItem, true); }}>Setujui</Button>
+              <Button variant="outlined" color="error" startIcon={<ThumbDown />}
+                onClick={() => { setDetailOpen(false); openReview(selectedItem, false); }}>Tolak</Button>
+            </>
+          )}
+          <Button onClick={() => setDetailOpen(false)}>Tutup</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirm */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="xs">
-        <DialogTitle>Konfirmasi Hapus</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Hapus data pengawasan setelah pemasangan untuk seri meteran{' '}
-            <b>{deleteTarget?.idPemasangan?.seriMeteran}</b>?
-          </Typography>
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            Tindakan ini tidak dapat dibatalkan.
-          </Alert>
+      {/* ─── Review Dialog ────────────────────────────────────────────────────── */}
+      <Dialog open={reviewOpen} onClose={() => setReviewOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {reviewApprove ? 'Setujui Pengawasan Setelah Pemasangan' : 'Tolak Pengawasan Setelah Pemasangan'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedItem && (
+            <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+              <Alert severity={reviewApprove ? 'success' : 'warning'} sx={{ py: 0.5 }}>
+                {reviewApprove
+                  ? 'Menyetujui pengawasan setelah pemasangan. Tahap instalasi akan dianggap selesai.'
+                  : 'Menolak — teknisi perlu melakukan tindak lanjut perbaikan.'}
+              </Alert>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Pelanggan</Typography>
+                <Typography variant="body2" fontWeight={600}>{selectedItem.idPemasangan?.idKoneksiData?.IdPelanggan?.namaLengkap || '—'}</Typography>
+              </Box>
+              <TextField
+                label={reviewApprove ? 'Catatan (opsional)' : 'Alasan Penolakan *'}
+                multiline minRows={3} fullWidth size="small"
+                value={catatanReview}
+                onChange={e => setCatatanReview(e.target.value)}
+                required={!reviewApprove}
+                error={!reviewApprove && !catatanReview}
+                helperText={!reviewApprove && !catatanReview ? 'Catatan wajib diisi saat menolak' : ''}
+              />
+            </Stack>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Batal</Button>
+          <Button onClick={() => setReviewOpen(false)}>Batal</Button>
           <Button
-            color="error"
             variant="contained"
-            onClick={() => {
-              if (deleteTarget) deletePengawasan({ variables: { id: deleteTarget._id } });
-            }}
-            disabled={deleting}
+            color={reviewApprove ? 'success' : 'error'}
+            onClick={handleReview}
+            disabled={reviewing || (!reviewApprove && !catatanReview)}
+            startIcon={reviewing ? <CircularProgress size={16} color="inherit" /> : (reviewApprove ? <ThumbUp /> : <ThumbDown />)}
           >
-            {deleting ? <CircularProgress size={18} /> : 'Hapus'}
+            {reviewing ? 'Menyimpan...' : (reviewApprove ? 'Setujui' : 'Tolak')}
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert severity={snackbar.ok ? 'success' : 'error'} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+          {snackbar.msg}
+        </Alert>
+      </Snackbar>
     </AdminLayout>
   );
 }

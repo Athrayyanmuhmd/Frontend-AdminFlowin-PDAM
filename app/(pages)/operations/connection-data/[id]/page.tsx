@@ -12,8 +12,8 @@ import {
 import {
   ArrowBack, CheckCircle, HourglassEmpty, Cancel, Description,
   Close, ZoomIn, ZoomOut, RestartAlt, Visibility, RadioButtonUnchecked,
-  VerifiedUser, Build, ElectricMeter, Payment, AccountBalance,
-  GroupAdd, Assignment,
+  VerifiedUser, Build, Payment, AccountBalance,
+  GroupAdd, Assignment, ThumbUp, ThumbDown, Image as ImageIcon,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
@@ -23,21 +23,40 @@ import { VERIFY_CONNECTION_DATA } from '../../../../../lib/graphql/mutations/con
 import { GET_SURVEI_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/surveyData';
 import { GET_RAB_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/rabConnection';
 import { GET_METERAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/meteran';
+import { AKTIVASI_PELANGGAN } from '../../../../../lib/graphql/queries/customers';
 import { GET_PEMASANGAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/pemasangan';
+import {
+  GET_PENGAWASAN_BY_PEMASANGAN_ID,
+  GET_PENGAWASAN_SETELAH_BY_PEMASANGAN_ID,
+} from '../../../../../lib/graphql/queries/pengawasan';
 import { GET_WORK_ORDERS_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/workOrder';
 import { BUAT_WORK_ORDER, REVIEW_HASIL } from '../../../../../lib/graphql/mutations/workOrder';
 import { GET_ALL_TEKNISI } from '../../../../../lib/graphql/queries/technicians';
-import { UPDATE_METERAN } from '../../../../../lib/graphql/queries/meteran';
+import {
+  REVIEW_PEMASANGAN,
+  REVIEW_PENGAWASAN_PEMASANGAN,
+  REVIEW_PENGAWASAN_SETELAH_PEMASANGAN,
+} from '../../../../../lib/graphql/mutations/pemasangan';
+import { KONFIRMASI_PEMBAYARAN_RAB, TANDAI_LUNAS_RAB } from '../../../../../lib/graphql/mutations/survei';
 
-// Helpers
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 function formatRupiah(amount: number | undefined | null): string {
   if (!amount && amount !== 0) return 'Rp 0';
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
 }
 
-function formatDate(dateStr: string | undefined | null): string {
+function formatDate(dateStr: string | number | undefined | null): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleString('id-ID');
+  const num = typeof dateStr === 'number' ? dateStr : (/^\d+$/.test(String(dateStr)) ? Number(dateStr) : NaN);
+  const d = !isNaN(num) ? new Date(num) : new Date(dateStr as string);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function StatusAdminChip({ status }: { status?: string }) {
+  if (!status || status === 'menunggu_review') return <Chip size="small" label="Menunggu Review" color="warning" />;
+  if (status === 'disetujui') return <Chip size="small" label="Disetujui" color="success" icon={<CheckCircle sx={{ fontSize: 14 }} />} />;
+  return <Chip size="small" label="Ditolak" color="error" icon={<Cancel sx={{ fontSize: 14 }} />} />;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -48,16 +67,16 @@ export default function ConnectionDataDetailPage() {
   const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
   const id = params?.id as string;
 
-  // UI state
+  // ─── UI State ────────────────────────────────────────────────────────────
   const [success, setSuccess] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Reject dialog
+  // Reject dialog (pengajuan)
   const [tolakDialogOpen, setTolakDialogOpen] = useState(false);
   const [alasanPenolakanInput, setAlasanPenolakanInput] = useState('');
 
-  // WO review dialog
+  // WO review dialog (survei / rab)
   const [woReviewDialogOpen, setWoReviewDialogOpen] = useState(false);
   const [woReviewId, setWoReviewId] = useState<string | null>(null);
   const [woReviewApprove, setWoReviewApprove] = useState(true);
@@ -69,20 +88,29 @@ export default function ConnectionDataDetailPage() {
   const [woCreateType, setWoCreateType] = useState<string>('survei');
   const [woCreateSelected, setWoCreateSelected] = useState<string>('');
 
+  // Installation review dialog (pemasangan / pengawasan / setelah)
+  const [instReviewOpen, setInstReviewOpen] = useState(false);
+  const [instReviewConfig, setInstReviewConfig] = useState<{
+    type: 'pemasangan' | 'pengawasan' | 'setelah';
+    id: string;
+    disetujui: boolean;
+    label: string;
+  } | null>(null);
+  const [instReviewCatatan, setInstReviewCatatan] = useState('');
+
   // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
   const [zoom, setZoom] = useState(100);
 
-  // Queries
+  // ─── Queries ─────────────────────────────────────────────────────────────
   const { data: koneksiResult, loading, error, refetch } = useQuery(GET_CONNECTION_DATA_BY_ID, {
     variables: { id },
     skip: !id,
     fetchPolicy: 'network-only',
   });
   const data: any = (koneksiResult as any)?.getKoneksiData;
-
   const isApproved = data?.StatusPengajuan === 'APPROVED';
 
   const { data: surveiResult, refetch: refetchSurvei } = useQuery(GET_SURVEI_BY_KONEKSI_DATA, {
@@ -108,10 +136,26 @@ export default function ConnectionDataDetailPage() {
 
   const { data: pemasanganResult, refetch: refetchPemasangan } = useQuery(GET_PEMASANGAN_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
-    skip: !id || !meteran,
+    skip: !id || !isApproved,
     fetchPolicy: 'network-only',
   });
   const pemasangan: any = (pemasanganResult as any)?.getPemasanganByKoneksiData;
+
+  const { data: pengawasanResult, refetch: refetchPengawasan } = useQuery(GET_PENGAWASAN_BY_PEMASANGAN_ID, {
+    variables: { idPemasangan: pemasangan?._id },
+    skip: !pemasangan?._id,
+    fetchPolicy: 'network-only',
+  });
+  const pengawasanList: any[] = (pengawasanResult as any)?.getPengawasanPemasanganByPemasangan || [];
+  const pengawasan: any = pengawasanList[0];
+
+  const { data: pengawasanSetelahResult, refetch: refetchPengawasanSetelah } = useQuery(GET_PENGAWASAN_SETELAH_BY_PEMASANGAN_ID, {
+    variables: { idPemasangan: pemasangan?._id },
+    skip: !pemasangan?._id,
+    fetchPolicy: 'network-only',
+  });
+  const pengawasanSetelahList: any[] = (pengawasanSetelahResult as any)?.getPengawasanSetelahPemasanganByPemasangan || [];
+  const pengawasanSetelah: any = pengawasanSetelahList[0];
 
   const { data: woResult, refetch: refetchWO } = useQuery(GET_WORK_ORDERS_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
@@ -126,160 +170,154 @@ export default function ConnectionDataDetailPage() {
   });
   const allTeknisi: any[] = (teknisiResult as any)?.getAllTeknisi || [];
 
-  // Mutations
+  // ─── Mutations ───────────────────────────────────────────────────────────
   const [verifyKoneksiData] = useMutation(VERIFY_CONNECTION_DATA);
   const [buatWorkOrder] = useMutation(BUAT_WORK_ORDER);
   const [reviewHasil] = useMutation(REVIEW_HASIL);
-  const [updateMeteran] = useMutation(UPDATE_METERAN);
+  const [aktivasiPelangganMut] = useMutation(AKTIVASI_PELANGGAN);
+  const [reviewPemasanganMut] = useMutation(REVIEW_PEMASANGAN);
+  const [reviewPengawasanMut] = useMutation(REVIEW_PENGAWASAN_PEMASANGAN);
+  const [reviewSetelahMut] = useMutation(REVIEW_PENGAWASAN_SETELAH_PEMASANGAN);
+  const [konfirmasiPembayaranMut] = useMutation(KONFIRMASI_PEMBAYARAN_RAB);
+  const [tandaiLunasMut] = useMutation(TANDAI_LUNAS_RAB);
 
-  // Derived WO data
+  // ─── Derived WO data ─────────────────────────────────────────────────────
   const woSurvei = useMemo(() => workOrders.find((wo: any) => wo.jenisPekerjaan === 'survei'), [workOrders]);
   const woRab = useMemo(() => workOrders.find((wo: any) => wo.jenisPekerjaan === 'rab'), [workOrders]);
   const woPemasangan = useMemo(() => workOrders.find((wo: any) => wo.jenisPekerjaan === 'pemasangan'), [workOrders]);
 
-  // Step conditions
+  // ─── Step conditions ─────────────────────────────────────────────────────
   const step1Done = !!data;
   const step2Done = isApproved;
-  const step3Done = step2Done && !!survei;
-  const step4Done = step3Done && !!rab;
-  const step5Done = step4Done && rab?.statusPembayaran === 'settlement';
-  const step6Done = step5Done && !!meteran;
-  const step7Done = step6Done && !!pemasangan;
-  const step8Done = step7Done && !!meteran?.statusAktif;
+  // Survei: data harus ada DAN WO (jika ada) harus disetujui admin (status 'selesai')
+  const step3Done = step2Done && !!survei && (!woSurvei || woSurvei.status === 'selesai');
+  // RAB: data harus ada DAN WO (jika ada) harus disetujui admin (status 'selesai')
+  const step4Done = step3Done && !!rab && (!woRab || woRab.status === 'selesai');
+  // Fix: RAB payment status normalized to UPPERCASE by fieldResolver — compare case-insensitively
+  // step5 requires both settlement AND admin confirmation
+  const rabPaid = rab?.statusPembayaran?.toUpperCase() === 'SETTLEMENT';
+  const step5Done = step4Done && rabPaid && rab?.statusKonfirmasiPembayaran === 'dikonfirmasi';
+  // All 3 installation data docs must exist before pemasangan can be approved
+  const hasAllInstData = !!pemasangan && !!pengawasan && !!pengawasanSetelah;
+  const step6Done = step5Done && pemasangan?.statusAdmin === 'disetujui';
+  const step7Done = step6Done && pengawasan?.statusAdmin === 'disetujui';
+  const step8Done = step7Done && pengawasanSetelah?.statusAdmin === 'disetujui';
+  const step9Done = step8Done && !!meteran?.statusAktif;
 
-  // Dialog helpers
+  // ─── Dialog helpers ───────────────────────────────────────────────────────
   const openDocumentViewer = (url: string, title: string) => {
-    setViewerImage(url);
-    setViewerTitle(title);
-    setZoom(100);
-    setViewerOpen(true);
+    setViewerImage(url); setViewerTitle(title); setZoom(100); setViewerOpen(true);
   };
 
   const openWoReviewDialog = (type: string, approve: boolean, woId: string) => {
-    setWoReviewType(type);
-    setWoReviewApprove(approve);
-    setWoReviewId(woId);
-    setWoReviewCatatan('');
-    setWoReviewDialogOpen(true);
+    setWoReviewType(type); setWoReviewApprove(approve); setWoReviewId(woId);
+    setWoReviewCatatan(''); setWoReviewDialogOpen(true);
   };
 
   const openWoCreateDialog = (type: string) => {
-    setWoCreateType(type);
-    setWoCreateSelected('');
-    setWoCreateDialogOpen(true);
+    setWoCreateType(type); setWoCreateSelected(''); setWoCreateDialogOpen(true);
   };
 
-  // Handlers
+  const openInstReview = (type: 'pemasangan' | 'pengawasan' | 'setelah', docId: string, disetujui: boolean) => {
+    const labels = { pemasangan: 'Pemasangan Meteran', pengawasan: 'Pengawasan Pemasangan', setelah: 'Pengawasan Setelah Pemasangan' };
+    setInstReviewConfig({ type, id: docId, disetujui, label: labels[type] });
+    setInstReviewCatatan('');
+    setInstReviewOpen(true);
+  };
+
+  // ─── Handlers ────────────────────────────────────────────────────────────
   const handleVerifyAdmin = async () => {
-    setActionLoading(true);
-    setErrorMsg(null);
+    setActionLoading(true); setErrorMsg(null);
     try {
       await verifyKoneksiData({ variables: { id, status: 'APPROVED' } });
-      setSuccess('Pengajuan berhasil diverifikasi');
-      refetch();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal memverifikasi');
-    } finally {
-      setActionLoading(false);
-    }
+      setSuccess('Pengajuan berhasil diverifikasi'); refetch();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal memverifikasi'); }
+    finally { setActionLoading(false); }
   };
 
   const handleTolak = async () => {
     if (!alasanPenolakanInput.trim()) return;
-    setActionLoading(true);
-    setErrorMsg(null);
+    setActionLoading(true); setErrorMsg(null);
     try {
-      await verifyKoneksiData({
-        variables: { id, status: 'REJECTED', alasanPenolakan: alasanPenolakanInput.trim() },
-      });
-      setSuccess('Pengajuan ditolak');
-      setTolakDialogOpen(false);
-      setAlasanPenolakanInput('');
-      refetch();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal menolak');
-    } finally {
-      setActionLoading(false);
-    }
+      await verifyKoneksiData({ variables: { id, status: 'REJECTED', alasanPenolakan: alasanPenolakanInput.trim() } });
+      setSuccess('Pengajuan ditolak'); setTolakDialogOpen(false); setAlasanPenolakanInput(''); refetch();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal menolak'); }
+    finally { setActionLoading(false); }
   };
 
   const handleCreateWO = async () => {
     if (!woCreateSelected) return;
-    setActionLoading(true);
-    setErrorMsg(null);
+    setActionLoading(true); setErrorMsg(null);
     try {
       const result = await buatWorkOrder({
-        variables: {
-          input: {
-            idKoneksiData: id,
-            jenisPekerjaan: woCreateType,
-            teknisiPenanggungJawab: woCreateSelected,
-          },
-        },
+        variables: { input: { idKoneksiData: id, jenisPekerjaan: woCreateType, teknisiPenanggungJawab: woCreateSelected } },
       });
       const wo = (result?.data as any)?.buatWorkOrder;
-      if (wo?.success === false) {
-        setErrorMsg(wo.message || 'Gagal membuat work order');
-        return;
-      }
-      setSuccess(`Work order ${woCreateType} berhasil dibuat`);
-      setWoCreateDialogOpen(false);
-      refetchWO();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal membuat work order');
-    } finally {
-      setActionLoading(false);
-    }
+      if (wo?.success === false) { setErrorMsg(wo.message || 'Gagal membuat work order'); return; }
+      setSuccess(`Work order ${woCreateType} berhasil dibuat`); setWoCreateDialogOpen(false); refetchWO();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal membuat work order'); }
+    finally { setActionLoading(false); }
   };
 
   const handleReviewWO = async () => {
     if (!woReviewId) return;
-    setActionLoading(true);
-    setErrorMsg(null);
+    setActionLoading(true); setErrorMsg(null);
     try {
-      const result = await reviewHasil({
-        variables: {
-          input: {
-            workOrderId: woReviewId,
-            disetujui: woReviewApprove,
-            catatan: woReviewCatatan || undefined,
-          },
-        },
-      });
+      const result = await reviewHasil({ variables: { input: { workOrderId: woReviewId, disetujui: woReviewApprove, catatan: woReviewCatatan || undefined } } });
       const wo = (result?.data as any)?.reviewHasil;
-      if (wo?.success === false) {
-        setErrorMsg(wo.message || 'Gagal review work order');
-        return;
-      }
+      if (wo?.success === false) { setErrorMsg(wo.message || 'Gagal review work order'); return; }
       setSuccess(`Work order berhasil ${woReviewApprove ? 'disetujui' : 'ditolak'}`);
-      setWoReviewDialogOpen(false);
-      refetchWO();
-      refetchSurvei();
-      refetchRab();
-      refetchPemasangan();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal review work order');
-    } finally {
-      setActionLoading(false);
-    }
+      setWoReviewDialogOpen(false); refetchWO(); refetchSurvei(); refetchRab();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal review work order'); }
+    finally { setActionLoading(false); }
   };
 
-  const handleAktifkanMeteran = async () => {
-    if (!meteran?._id) return;
-    setActionLoading(true);
-    setErrorMsg(null);
+  const handleInstReview = async () => {
+    if (!instReviewConfig) return;
+    if (!instReviewConfig.disetujui && !instReviewCatatan.trim()) return;
+    setActionLoading(true); setErrorMsg(null);
     try {
-      await updateMeteran({ variables: { id: meteran._id, statusAktif: true } });
-      setSuccess('Meteran berhasil diaktifkan. Pelanggan sekarang aktif.');
-      refetchMeteran();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal mengaktifkan meteran');
-    } finally {
-      setActionLoading(false);
-    }
+      const vars = { variables: { id: instReviewConfig.id, disetujui: instReviewConfig.disetujui, catatan: instReviewCatatan || undefined } };
+      if (instReviewConfig.type === 'pemasangan') await reviewPemasanganMut(vars);
+      else if (instReviewConfig.type === 'pengawasan') await reviewPengawasanMut(vars);
+      else await reviewSetelahMut(vars);
+      setSuccess(`${instReviewConfig.label} berhasil ${instReviewConfig.disetujui ? 'disetujui' : 'ditolak'}`);
+      setInstReviewOpen(false);
+      refetchPemasangan(); refetchPengawasan(); refetchPengawasanSetelah();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal mereview'); }
+    finally { setActionLoading(false); }
   };
 
-  // Loading / Error / Auth checks
+  const handleKonfirmasiPembayaran = async () => {
+    if (!rab?._id) return;
+    setActionLoading(true); setErrorMsg(null);
+    try {
+      await konfirmasiPembayaranMut({ variables: { id: rab._id } });
+      setSuccess('Pembayaran RAB berhasil dikonfirmasi'); refetchRab();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal mengkonfirmasi pembayaran'); }
+    finally { setActionLoading(false); }
+  };
+
+  const handleTandaiLunas = async () => {
+    if (!rab?._id) return;
+    setActionLoading(true); setErrorMsg(null);
+    try {
+      await tandaiLunasMut({ variables: { id: rab._id, catatan: 'Dibayar tunai di loket' } });
+      setSuccess('RAB ditandai lunas (loket)'); refetchRab();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal menandai lunas'); }
+    finally { setActionLoading(false); }
+  };
+
+  const handleAktifkanPelanggan = async () => {
+    setActionLoading(true); setErrorMsg(null);
+    try {
+      await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      setSuccess('Pelanggan berhasil diaktifkan. Sambungan air sudah aktif.'); refetchMeteran(); refetch();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal mengaktifkan pelanggan'); }
+    finally { setActionLoading(false); }
+  };
+
+  // ─── Auth / Loading checks ────────────────────────────────────────────────
   if (authLoading || loading) {
     return (
       <AdminLayout>
@@ -289,12 +327,7 @@ export default function ConnectionDataDetailPage() {
       </AdminLayout>
     );
   }
-
-  if (!isAuthenticated) {
-    router.push('/auth/login');
-    return null;
-  }
-
+  if (!isAuthenticated) { router.push('/auth/login'); return null; }
   if (error) {
     return (
       <AdminLayout>
@@ -305,7 +338,6 @@ export default function ConnectionDataDetailPage() {
       </AdminLayout>
     );
   }
-
   if (!data) {
     return (
       <AdminLayout>
@@ -317,7 +349,7 @@ export default function ConnectionDataDetailPage() {
     );
   }
 
-  // Status helpers
+  // ─── Helpers ─────────────────────────────────────────────────────────────
   const statusColor: 'success' | 'error' | 'warning' = data.StatusPengajuan === 'APPROVED' ? 'success'
     : data.StatusPengajuan === 'REJECTED' ? 'error' : 'warning';
   const statusLabel = data.StatusPengajuan === 'APPROVED' ? 'Disetujui'
@@ -328,6 +360,41 @@ export default function ConnectionDataDetailPage() {
     const color: 'success' | 'error' | 'info' = wo.status === 'selesai' ? 'success'
       : wo.status === 'dibatalkan' ? 'error' : 'info';
     return <Chip size="small" label={wo.status?.replace(/_/g, ' ')} color={color} />;
+  };
+
+  // Renders admin approve/reject buttons for installation data docs
+  const InstReviewButtons = ({ type, docId, currentStatus }: {
+    type: 'pemasangan' | 'pengawasan' | 'setelah';
+    docId: string;
+    currentStatus?: string;
+  }) => {
+    if (userRole !== 'admin') return null;
+    const isApprovedStatus = currentStatus === 'disetujui';
+    const isRejected = currentStatus === 'ditolak';
+    // Pemasangan: only allow review when all 3 docs exist
+    if (type === 'pemasangan' && !hasAllInstData) {
+      return (
+        <Alert severity="info" sx={{ mt: 1, py: 0.5 }}>
+          Semua data (pemasangan, pengawasan, pengawasan setelah) harus diisi teknisi terlebih dahulu sebelum dapat direview.
+        </Alert>
+      );
+    }
+    return (
+      <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+        {!isApprovedStatus && (
+          <Button size="small" variant="contained" color="success" startIcon={<ThumbUp />}
+            onClick={() => openInstReview(type, docId, true)}>
+            Setujui
+          </Button>
+        )}
+        {!isRejected && (
+          <Button size="small" variant="outlined" color="error" startIcon={<ThumbDown />}
+            onClick={() => openInstReview(type, docId, false)}>
+            Tolak
+          </Button>
+        )}
+      </Box>
+    );
   };
 
   return (
@@ -348,23 +415,15 @@ export default function ConnectionDataDetailPage() {
         </Box>
 
         {/* Alerts */}
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
-            {success}
-          </Alert>
-        )}
-        {errorMsg && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg(null)}>
-            {errorMsg}
-          </Alert>
-        )}
+        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+        {errorMsg && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg(null)}>{errorMsg}</Alert>}
         {data.StatusPengajuan === 'REJECTED' && data.AlasanPenolakan && (
           <Alert severity="error" sx={{ mb: 2 }}>
             <strong>Ditolak:</strong> {data.AlasanPenolakan}
           </Alert>
         )}
 
-        {/* PROGRESS STEPPER */}
+        {/* ─── PROGRESS STEPPER ─────────────────────────────────────────────── */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -373,7 +432,8 @@ export default function ConnectionDataDetailPage() {
             </Typography>
 
             <Stepper orientation="vertical" activeStep={-1}>
-              {/* Step 1 - Pengajuan */}
+
+              {/* Step 1 — Pengajuan */}
               <Step active completed={step1Done}>
                 <StepLabel icon={<CheckCircle color="success" />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -389,7 +449,7 @@ export default function ConnectionDataDetailPage() {
                 </StepContent>
               </Step>
 
-              {/* Step 2 - Verifikasi Admin */}
+              {/* Step 2 — Verifikasi Admin */}
               <Step active={step1Done && !step2Done} completed={step2Done}>
                 <StepLabel icon={
                   step2Done ? <CheckCircle color="success" /> :
@@ -418,8 +478,7 @@ export default function ConnectionDataDetailPage() {
                         onClick={handleVerifyAdmin} disabled={actionLoading}>
                         Setujui
                       </Button>
-                      <Button size="small" variant="outlined" color="error"
-                        startIcon={<Cancel />}
+                      <Button size="small" variant="outlined" color="error" startIcon={<Cancel />}
                         onClick={() => setTolakDialogOpen(true)} disabled={actionLoading}>
                         Tolak
                       </Button>
@@ -433,13 +492,12 @@ export default function ConnectionDataDetailPage() {
                 </StepContent>
               </Step>
 
-              {/* Step 3 - Survei Lapangan */}
+              {/* Step 3 — Survei Lapangan */}
               <Step active={step2Done && !step3Done} completed={step3Done}>
                 <StepLabel icon={
                   !step2Done ? <RadioButtonUnchecked color="disabled" /> :
                   step3Done ? <CheckCircle color="success" /> :
-                  survei ? <HourglassEmpty color="info" /> :
-                  <HourglassEmpty color="warning" />
+                  <HourglassEmpty color={woSurvei ? 'info' : 'warning'} />
                 }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Visibility fontSize="small" />
@@ -448,8 +506,16 @@ export default function ConnectionDataDetailPage() {
                     </Typography>
                     {step2Done && (
                       <Chip size="small"
-                        label={step3Done ? 'Selesai' : woSurvei ? `WO: ${woSurvei.status?.replace(/_/g, ' ')}` : 'Belum Ada'}
-                        color={step3Done ? 'success' : woSurvei ? 'info' : 'warning'}
+                        label={
+                          step3Done ? 'Disetujui' :
+                          woSurvei?.status === 'dikirim' ? 'Menunggu Review' :
+                          woSurvei ? `WO: ${woSurvei.status?.replace(/_/g, ' ')}` : 'Belum Ada'
+                        }
+                        color={
+                          step3Done ? 'success' :
+                          woSurvei?.status === 'dikirim' ? 'warning' :
+                          woSurvei ? 'info' : 'default'
+                        }
                       />
                     )}
                   </Box>
@@ -460,72 +526,69 @@ export default function ConnectionDataDetailPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Teknisi melakukan survei lapangan untuk memeriksa kelayakan lokasi pemasangan.
                       </Typography>
-                      {!survei && (
-                        <Box>
-                          {woSurvei && (
-                            <Box sx={{ mb: 1 }}>
-                              <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
-                                <strong>Work Order Survei:</strong> {getWoStatusChip(woSurvei)}
-                              </Typography>
-                              {woSurvei.teknisiPenanggungJawab && (
-                                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                  <strong>Teknisi:</strong> {woSurvei.teknisiPenanggungJawab.namaLengkap}
-                                </Typography>
-                              )}
-                              {woSurvei.tim?.length > 0 && (
-                                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                  <strong>Tim:</strong> {woSurvei.tim.map((t: any) => t.namaLengkap).join(', ')}
-                                </Typography>
-                              )}
-                              {woSurvei.status === 'dikirim' && userRole === 'admin' && (
-                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                  <Button size="small" variant="contained" color="success"
-                                    startIcon={<CheckCircle />}
-                                    onClick={() => openWoReviewDialog('survei', true, woSurvei.id)}>
-                                    Setujui Hasil
-                                  </Button>
-                                  <Button size="small" variant="outlined" color="error"
-                                    startIcon={<Cancel />}
-                                    onClick={() => openWoReviewDialog('survei', false, woSurvei.id)}>
-                                    Tolak Hasil
-                                  </Button>
-                                </Box>
-                              )}
-                            </Box>
-                          )}
-                          {!woSurvei && userRole === 'admin' && (
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Button size="small" variant="contained" startIcon={<GroupAdd />}
-                                onClick={() => openWoCreateDialog('survei')}>
-                                Buat Work Order Survei
-                              </Button>
-                              <Button size="small" variant="outlined"
-                                onClick={() => router.push(`/operations/survey-data/create?connectionId=${data._id}`)}>
-                                Input Data Survei
-                              </Button>
-                            </Box>
-                          )}
-                          {!woSurvei && userRole !== 'admin' && (
-                            <Typography variant="body2" color="text.secondary">
-                              Menunggu admin membuat work order survei.
+
+                      {/* WO info — selalu tampil jika ada WO */}
+                      {woSurvei && (
+                        <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                          <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
+                            <strong>Work Order Survei:</strong> {getWoStatusChip(woSurvei)}
+                          </Typography>
+                          {woSurvei.teknisiPenanggungJawab && (
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                              <strong>Teknisi:</strong> {woSurvei.teknisiPenanggungJawab.namaLengkap}
                             </Typography>
+                          )}
+                          {/* Tombol review — muncul kapanpun WO status 'dikirim', terlepas dari ada/tidaknya data survei */}
+                          {woSurvei.status === 'dikirim' && userRole === 'admin' && (
+                            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                              <Button size="small" variant="contained" color="success" startIcon={<CheckCircle />}
+                                onClick={() => openWoReviewDialog('survei', true, woSurvei.id)}>
+                                Setujui Hasil Survei
+                              </Button>
+                              <Button size="small" variant="outlined" color="error" startIcon={<Cancel />}
+                                onClick={() => openWoReviewDialog('survei', false, woSurvei.id)}>
+                                Tolak & Minta Ulang
+                              </Button>
+                            </Box>
+                          )}
+                          {woSurvei.status === 'ditolak' && (
+                            <Alert severity="error" sx={{ mt: 1, py: 0.5 }}>
+                              Hasil survei ditolak. Teknisi perlu mengulang survei.
+                              {woSurvei.catatanReview && <> <strong>Catatan:</strong> {woSurvei.catatanReview}</>}
+                            </Alert>
                           )}
                         </Box>
                       )}
+
+                      {/* Data survei */}
                       {survei && (
-                        <Box>
-                          <Typography variant="body2" component="div" sx={{ mb: 1 }}>
-                            Data survei sudah ada.{' '}
+                        <Box sx={{ mb: 1 }}>
+                          <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
+                            Data survei tersedia.{' '}
                             <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, textDecoration: 'underline' }}
                               onClick={() => router.push(`/operations/survey-data/${survei._id}`)}>
                               Lihat detail
                             </Button>
                           </Typography>
-                          {woSurvei && (
-                            <Typography variant="body2" component="div" color="text.secondary">
-                              Work Order: {getWoStatusChip(woSurvei)}
-                            </Typography>
+                          {woSurvei?.status === 'dikirim' && (
+                            <Alert severity="warning" sx={{ mt: 0.5, py: 0.5 }}>
+                              Menunggu review admin sebelum lanjut ke tahap berikutnya.
+                            </Alert>
                           )}
+                        </Box>
+                      )}
+
+                      {/* Buat WO / input manual — hanya jika belum ada WO */}
+                      {!woSurvei && userRole === 'admin' && (
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button size="small" variant="contained" startIcon={<GroupAdd />}
+                            onClick={() => openWoCreateDialog('survei')}>
+                            Buat Work Order Survei
+                          </Button>
+                          <Button size="small" variant="outlined"
+                            onClick={() => router.push(`/operations/survey-data/create?connectionId=${data._id}`)}>
+                            Input Data Survei
+                          </Button>
                         </Box>
                       )}
                     </>
@@ -533,13 +596,12 @@ export default function ConnectionDataDetailPage() {
                 </StepContent>
               </Step>
 
-              {/* Step 4 - Dokumen DED / RAB */}
+              {/* Step 4 — Dokumen DED / RAB */}
               <Step active={step3Done && !step4Done} completed={step4Done}>
                 <StepLabel icon={
                   !step3Done ? <RadioButtonUnchecked color="disabled" /> :
                   step4Done ? <CheckCircle color="success" /> :
-                  rab ? <HourglassEmpty color="info" /> :
-                  <HourglassEmpty color="warning" />
+                  <HourglassEmpty color={woRab ? 'info' : 'warning'} />
                 }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AccountBalance fontSize="small" />
@@ -548,8 +610,16 @@ export default function ConnectionDataDetailPage() {
                     </Typography>
                     {step3Done && (
                       <Chip size="small"
-                        label={step4Done ? 'RAB Ada' : woRab ? `WO: ${woRab.status?.replace(/_/g, ' ')}` : 'Belum Ada'}
-                        color={step4Done ? 'success' : woRab ? 'info' : 'warning'}
+                        label={
+                          step4Done ? 'Disetujui' :
+                          woRab?.status === 'dikirim' ? 'Menunggu Review' :
+                          woRab ? `WO: ${woRab.status?.replace(/_/g, ' ')}` : 'Belum Ada'
+                        }
+                        color={
+                          step4Done ? 'success' :
+                          woRab?.status === 'dikirim' ? 'warning' :
+                          woRab ? 'info' : 'default'
+                        }
                       />
                     )}
                   </Box>
@@ -560,67 +630,69 @@ export default function ConnectionDataDetailPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Teknisi membuat dokumen DED dan Rancangan Anggaran Biaya (RAB).
                       </Typography>
-                      {!rab && (
-                        <Box>
-                          {woRab && (
-                            <Box sx={{ mb: 1 }}>
-                              <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
-                                <strong>Work Order RAB:</strong> {getWoStatusChip(woRab)}
-                              </Typography>
-                              {woRab.teknisiPenanggungJawab && (
-                                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                  <strong>Teknisi:</strong> {woRab.teknisiPenanggungJawab.namaLengkap}
-                                </Typography>
-                              )}
-                              {woRab.status === 'dikirim' && userRole === 'admin' && (
-                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                  <Button size="small" variant="contained" color="success"
-                                    startIcon={<CheckCircle />}
-                                    onClick={() => openWoReviewDialog('rab', true, woRab.id)}>
-                                    Setujui Hasil
-                                  </Button>
-                                  <Button size="small" variant="outlined" color="error"
-                                    startIcon={<Cancel />}
-                                    onClick={() => openWoReviewDialog('rab', false, woRab.id)}>
-                                    Tolak Hasil
-                                  </Button>
-                                </Box>
-                              )}
-                            </Box>
-                          )}
-                          {!woRab && userRole === 'admin' && (
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              <Button size="small" variant="contained" startIcon={<GroupAdd />}
-                                onClick={() => openWoCreateDialog('rab')}>
-                                Buat Work Order RAB
-                              </Button>
-                              <Button size="small" variant="outlined" startIcon={<AccountBalance />}
-                                onClick={() => router.push(`/operations/rab-connection/create?connectionId=${data._id}`)}>
-                                Buat RAB Manual
-                              </Button>
-                            </Box>
-                          )}
-                          {!woRab && userRole !== 'admin' && (
-                            <Typography variant="body2" color="text.secondary">
-                              Menunggu admin membuat work order RAB.
+
+                      {/* WO RAB info — selalu tampil jika ada WO */}
+                      {woRab && (
+                        <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                          <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
+                            <strong>Work Order RAB:</strong> {getWoStatusChip(woRab)}
+                          </Typography>
+                          {woRab.teknisiPenanggungJawab && (
+                            <Typography variant="body2" sx={{ mb: 0.5 }}>
+                              <strong>Teknisi:</strong> {woRab.teknisiPenanggungJawab.namaLengkap}
                             </Typography>
+                          )}
+                          {/* Tombol review — muncul kapanpun WO status 'dikirim' */}
+                          {woRab.status === 'dikirim' && userRole === 'admin' && (
+                            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                              <Button size="small" variant="contained" color="success" startIcon={<CheckCircle />}
+                                onClick={() => openWoReviewDialog('rab', true, woRab.id)}>
+                                Setujui Dokumen RAB
+                              </Button>
+                              <Button size="small" variant="outlined" color="error" startIcon={<Cancel />}
+                                onClick={() => openWoReviewDialog('rab', false, woRab.id)}>
+                                Tolak & Minta Revisi
+                              </Button>
+                            </Box>
+                          )}
+                          {woRab.status === 'ditolak' && (
+                            <Alert severity="error" sx={{ mt: 1, py: 0.5 }}>
+                              Dokumen RAB ditolak. Teknisi perlu merevisi RAB.
+                              {woRab.catatanReview && <> <strong>Catatan:</strong> {woRab.catatanReview}</>}
+                            </Alert>
                           )}
                         </Box>
                       )}
+
+                      {/* Data RAB */}
                       {rab && (
-                        <Box>
-                          <Typography variant="body2" component="div" sx={{ mb: 1 }}>
+                        <Box sx={{ mb: 1 }}>
+                          <Typography variant="body2" sx={{ mb: 0.5 }}>
                             <strong>Total Biaya RAB:</strong> {formatRupiah(rab.totalBiaya)}{' '}
                             <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, textDecoration: 'underline' }}
                               onClick={() => router.push(`/operations/rab-connection/${rab._id}`)}>
                               Lihat detail
                             </Button>
                           </Typography>
-                          {woRab && (
-                            <Typography variant="body2" component="div" color="text.secondary">
-                              Work Order: {getWoStatusChip(woRab)}
-                            </Typography>
+                          {woRab?.status === 'dikirim' && (
+                            <Alert severity="warning" sx={{ mt: 0.5, py: 0.5 }}>
+                              Menunggu review admin sebelum pelanggan dapat membayar.
+                            </Alert>
                           )}
+                        </Box>
+                      )}
+
+                      {/* Buat WO / input manual — hanya jika belum ada WO */}
+                      {!woRab && userRole === 'admin' && (
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button size="small" variant="contained" startIcon={<GroupAdd />}
+                            onClick={() => openWoCreateDialog('rab')}>
+                            Buat Work Order RAB
+                          </Button>
+                          <Button size="small" variant="outlined" startIcon={<AccountBalance />}
+                            onClick={() => router.push(`/operations/rab-connection/create?connectionId=${data._id}`)}>
+                            Buat RAB Manual
+                          </Button>
                         </Box>
                       )}
                     </>
@@ -628,7 +700,7 @@ export default function ConnectionDataDetailPage() {
                 </StepContent>
               </Step>
 
-              {/* Step 5 - Pembayaran RAB */}
+              {/* Step 5 — Pembayaran RAB */}
               <Step active={step4Done && !step5Done} completed={step5Done}>
                 <StepLabel icon={
                   !step4Done ? <RadioButtonUnchecked color="disabled" /> :
@@ -642,8 +714,12 @@ export default function ConnectionDataDetailPage() {
                     </Typography>
                     {step4Done && rab && (
                       <Chip size="small"
-                        label={step5Done ? 'Lunas' : 'Menunggu Pembayaran'}
-                        color={step5Done ? 'success' : 'warning'}
+                        label={
+                          step5Done ? 'Dikonfirmasi' :
+                          rabPaid ? 'Menunggu Konfirmasi Admin' :
+                          rab.statusPembayaran || 'Pending'
+                        }
+                        color={step5Done ? 'success' : rabPaid ? 'warning' : 'default'}
                       />
                     )}
                   </Box>
@@ -657,199 +733,327 @@ export default function ConnectionDataDetailPage() {
                       <Typography variant="body2">
                         <strong>Total Tagihan:</strong> {formatRupiah(rab.totalBiaya)}
                       </Typography>
-                      <Typography variant="body2" component="div" sx={{ mt: 0.5 }}>
+                      <Typography variant="body2" component="div" sx={{ mt: 0.5, mb: 1 }}>
                         <strong>Status Pembayaran:</strong>{' '}
                         <Chip size="small"
-                          label={step5Done ? 'Settlement (Lunas)' : rab.statusPembayaran || 'Pending'}
-                          color={step5Done ? 'success' : 'warning'}
+                          label={rabPaid ? 'Settlement (Lunas)' : rab.statusPembayaran || 'Pending'}
+                          color={rabPaid ? 'success' : 'warning'}
                         />
                       </Typography>
+                      {/* Admin confirmation buttons */}
+                      {userRole === 'admin' && !step5Done && (
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                          {rabPaid ? (
+                            <Button size="small" variant="contained" color="success" startIcon={<CheckCircle />}
+                              onClick={handleKonfirmasiPembayaran} disabled={actionLoading}>
+                              Konfirmasi Pembayaran
+                            </Button>
+                          ) : (
+                            <Button size="small" variant="outlined" color="warning" startIcon={<Payment />}
+                              onClick={handleTandaiLunas} disabled={actionLoading}>
+                              Tandai Lunas (Loket/Tunai)
+                            </Button>
+                          )}
+                        </Box>
+                      )}
+                      {step5Done && (
+                        <Alert severity="success" sx={{ mt: 1, py: 0.5 }}>
+                          Pembayaran telah dikonfirmasi admin. Lanjut ke pemasangan meteran.
+                        </Alert>
+                      )}
+                      {rabPaid && !step5Done && (
+                        <Alert severity="warning" sx={{ mt: 1, py: 0.5 }}>
+                          Pembayaran sudah settlement. Menunggu konfirmasi admin sebelum lanjut ke pemasangan.
+                        </Alert>
+                      )}
                     </>
                   )}
                 </StepContent>
               </Step>
 
-              {/* Step 6 - Pendaftaran Meteran */}
+              {/* Step 6 — Pemasangan Meteran */}
               <Step active={step5Done && !step6Done} completed={step6Done}>
                 <StepLabel icon={
                   !step5Done ? <RadioButtonUnchecked color="disabled" /> :
                   step6Done ? <CheckCircle color="success" /> :
+                  pemasangan ? <HourglassEmpty color="info" /> :
                   <HourglassEmpty color="warning" />
                 }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <ElectricMeter fontSize="small" />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Build fontSize="small" />
                     <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
-                      Pendaftaran Meteran
+                      Pemasangan Meteran
                     </Typography>
-                    {step6Done && <Chip size="small" label={`No. ${meteran.NomorMeteran}`} color="success" />}
+                    {step5Done && pemasangan && <StatusAdminChip status={pemasangan.statusAdmin} />}
+                    {step5Done && !pemasangan && (
+                      <Chip size="small"
+                        label={woPemasangan ? `WO: ${woPemasangan.status?.replace(/_/g, ' ')}` : 'Menunggu Data'}
+                        color={woPemasangan ? 'info' : 'warning'}
+                      />
+                    )}
                   </Box>
                 </StepLabel>
                 <StepContent>
                   {step5Done && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Admin mendaftarkan meteran baru untuk pelanggan.
+                        Teknisi melakukan pemasangan meteran. Semua 3 tahap (pemasangan, pengawasan, pengawasan setelah) harus terisi sebelum admin dapat menyetujui.
                       </Typography>
-                      {step6Done ? (
-                        <Box>
-                          <Typography variant="body2"><strong>Nomor Meteran:</strong> {meteran.NomorMeteran}</Typography>
-                          <Typography variant="body2"><strong>Nomor Akun:</strong> {meteran.NomorAkun}</Typography>
-                          <Typography variant="body2"><strong>Kelompok:</strong> {meteran.IdKelompokPelanggan?.NamaKelompok || '—'}</Typography>
-                          <Button size="small" variant="text" sx={{ mt: 0.5, textDecoration: 'underline', p: 0, minWidth: 0 }}
-                            onClick={() => router.push(`/operations/meteran/${meteran._id}`)}>
-                            Lihat detail meteran
-                          </Button>
-                        </Box>
-                      ) : userRole === 'admin' ? (
-                        <Button size="small" variant="contained" startIcon={<ElectricMeter />}
-                          onClick={() => router.push(`/operations/meteran/create?connectionId=${data._id}`)}>
-                          Daftarkan Meteran Baru
-                        </Button>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Menunggu admin mendaftarkan meteran.
-                        </Typography>
-                      )}
-                    </>
-                  )}
-                </StepContent>
-              </Step>
 
-              {/* Step 7 - Pemasangan */}
-              <Step active={step6Done && !step7Done} completed={step7Done}>
-                <StepLabel icon={
-                  !step6Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step7Done ? <CheckCircle color="success" /> :
-                  pemasangan ? <HourglassEmpty color="info" /> :
-                  <HourglassEmpty color="warning" />
-                }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Build fontSize="small" />
-                    <Typography fontWeight={600} color={!step6Done ? 'text.disabled' : 'text.primary'}>
-                      Pemasangan Meteran
-                    </Typography>
-                    {step6Done && (
-                      <Chip size="small"
-                        label={step7Done ? 'Selesai' : woPemasangan ? `WO: ${woPemasangan.status?.replace(/_/g, ' ')}` : 'Belum Dipasang'}
-                        color={step7Done ? 'success' : woPemasangan ? 'info' : 'warning'}
-                      />
-                    )}
-                  </Box>
-                </StepLabel>
-                <StepContent>
-                  {step6Done && (
-                    <>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Teknisi melakukan pemasangan meteran di lokasi pelanggan.
-                      </Typography>
-                      {!pemasangan && (
-                        <Box>
-                          {woPemasangan && (
-                            <Box sx={{ mb: 1 }}>
-                              <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
-                                <strong>Work Order Pemasangan:</strong> {getWoStatusChip(woPemasangan)}
-                              </Typography>
-                              {woPemasangan.teknisiPenanggungJawab && (
-                                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                  <strong>Teknisi:</strong> {woPemasangan.teknisiPenanggungJawab.namaLengkap}
-                                </Typography>
-                              )}
-                              {woPemasangan.status === 'dikirim' && userRole === 'admin' && (
-                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                  <Button size="small" variant="contained" color="success"
-                                    startIcon={<CheckCircle />}
-                                    onClick={() => openWoReviewDialog('pemasangan', true, woPemasangan.id)}>
-                                    Setujui Hasil
-                                  </Button>
-                                  <Button size="small" variant="outlined" color="error"
-                                    startIcon={<Cancel />}
-                                    onClick={() => openWoReviewDialog('pemasangan', false, woPemasangan.id)}>
-                                    Tolak Hasil
-                                  </Button>
-                                </Box>
-                              )}
-                            </Box>
-                          )}
-                          {!woPemasangan && userRole === 'admin' && (
-                            <Button size="small" variant="contained" startIcon={<GroupAdd />}
-                              onClick={() => openWoCreateDialog('pemasangan')}>
-                              Buat Work Order Pemasangan
-                            </Button>
-                          )}
-                          {!woPemasangan && userRole !== 'admin' && (
-                            <Typography variant="body2" color="text.secondary">
-                              Menunggu admin membuat work order pemasangan.
+                      {/* WO info */}
+                      {woPemasangan && (
+                        <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                          <Typography variant="body2" component="div" sx={{ mb: 0.5 }}>
+                            <strong>Work Order:</strong> {getWoStatusChip(woPemasangan)}
+                          </Typography>
+                          {woPemasangan.teknisiPenanggungJawab && (
+                            <Typography variant="body2">
+                              <strong>Teknisi:</strong> {woPemasangan.teknisiPenanggungJawab.namaLengkap}
+                              {woPemasangan.teknisiPenanggungJawab.divisi && ` · ${woPemasangan.teknisiPenanggungJawab.divisi}`}
                             </Typography>
                           )}
                         </Box>
                       )}
-                      {pemasangan && (
-                        <Box>
-                          <Typography variant="body2"><strong>Seri Meteran:</strong> {pemasangan.seriMeteran || '—'}</Typography>
+                      {!woPemasangan && userRole === 'admin' && (
+                        <Button size="small" variant="contained" startIcon={<GroupAdd />} sx={{ mb: 1.5 }}
+                          onClick={() => openWoCreateDialog('pemasangan')}>
+                          Tugaskan Teknisi (Buat WO Pemasangan)
+                        </Button>
+                      )}
+
+                      {/* Pemasangan data */}
+                      {pemasangan ? (
+                        <Paper variant="outlined" sx={{ p: 1.5, mb: 1 }}>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                            Data Pemasangan — diisi {formatDate(pemasangan.createdAt)}
+                          </Typography>
+                          {pemasangan.seriMeteran && (
+                            <Typography variant="body2"><strong>Seri Meteran:</strong> {pemasangan.seriMeteran}</Typography>
+                          )}
                           {pemasangan.catatan && (
                             <Typography variant="body2"><strong>Catatan:</strong> {pemasangan.catatan}</Typography>
                           )}
-                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                            <Button size="small" variant="outlined"
-                              onClick={() => router.push('/operations/pemasangan')}>
-                              Halaman Pemasangan
-                            </Button>
-                            <Button size="small" variant="outlined"
-                              onClick={() => router.push('/operations/pengawasan-pemasangan')}>
-                              Halaman Pengawasan
-                            </Button>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                            {['fotoRumah', 'fotoMeteran', 'fotoMeteranDanRumah'].map((key) =>
+                              pemasangan[key] ? (
+                                <Button key={key} size="small" variant="outlined" startIcon={<ImageIcon />}
+                                  onClick={() => openDocumentViewer(pemasangan[key], key === 'fotoRumah' ? 'Foto Rumah' : key === 'fotoMeteran' ? 'Foto Meteran' : 'Foto Rumah & Meteran')}>
+                                  {key === 'fotoRumah' ? 'Foto Rumah' : key === 'fotoMeteran' ? 'Foto Meteran' : 'Foto Rumah & Meteran'}
+                                </Button>
+                              ) : null
+                            )}
                           </Box>
-                        </Box>
-                      )}
-                    </>
-                  )}
-                </StepContent>
-              </Step>
-
-              {/* Step 8 - Aktivasi */}
-              <Step active={step7Done && !step8Done} completed={step8Done}>
-                <StepLabel icon={
-                  !step7Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step8Done ? <CheckCircle color="success" /> :
-                  <HourglassEmpty color="warning" />
-                }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <VerifiedUser fontSize="small" />
-                    <Typography fontWeight={600} color={!step7Done ? 'text.disabled' : 'text.primary'}>
-                      Aktivasi Pelanggan
-                    </Typography>
-                    {step8Done && <Chip size="small" label="Aktif" color="success" />}
-                  </Box>
-                </StepLabel>
-                <StepContent>
-                  {step7Done && (
-                    <>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Sambungan air pelanggan diaktifkan setelah semua proses selesai.
-                      </Typography>
-                      {step8Done ? (
-                        <Alert severity="success">
-                          Sambungan air pelanggan telah aktif. Meteran <strong>{meteran?.NomorMeteran}</strong> sudah berjalan.
-                        </Alert>
-                      ) : userRole === 'admin' ? (
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            Klik tombol di bawah untuk mengaktifkan meteran dan menyelesaikan proses sambungan pelanggan.
-                          </Typography>
-                          <Button variant="contained" color="success" startIcon={<CheckCircle />}
-                            onClick={handleAktifkanMeteran} disabled={actionLoading}>
-                            {actionLoading ? <CircularProgress size={20} /> : 'Aktifkan Meteran'}
-                          </Button>
-                        </Box>
+                          {pemasangan.catatanAdmin && (
+                            <Alert severity={pemasangan.statusAdmin === 'ditolak' ? 'error' : 'info'} sx={{ mt: 1, py: 0.5 }}>
+                              <strong>Catatan Admin:</strong> {pemasangan.catatanAdmin}
+                            </Alert>
+                          )}
+                          <InstReviewButtons type="pemasangan" docId={pemasangan._id} currentStatus={pemasangan.statusAdmin} />
+                        </Paper>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          Menunggu aktivasi meteran oleh admin.
+                          Menunggu teknisi mengisi data pemasangan.
                         </Typography>
                       )}
                     </>
                   )}
                 </StepContent>
               </Step>
+
+              {/* Step 7 — Pengawasan Pemasangan */}
+              <Step active={step6Done && !step7Done} completed={step7Done}>
+                <StepLabel icon={
+                  !step5Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step7Done ? <CheckCircle color="success" /> :
+                  pengawasan ? <HourglassEmpty color="info" /> :
+                  <HourglassEmpty color={step6Done ? 'warning' : 'disabled'} />
+                }>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Visibility fontSize="small" />
+                    <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
+                      Pengawasan Pemasangan
+                    </Typography>
+                    {step5Done && pengawasan && <StatusAdminChip status={pengawasan.statusAdmin} />}
+                    {step5Done && !pengawasan && (
+                      <Chip size="small" label="Menunggu Data" color="warning" />
+                    )}
+                  </Box>
+                </StepLabel>
+                <StepContent>
+                  {step5Done && (
+                    <>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Teknisi mendokumentasikan hasil pengawasan selama proses pemasangan berlangsung.
+                      </Typography>
+                      {pengawasan ? (
+                        <Paper variant="outlined" sx={{ p: 1.5, mb: 1 }}>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                            Data Pengawasan — diisi {formatDate(pengawasan.createdAt)}
+                          </Typography>
+                          {pengawasan.catatan && (
+                            <Typography variant="body2"><strong>Catatan:</strong> {pengawasan.catatan}</Typography>
+                          )}
+                          {pengawasan.urlGambar?.length > 0 && (
+                            <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                              {pengawasan.urlGambar.map((url: string, i: number) => (
+                                <Button key={i} size="small" variant="outlined" startIcon={<ImageIcon />}
+                                  onClick={() => openDocumentViewer(url, `Foto Pengawasan ${i + 1}`)}>
+                                  Foto {i + 1}
+                                </Button>
+                              ))}
+                            </Box>
+                          )}
+                          {pengawasan.catatanAdmin && (
+                            <Alert severity={pengawasan.statusAdmin === 'ditolak' ? 'error' : 'info'} sx={{ mt: 1, py: 0.5 }}>
+                              <strong>Catatan Admin:</strong> {pengawasan.catatanAdmin}
+                            </Alert>
+                          )}
+                          {step6Done && (
+                            <InstReviewButtons type="pengawasan" docId={pengawasan._id} currentStatus={pengawasan.statusAdmin} />
+                          )}
+                          {!step6Done && (
+                            <Alert severity="warning" sx={{ mt: 1, py: 0.5 }}>
+                              Selesaikan review tahap Pemasangan terlebih dahulu.
+                            </Alert>
+                          )}
+                        </Paper>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Menunggu teknisi mengisi data pengawasan pemasangan.
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                </StepContent>
+              </Step>
+
+              {/* Step 8 — Pengawasan Setelah Pemasangan */}
+              <Step active={step7Done && !step8Done} completed={step8Done}>
+                <StepLabel icon={
+                  !step5Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step8Done ? <CheckCircle color="success" /> :
+                  pengawasanSetelah ? <HourglassEmpty color="info" /> :
+                  <HourglassEmpty color={step7Done ? 'warning' : 'disabled'} />
+                }>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <CheckCircle fontSize="small" />
+                    <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
+                      Pengawasan Setelah Pemasangan
+                    </Typography>
+                    {step5Done && pengawasanSetelah && <StatusAdminChip status={pengawasanSetelah.statusAdmin} />}
+                    {step5Done && !pengawasanSetelah && (
+                      <Chip size="small" label="Menunggu Data" color="warning" />
+                    )}
+                  </Box>
+                </StepLabel>
+                <StepContent>
+                  {step5Done && (
+                    <>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Teknisi mendokumentasikan kondisi setelah pemasangan selesai dilakukan.
+                      </Typography>
+                      {pengawasanSetelah ? (
+                        <Paper variant="outlined" sx={{ p: 1.5, mb: 1 }}>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                            Data Pengawasan Setelah — diisi {formatDate(pengawasanSetelah.createdAt)}
+                          </Typography>
+                          {pengawasanSetelah.catatan && (
+                            <Typography variant="body2"><strong>Catatan:</strong> {pengawasanSetelah.catatan}</Typography>
+                          )}
+                          {pengawasanSetelah.urlGambar?.length > 0 && (
+                            <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                              {pengawasanSetelah.urlGambar.map((url: string, i: number) => (
+                                <Button key={i} size="small" variant="outlined" startIcon={<ImageIcon />}
+                                  onClick={() => openDocumentViewer(url, `Foto Setelah Pemasangan ${i + 1}`)}>
+                                  Foto {i + 1}
+                                </Button>
+                              ))}
+                            </Box>
+                          )}
+                          {pengawasanSetelah.catatanAdmin && (
+                            <Alert severity={pengawasanSetelah.statusAdmin === 'ditolak' ? 'error' : 'info'} sx={{ mt: 1, py: 0.5 }}>
+                              <strong>Catatan Admin:</strong> {pengawasanSetelah.catatanAdmin}
+                            </Alert>
+                          )}
+                          {step7Done && (
+                            <InstReviewButtons type="setelah" docId={pengawasanSetelah._id} currentStatus={pengawasanSetelah.statusAdmin} />
+                          )}
+                          {!step7Done && (
+                            <Alert severity="warning" sx={{ mt: 1, py: 0.5 }}>
+                              Selesaikan review tahap Pengawasan Pemasangan terlebih dahulu.
+                            </Alert>
+                          )}
+                        </Paper>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Menunggu teknisi mengisi data pengawasan setelah pemasangan.
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                </StepContent>
+              </Step>
+
+              {/* Step 9 — Aktivasi Pelanggan */}
+              <Step active={step8Done && !step9Done} completed={step9Done}>
+                <StepLabel icon={
+                  !step8Done ? <RadioButtonUnchecked color="disabled" /> :
+                  step9Done ? <CheckCircle color="success" /> :
+                  <HourglassEmpty color="warning" />
+                }>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <VerifiedUser fontSize="small" />
+                    <Typography fontWeight={600} color={!step8Done ? 'text.disabled' : 'text.primary'}>
+                      Aktivasi Pelanggan
+                    </Typography>
+                    {step9Done && <Chip size="small" label="Aktif" color="success" />}
+                  </Box>
+                </StepLabel>
+                <StepContent>
+                  {step8Done && (
+                    <>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Aktifkan akun pelanggan setelah semua tahap pemasangan disetujui. Meteran harus sudah terdaftar.
+                      </Typography>
+                      {step9Done ? (
+                        <Alert severity="success">
+                          Pelanggan telah aktif. Sambungan air sudah berjalan.
+                          {meteran?.NomorMeteran && <> Nomor meteran: <strong>{meteran.NomorMeteran}</strong>.</>}
+                        </Alert>
+                      ) : userRole === 'admin' ? (
+                        <Box>
+                          {!meteran ? (
+                            <>
+                              <Alert severity="warning" sx={{ mb: 1 }}>
+                                Meteran belum terdaftar. Daftarkan meteran terlebih dahulu sebelum mengaktifkan pelanggan.
+                              </Alert>
+                              <Button size="small" variant="outlined"
+                                onClick={() => router.push(`/operations/meteran/create?connectionId=${data._id}`)}>
+                                Daftarkan Meteran
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                <strong>Meteran:</strong> {meteran.NomorMeteran} · {meteran.NomorAkun}
+                              </Typography>
+                              <Button variant="contained" color="success" startIcon={actionLoading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
+                                onClick={handleAktifkanPelanggan} disabled={actionLoading}>
+                                Aktifkan Pelanggan
+                              </Button>
+                            </>
+                          )}
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Menunggu admin mengaktifkan pelanggan.
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                </StepContent>
+              </Step>
+
             </Stepper>
           </CardContent>
         </Card>
@@ -944,19 +1148,18 @@ export default function ConnectionDataDetailPage() {
           </CardContent>
         </Card>
 
-        {/* DIALOGS */}
+        {/* ─── DIALOGS ────────────────────────────────────────────────────────── */}
 
-        {/* Tolak Dialog */}
+        {/* Tolak Pengajuan */}
         <Dialog open={tolakDialogOpen} onClose={() => setTolakDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Tolak Pengajuan Sambungan Air</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Masukkan alasan penolakan untuk <strong>{data?.IdPelanggan?.namaLengkap}</strong>.
             </Typography>
-            <TextField fullWidth multiline rows={4}
-              label="Alasan Penolakan" value={alasanPenolakanInput}
-              onChange={e => setAlasanPenolakanInput(e.target.value)}
-              required error={!alasanPenolakanInput.trim()}
+            <TextField fullWidth multiline rows={4} label="Alasan Penolakan" value={alasanPenolakanInput}
+              onChange={e => setAlasanPenolakanInput(e.target.value)} required
+              error={!alasanPenolakanInput.trim()}
               helperText={!alasanPenolakanInput.trim() ? 'Alasan penolakan wajib diisi' : ''}
             />
           </DialogContent>
@@ -970,11 +1173,9 @@ export default function ConnectionDataDetailPage() {
           </DialogActions>
         </Dialog>
 
-        {/* WO Review Dialog */}
+        {/* WO Review (survei / rab) */}
         <Dialog open={woReviewDialogOpen} onClose={() => setWoReviewDialogOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>
-            {woReviewApprove ? 'Setujui' : 'Tolak'} Hasil Work Order {woReviewType}
-          </DialogTitle>
+          <DialogTitle>{woReviewApprove ? 'Setujui' : 'Tolak'} Hasil Work Order {woReviewType}</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {woReviewApprove
@@ -983,10 +1184,8 @@ export default function ConnectionDataDetailPage() {
             </Typography>
             <TextField fullWidth multiline rows={3}
               label={woReviewApprove ? 'Catatan (opsional)' : 'Alasan Penolakan *'}
-              value={woReviewCatatan}
-              onChange={e => setWoReviewCatatan(e.target.value)}
-              required={!woReviewApprove}
-              error={!woReviewApprove && !woReviewCatatan.trim()}
+              value={woReviewCatatan} onChange={e => setWoReviewCatatan(e.target.value)}
+              required={!woReviewApprove} error={!woReviewApprove && !woReviewCatatan.trim()}
             />
           </DialogContent>
           <DialogActions>
@@ -1000,17 +1199,45 @@ export default function ConnectionDataDetailPage() {
           </DialogActions>
         </Dialog>
 
-        {/* WO Create (Assign Teknisi) Dialog */}
+        {/* Installation Review (pemasangan / pengawasan / setelah) */}
+        <Dialog open={instReviewOpen} onClose={() => setInstReviewOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            {instReviewConfig?.disetujui ? 'Setujui' : 'Tolak'} — {instReviewConfig?.label}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {instReviewConfig?.disetujui
+                ? 'Konfirmasi bahwa data sudah diperiksa dan dapat dilanjutkan ke tahap berikutnya.'
+                : 'Masukkan catatan penolakan. Teknisi harus mengulang tahap ini.'}
+            </Typography>
+            <TextField fullWidth multiline rows={3}
+              label={instReviewConfig?.disetujui ? 'Catatan Admin (opsional)' : 'Alasan Penolakan *'}
+              value={instReviewCatatan} onChange={e => setInstReviewCatatan(e.target.value)}
+              required={!instReviewConfig?.disetujui}
+              error={!instReviewConfig?.disetujui && !instReviewCatatan.trim()}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setInstReviewOpen(false)}>Batal</Button>
+            <Button variant="contained" color={instReviewConfig?.disetujui ? 'success' : 'error'}
+              onClick={handleInstReview}
+              disabled={actionLoading || (!instReviewConfig?.disetujui && !instReviewCatatan.trim())}
+              startIcon={actionLoading ? <CircularProgress size={20} /> : instReviewConfig?.disetujui ? <ThumbUp /> : <ThumbDown />}>
+              {instReviewConfig?.disetujui ? 'Setujui' : 'Tolak'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* WO Create (assign teknisi) */}
         <Dialog open={woCreateDialogOpen} onClose={() => setWoCreateDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Buat Work Order: {woCreateType}</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Pilih teknisi penanggung jawab untuk work order {woCreateType}.
+              Work order ini akan masuk ke menu Manajemen Pekerjaan.
             </Typography>
             {teknisiLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                <CircularProgress size={24} />
-              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} /></Box>
             ) : allTeknisi.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                 Tidak ada teknisi tersedia.
@@ -1040,7 +1267,7 @@ export default function ConnectionDataDetailPage() {
           </DialogActions>
         </Dialog>
 
-        {/* Document Viewer Dialog */}
+        {/* Document Viewer */}
         <Dialog open={viewerOpen} onClose={() => setViewerOpen(false)} maxWidth="lg" fullWidth>
           <DialogTitle>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1058,11 +1285,8 @@ export default function ConnectionDataDetailPage() {
           <DialogContent>
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400, overflow: 'auto' }}>
               {viewerImage.toLowerCase().includes('.pdf') || viewerImage.includes('/raw/upload/') ? (
-                <iframe
-                  src={viewerImage}
-                  title={viewerTitle}
-                  style={{ width: `${zoom}%`, height: 600, border: 'none', transition: 'width 0.3s ease' }}
-                />
+                <iframe src={viewerImage} title={viewerTitle}
+                  style={{ width: `${zoom}%`, height: 600, border: 'none', transition: 'width 0.3s ease' }} />
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={viewerImage} alt={viewerTitle}
@@ -1071,6 +1295,7 @@ export default function ConnectionDataDetailPage() {
             </Box>
           </DialogContent>
         </Dialog>
+
       </Box>
     </AdminLayout>
   );

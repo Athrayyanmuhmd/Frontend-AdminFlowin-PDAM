@@ -14,6 +14,8 @@ export const GET_ALL_SURVEY_DATA = gql`
       idKoneksiData {
         _id
         Alamat
+        Kelurahan
+        Kecamatan
         IdPelanggan {
           _id
           namaLengkap
@@ -21,7 +23,13 @@ export const GET_ALL_SURVEY_DATA = gql`
           noHP
         }
       }
+      koordinat {
+        latitude
+        longitude
+      }
       urlJaringan
+      urlPosisiBak
+      posisiMeteran
       diameterPipa
       jumlahPenghuni
       standar
@@ -60,6 +68,8 @@ export const GET_SURVEY_DATA_BY_ID = gql`
       jumlahPenghuni
       standar
       catatan
+      statusAdmin
+      catatanAdmin
       createdAt
       updatedAt
     }
@@ -140,6 +150,9 @@ export const UPDATE_SURVEI = gql`
 
 export const DELETE_SURVEI = gql`
   mutation DeleteSurvei($id: ID!) {
-    deleteSurvei(id: $id)
+    deleteSurvei(id: $id) {
+      success
+      message
+    }
   }
 `;

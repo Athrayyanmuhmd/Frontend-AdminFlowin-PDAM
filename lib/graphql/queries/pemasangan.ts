@@ -24,6 +24,8 @@ export const GET_ALL_PEMASANGAN = gql`
       fotoMeteran
       fotoMeteranDanRumah
       catatan
+      statusAdmin
+      catatanAdmin
       createdAt
       updatedAt
     }
@@ -60,8 +62,14 @@ export const GET_PEMASANGAN_BY_KONEKSI_DATA = gql`
     getPemasanganByKoneksiData(idKoneksiData: $idKoneksiData) {
       _id
       seriMeteran
+      fotoRumah
+      fotoMeteran
+      fotoMeteranDanRumah
       catatan
+      statusAdmin
+      catatanAdmin
       createdAt
+      updatedAt
     }
   }
 `;

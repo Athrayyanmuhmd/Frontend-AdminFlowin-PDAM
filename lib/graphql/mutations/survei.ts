@@ -1,16 +1,40 @@
 import { gql } from '@apollo/client';
 
 /**
- * Survei-related mutations
- * 
- * NOTE: assignTeknisiSurvei, assignTeknisiRAB, dan aktivasiPelanggan
- * TIDAK ADA di backend schema. Fungsi assign teknisi dilakukan melalui
- * WorkOrder system (buatWorkOrder + reviewTim).
- * 
- * Mutations untuk CRUD survei ada di queries/surveyData.ts
- * (CREATE_SURVEI, UPDATE_SURVEI, DELETE_SURVEI)
+ * Mutations untuk Review Survei & Konfirmasi Pembayaran RAB
  */
 
-// File ini sengaja dikosongkan karena mutation-mutation sebelumnya
-// tidak ada di backend GraphQL schema.
-// Gunakan WorkOrder mutations untuk assign teknisi ke survei/RAB.
+export const REVIEW_SURVEI = gql`
+  mutation ReviewSurvei($id: ID!, $disetujui: Boolean!, $catatan: String) {
+    reviewSurvei(id: $id, disetujui: $disetujui, catatan: $catatan) {
+      _id
+      statusAdmin
+      catatanAdmin
+      updatedAt
+    }
+  }
+`;
+
+export const KONFIRMASI_PEMBAYARAN_RAB = gql`
+  mutation KonfirmasiPembayaranRAB($id: ID!, $catatan: String) {
+    konfirmasiPembayaranRAB(id: $id, catatan: $catatan) {
+      _id
+      statusPembayaran
+      statusKonfirmasiPembayaran
+      catatanKonfirmasi
+      updatedAt
+    }
+  }
+`;
+
+export const TANDAI_LUNAS_RAB = gql`
+  mutation TandaiLunasRAB($id: ID!, $catatan: String) {
+    tandaiLunasRAB(id: $id, catatan: $catatan) {
+      _id
+      statusPembayaran
+      statusKonfirmasiPembayaran
+      catatanKonfirmasi
+      updatedAt
+    }
+  }
+`;

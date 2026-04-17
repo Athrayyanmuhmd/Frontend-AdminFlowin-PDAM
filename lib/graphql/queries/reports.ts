@@ -93,16 +93,20 @@ export const GET_ALL_LAPORAN = gql`
       jenisLaporan
       status
       catatan
+      catatanAdmin
       imageURL
-      koordinat {
-        latitude
-        longitude
-      }
       idPengguna {
         _id
         namaLengkap
         noHP
         email
+      }
+      idTeknisi {
+        id
+        namaLengkap
+        nip
+        divisi
+        noHp
       }
       createdAt
       updatedAt
@@ -158,10 +162,16 @@ export const GET_LAPORAN_BY_ID = gql`
 `;
 
 export const UPDATE_LAPORAN_STATUS = gql`
-  mutation UpdateLaporanStatus($id: ID!, $status: WorkStatusPelanggan!) {
-    updateLaporanStatus(id: $id, status: $status) {
+  mutation UpdateLaporanStatus($id: ID!, $status: WorkStatusPelanggan!, $idTeknisi: ID, $catatanAdmin: String) {
+    updateLaporanStatus(id: $id, status: $status, idTeknisi: $idTeknisi, catatanAdmin: $catatanAdmin) {
       _id
       status
+      catatanAdmin
+      idTeknisi {
+        id
+        namaLengkap
+        divisi
+      }
       updatedAt
     }
   }

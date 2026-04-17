@@ -16,32 +16,40 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  TextField,
   Snackbar,
 } from '@mui/material';
 import {
   ArrowBack,
   CheckCircle,
+  Cancel,
   Close,
   ZoomIn,
   ZoomOut,
   RestartAlt,
   LocationOn,
+  ThumbUp,
+  ThumbDown,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
+import { useMutation } from '@apollo/client/react';
 import { useGetSurveyData } from '../../../../../lib/graphql/hooks/useSurveyData';
+import { REVIEW_SURVEI } from '../../../../../lib/graphql/mutations/survei';
 
 export default function SurveyDataDetail() {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading, userRole } = useAdmin();
   const id = params.id as string;
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  const { surveyData: graphqlSurvey, loading, error: graphqlError } = useGetSurveyData(id);
+  const { surveyData: graphqlSurvey, loading, error: graphqlError, refetch } = useGetSurveyData(id);
+  const [reviewSurveiMut, { loading: reviewLoading }] = useMutation(REVIEW_SURVEI);
 
   const data = graphqlSurvey ? {
     _id: graphqlSurvey._id,
@@ -66,10 +74,35 @@ export default function SurveyDataDetail() {
     catatan: graphqlSurvey.catatan,
     createdAt: graphqlSurvey.createdAt,
     updatedAt: graphqlSurvey.updatedAt,
+    statusAdmin: graphqlSurvey.statusAdmin,
+    catatanAdmin: graphqlSurvey.catatanAdmin,
   } : null;
 
   const [error, setError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  // Review dialog state
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewApprove, setReviewApprove] = useState(true);
+  const [reviewCatatan, setReviewCatatan] = useState('');
+
+  const openReviewDialog = (approve: boolean) => {
+    setReviewApprove(approve);
+    setReviewCatatan('');
+    setReviewDialogOpen(true);
+  };
+
+  const handleReview = async () => {
+    if (!reviewApprove && !reviewCatatan.trim()) return;
+    try {
+      await reviewSurveiMut({ variables: { id, disetujui: reviewApprove, catatan: reviewCatatan || undefined } });
+      setSnackbar({ open: true, message: `Survei berhasil ${reviewApprove ? 'disetujui' : 'ditolak'}`, severity: 'success' });
+      setReviewDialogOpen(false);
+      refetch();
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Gagal mereview survei', severity: 'error' });
+    }
+  };
 
   // Image viewer
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -234,6 +267,66 @@ export default function SurveyDataDetail() {
           </CardContent>
         </Card>
 
+        {/* Admin Review Section */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant='h6'>Review Admin</Typography>
+              <Chip
+                size='small'
+                label={
+                  data.statusAdmin === 'disetujui' ? 'Disetujui' :
+                  data.statusAdmin === 'ditolak' ? 'Ditolak' : 'Menunggu Review'
+                }
+                color={
+                  data.statusAdmin === 'disetujui' ? 'success' :
+                  data.statusAdmin === 'ditolak' ? 'error' : 'warning'
+                }
+                icon={
+                  data.statusAdmin === 'disetujui' ? <CheckCircle /> :
+                  data.statusAdmin === 'ditolak' ? <Cancel /> : undefined
+                }
+              />
+            </Box>
+            {data.catatanAdmin && (
+              <Alert
+                severity={data.statusAdmin === 'ditolak' ? 'error' : 'info'}
+                sx={{ mb: 2 }}
+              >
+                <strong>Catatan Admin:</strong> {data.catatanAdmin}
+              </Alert>
+            )}
+            {userRole === 'admin' && data.statusAdmin !== 'disetujui' && (
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button
+                  variant='contained' color='success' startIcon={<ThumbUp />}
+                  onClick={() => openReviewDialog(true)} disabled={reviewLoading}
+                >
+                  Setujui Survei
+                </Button>
+                <Button
+                  variant='outlined' color='error' startIcon={<ThumbDown />}
+                  onClick={() => openReviewDialog(false)} disabled={reviewLoading}
+                >
+                  Tolak & Beri Catatan
+                </Button>
+              </Box>
+            )}
+            {data.statusAdmin === 'disetujui' && (
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {userRole === 'admin' && (
+                  <Button
+                    variant='outlined' color='error' size='small' startIcon={<ThumbDown />}
+                    onClick={() => openReviewDialog(false)} disabled={reviewLoading}
+                  >
+                    Tolak (Ubah Keputusan)
+                  </Button>
+                )}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Timestamps */}
         <Card>
           <CardContent>
@@ -241,11 +334,11 @@ export default function SurveyDataDetail() {
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>Dibuat pada:</Typography>
-                <Typography variant='body1'>{data.createdAt ? new Date(Number(data.createdAt)).toLocaleString('id-ID') : '-'}</Typography>
+                <Typography variant='body1'>{data.createdAt ? new Date(data.createdAt).toLocaleString('id-ID') : '-'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant='body2' color='text.secondary'>Diperbarui pada:</Typography>
-                <Typography variant='body1'>{data.updatedAt ? new Date(Number(data.updatedAt)).toLocaleString('id-ID') : '-'}</Typography>
+                <Typography variant='body1'>{data.updatedAt ? new Date(data.updatedAt).toLocaleString('id-ID') : '-'}</Typography>
               </Grid>
             </Grid>
           </CardContent>
@@ -257,6 +350,43 @@ export default function SurveyDataDetail() {
             {snackbar.message}
           </Alert>
         </Snackbar>
+
+        {/* Review Dialog */}
+        <Dialog open={reviewDialogOpen} onClose={() => setReviewDialogOpen(false)} maxWidth='sm' fullWidth>
+          <DialogTitle>
+            {reviewApprove ? 'Setujui Hasil Survei' : 'Tolak Hasil Survei'}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+              {reviewApprove
+                ? 'Anda akan menyetujui hasil survei ini. Konfirmasi tindakan Anda.'
+                : 'Berikan catatan kepada teknisi tentang alasan penolakan survei ini.'
+              }
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label={reviewApprove ? 'Catatan (opsional)' : 'Alasan Penolakan (wajib)'}
+              value={reviewCatatan}
+              onChange={(e) => setReviewCatatan(e.target.value)}
+              required={!reviewApprove}
+              error={!reviewApprove && reviewCatatan.trim() === ''}
+              helperText={!reviewApprove && reviewCatatan.trim() === '' ? 'Catatan wajib diisi saat menolak' : ''}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setReviewDialogOpen(false)}>Batal</Button>
+            <Button
+              variant='contained'
+              color={reviewApprove ? 'success' : 'error'}
+              onClick={handleReview}
+              disabled={reviewLoading || (!reviewApprove && !reviewCatatan.trim())}
+            >
+              {reviewLoading ? <CircularProgress size={20} /> : reviewApprove ? 'Setujui' : 'Tolak'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Image Viewer */}
         <Dialog open={viewerOpen} onClose={() => setViewerOpen(false)} maxWidth='lg' fullWidth>

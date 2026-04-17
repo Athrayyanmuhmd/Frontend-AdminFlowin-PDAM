@@ -74,6 +74,19 @@ const STATUS_COLORS: Record<string, 'warning' | 'info' | 'primary' | 'success' |
   dibatalkan: 'error',
 };
 
+function parseFlexDate(val: string | number | null | undefined): Date | null {
+  if (!val) return null;
+  const num = typeof val === 'number' ? val : (/^\d+$/.test(String(val)) ? Number(val) : NaN);
+  if (!isNaN(num)) return new Date(num);
+  const d = new Date(val as string);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDate(val: string | number | null | undefined): string {
+  const d = parseFlexDate(val);
+  return d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+}
+
 function getStatusIcon(status: string) {
   if (status === 'selesai' || status === 'dikirim') return <CheckCircle fontSize="small" />;
   if (status === 'sedang_dikerjakan') return <Build fontSize="small" />;
@@ -272,7 +285,7 @@ export default function TechnicianMobileApp() {
               )}
 
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                {wo.createdAt ? new Date(wo.createdAt).toLocaleDateString('id-ID') : '-'}
+                {fmtDate(wo.createdAt)}
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>

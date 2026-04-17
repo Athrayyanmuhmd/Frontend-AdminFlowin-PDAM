@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
@@ -35,6 +36,8 @@ import {
   Avatar,
   Stack,
   Divider,
+  ListItemText,
+  ListItemAvatar,
 } from '@mui/material';
 import {
   Search,
@@ -43,14 +46,37 @@ import {
   LocationOn,
   AssignmentTurnedIn,
   Engineering,
+  Warning,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { GET_ALL_LAPORAN, UPDATE_LAPORAN_STATUS } from '@/lib/graphql/queries/reports';
 
-// ─── Ahmad's enum values (via GQL SCREAMING_SNAKE_CASE) ─────────────────────
-// DB stores: Ditunda, Ditugaskan, DitinjauAdmin, SedangDikerjakan, Selesai, Dibatalkan
-// GQL enum:  DITUNDA, DITUGASKAN, DITINJAU_ADMIN, SEDANG_DIKERJAKAN, SELESAI, DIBATALKAN
+// ─── Technician queries (inline — simple enough) ─────────────────────────────
+const GET_ALL_TEKNISI = gql`
+  query GetAllTeknisi {
+    getAllTeknisi {
+      id
+      namaLengkap
+      nip
+      divisi
+      noHp
+      isActive
+    }
+  }
+`;
 
+// Query active work orders to determine busy technicians
+const GET_BUSY_TEKNISI = gql`
+  query GetBusyTeknisi {
+    workOrders(filter: { status: sedang_dikerjakan }) {
+      data {
+        teknisiPenanggungJawab { id }
+      }
+    }
+  }
+`;
+
+// ─── Ahmad's enum values (via GQL SCREAMING_SNAKE_CASE) ──────────────────────
 const JENIS_LAPORAN_LABELS: Record<string, string> = {
   AIR_TIDAK_MENGALIR: 'Air Tidak Mengalir',
   AIR_KERUH: 'Air Keruh',
@@ -77,6 +103,32 @@ const STATUS_COLORS: Record<string, 'warning' | 'info' | 'primary' | 'success' |
   DIBATALKAN: 'error',
 };
 
+const DIVISI_LABELS: Record<string, string> = {
+  INSTALASI: 'Instalasi',
+  PEMELIHARAAN: 'Pemeliharaan',
+  PERBAIKAN: 'Perbaikan',
+  PENGAWASAN: 'Pengawasan',
+  LAINNYA: 'Lainnya',
+};
+
+function parseFlexDate(val: string | number | null | undefined): Date | null {
+  if (!val) return null;
+  const num = typeof val === 'number' ? val : (/^\d+$/.test(String(val)) ? Number(val) : NaN);
+  if (!isNaN(num)) return new Date(num);
+  const d = new Date(val as string);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDate(val: string | number | null | undefined): string {
+  const d = parseFlexDate(val);
+  return d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+}
+
+function fmtDateTime(val: string | number | null | undefined): string {
+  const d = parseFlexDate(val);
+  return d ? d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+}
+
 const JENIS_COLORS: Record<string, 'error' | 'warning' | 'info' | 'default'> = {
   AIR_TIDAK_MENGALIR: 'error',
   AIR_KERUH: 'warning',
@@ -88,7 +140,7 @@ const JENIS_COLORS: Record<string, 'error' | 'warning' | 'info' | 'default'> = {
 // Status transitions yang diizinkan admin
 const NEXT_STATUSES: Record<string, { value: string; label: string }[]> = {
   DITUNDA: [
-    { value: 'DITUGASKAN', label: 'Tugaskan (mulai diproses)' },
+    { value: 'DITUGASKAN', label: 'Tugaskan ke Teknisi' },
     { value: 'DIBATALKAN', label: 'Batalkan' },
   ],
   DITUGASKAN: [
@@ -123,11 +175,31 @@ export default function LaporanPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState('');
+  const [selectedTeknisiId, setSelectedTeknisiId] = useState('');
+  const [catatanAdmin, setCatatanAdmin] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   const { data, loading, error, refetch } = useQuery(GET_ALL_LAPORAN, {
     fetchPolicy: 'cache-and-network',
   });
+
+  // Teknisi list — loaded lazily when "Ditugaskan" dialog opens
+  const [fetchTeknisi, { data: teknisiData, loading: teknisiLoading }] = useLazyQuery(GET_ALL_TEKNISI, {
+    fetchPolicy: 'cache-and-network',
+  });
+  const [fetchBusyTeknisi, { data: busyData }] = useLazyQuery(GET_BUSY_TEKNISI, {
+    fetchPolicy: 'network-only',
+  });
+
+  // Set of busy teknisi IDs (currently sedang_dikerjakan)
+  const busyTeknisiIds = useMemo<Set<string>>(() => {
+    const ids = new Set<string>();
+    const orders = (busyData as any)?.workOrders?.data ?? [];
+    for (const wo of orders) {
+      if (wo.teknisiPenanggungJawab?.id) ids.add(wo.teknisiPenanggungJawab.id);
+    }
+    return ids;
+  }, [busyData]);
 
   const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_LAPORAN_STATUS, {
     onCompleted: () => {
@@ -135,6 +207,8 @@ export default function LaporanPage() {
       setUpdateDialogOpen(false);
       setDetailOpen(false);
       setNewStatus('');
+      setSelectedTeknisiId('');
+      setCatatanAdmin('');
       setSnackbar({ open: true, message: 'Status laporan berhasil diperbarui', severity: 'success' });
     },
     onError: (err) => {
@@ -154,7 +228,6 @@ export default function LaporanPage() {
     return matchSearch && matchStatus;
   });
 
-  // Stats — menggunakan GQL SCREAMING_SNAKE_CASE yang sesuai Ahmad
   const totalMenunggu = laporanList.filter((l) => l.status === 'DITUNDA').length;
   const totalDiproses = laporanList.filter((l) =>
     ['DITUGASKAN', 'DITINJAU_ADMIN', 'SEDANG_DIKERJAKAN'].includes(l.status)
@@ -164,17 +237,49 @@ export default function LaporanPage() {
   const handleOpenUpdateDialog = (laporan: any) => {
     setSelectedLaporan(laporan);
     const nextOptions = NEXT_STATUSES[laporan.status] || [];
-    setNewStatus(nextOptions[0]?.value || '');
+    const firstStatus = nextOptions[0]?.value || '';
+    setNewStatus(firstStatus);
+    setSelectedTeknisiId('');
+    setCatatanAdmin('');
     setUpdateDialogOpen(true);
+    // If going to DITUGASKAN, prefetch teknisi list
+    if (firstStatus === 'DITUGASKAN') {
+      fetchTeknisi();
+      fetchBusyTeknisi();
+    }
   };
+
+  const handleStatusChange = (status: string) => {
+    setNewStatus(status);
+    setSelectedTeknisiId('');
+    if (status === 'DITUGASKAN') {
+      fetchTeknisi();
+      fetchBusyTeknisi();
+    }
+  };
+
+  const requiresTeknisi = newStatus === 'DITUGASKAN';
 
   const handleUpdateStatus = () => {
     if (!selectedLaporan || !newStatus) return;
-    updateStatus({ variables: { id: selectedLaporan._id, status: newStatus } });
+    if (requiresTeknisi && !selectedTeknisiId) {
+      setSnackbar({ open: true, message: 'Pilih teknisi yang akan ditugaskan', severity: 'error' });
+      return;
+    }
+    updateStatus({
+      variables: {
+        id: selectedLaporan._id,
+        status: newStatus,
+        idTeknisi: requiresTeknisi ? selectedTeknisiId : undefined,
+        catatanAdmin: catatanAdmin || undefined,
+      },
+    });
   };
 
   const canUpdateStatus = (laporan: any) =>
     (NEXT_STATUSES[laporan.status] || []).length > 0;
+
+  const teknisiList: any[] = (teknisiData as any)?.getAllTeknisi?.filter((t: any) => t.isActive !== false) ?? [];
 
   if (authLoading || !isAuthenticated) return null;
 
@@ -267,13 +372,14 @@ export default function LaporanPage() {
                     <TableCell sx={{ fontWeight: 700 }}>Jenis Masalah</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Alamat</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Teknisi</TableCell>
                     <TableCell sx={{ fontWeight: 700 }} align="center">Aksi</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                         Tidak ada laporan ditemukan
                       </TableCell>
                     </TableRow>
@@ -281,15 +387,7 @@ export default function LaporanPage() {
                     filtered.map((laporan: any) => (
                       <TableRow key={laporan._id} hover>
                         <TableCell>
-                          <Typography variant="body2">
-                            {laporan.createdAt
-                              ? new Date(laporan.createdAt).toLocaleDateString('id-ID', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })
-                              : '-'}
-                          </Typography>
+                          <Typography variant="body2">{fmtDate(laporan.createdAt)}</Typography>
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -322,7 +420,7 @@ export default function LaporanPage() {
                         <TableCell>
                           <Typography
                             variant="body2"
-                            sx={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            sx={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                           >
                             {laporan.alamat || '-'}
                           </Typography>
@@ -333,6 +431,20 @@ export default function LaporanPage() {
                             size="small"
                             color={STATUS_COLORS[laporan.status] || 'default'}
                           />
+                        </TableCell>
+                        <TableCell>
+                          {laporan.idTeknisi ? (
+                            <Box>
+                              <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 120 }}>
+                                {laporan.idTeknisi.namaLengkap}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {DIVISI_LABELS[laporan.idTeknisi.divisi] || laporan.idTeknisi.divisi || '-'}
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" color="text.disabled">—</Typography>
+                          )}
                         </TableCell>
                         <TableCell align="center">
                           <Stack direction="row" spacing={0.5} justifyContent="center">
@@ -416,9 +528,24 @@ export default function LaporanPage() {
                   </Typography>
                   <Typography variant="body2">{selectedLaporan.masalah}</Typography>
                 </Box>
+                {selectedLaporan.idTeknisi && (
+                  <Box sx={{ bgcolor: 'primary.50', p: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'primary.200' }}>
+                    <Typography variant="caption" color="text.secondary" display="block">Teknisi Ditugaskan</Typography>
+                    <Typography variant="body2" fontWeight={600}>{selectedLaporan.idTeknisi.namaLengkap}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {DIVISI_LABELS[selectedLaporan.idTeknisi.divisi] || selectedLaporan.idTeknisi.divisi}
+                      {selectedLaporan.idTeknisi.nip ? ` · NIP ${selectedLaporan.idTeknisi.nip}` : ''}
+                    </Typography>
+                    {selectedLaporan.catatanAdmin && (
+                      <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                        Catatan: {selectedLaporan.catatanAdmin}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
                 {selectedLaporan.catatan && (
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">Catatan</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">Catatan Pelanggan</Typography>
                     <Typography variant="body2">{selectedLaporan.catatan}</Typography>
                   </Box>
                 )}
@@ -442,10 +569,7 @@ export default function LaporanPage() {
                   </Box>
                 )}
                 <Typography variant="caption" color="text.secondary">
-                  Dilaporkan:{' '}
-                  {selectedLaporan.createdAt
-                    ? new Date(selectedLaporan.createdAt).toLocaleString('id-ID')
-                    : '-'}
+                  Dilaporkan: {fmtDateTime(selectedLaporan.createdAt)}
                 </Typography>
               </Stack>
             )}
@@ -465,11 +589,11 @@ export default function LaporanPage() {
         </Dialog>
 
         {/* Update Status Dialog */}
-        <Dialog open={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ fontWeight: 700 }}>Perbarui Status Laporan</DialogTitle>
           <DialogContent dividers>
             {selectedLaporan && (
-              <Stack spacing={2} sx={{ pt: 1 }}>
+              <Stack spacing={2.5} sx={{ pt: 1 }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Laporan</Typography>
                   <Typography variant="body2" fontWeight={600}>{selectedLaporan.namaLaporan}</Typography>
@@ -490,7 +614,7 @@ export default function LaporanPage() {
                   <Select
                     value={newStatus}
                     label="Status Baru"
-                    onChange={(e) => setNewStatus(e.target.value)}
+                    onChange={(e) => handleStatusChange(e.target.value)}
                   >
                     {(NEXT_STATUSES[selectedLaporan.status] || []).map((opt) => (
                       <MenuItem key={opt.value} value={opt.value}>
@@ -499,15 +623,97 @@ export default function LaporanPage() {
                     ))}
                   </Select>
                 </FormControl>
+
+                {/* Teknisi Picker — only shown when status = DITUGASKAN */}
+                {requiresTeknisi && (
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                        Pilih Teknisi
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                        Teknisi bertanda <Warning sx={{ fontSize: 12, color: 'warning.main', verticalAlign: 'middle' }} /> sedang menangani pekerjaan aktif.
+                      </Typography>
+                      {teknisiLoading ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 2 }}>
+                          <CircularProgress size={16} />
+                          <Typography variant="body2" color="text.secondary">Memuat daftar teknisi...</Typography>
+                        </Box>
+                      ) : (
+                        <FormControl fullWidth size="small" required>
+                          <InputLabel>Teknisi *</InputLabel>
+                          <Select
+                            value={selectedTeknisiId}
+                            label="Teknisi *"
+                            onChange={(e) => setSelectedTeknisiId(e.target.value)}
+                            renderValue={(val) => {
+                              const t = teknisiList.find((tk: any) => tk.id === val);
+                              return t ? `${t.namaLengkap} — ${DIVISI_LABELS[t.divisi] || t.divisi}` : '';
+                            }}
+                          >
+                            {teknisiList.length === 0 ? (
+                              <MenuItem disabled>
+                                <Typography variant="body2" color="text.secondary">
+                                  Tidak ada teknisi aktif
+                                </Typography>
+                              </MenuItem>
+                            ) : (
+                              teknisiList.map((t: any) => {
+                                const isBusy = busyTeknisiIds.has(t.id);
+                                return (
+                                  <MenuItem key={t.id} value={t.id}>
+                                    <ListItemAvatar sx={{ minWidth: 40 }}>
+                                      <Avatar sx={{ width: 32, height: 32, fontSize: 13, bgcolor: isBusy ? 'warning.main' : 'primary.main' }}>
+                                        {t.namaLengkap[0]}
+                                      </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText
+                                      primary={
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                          <Typography variant="body2" fontWeight={600}>{t.namaLengkap}</Typography>
+                                          {isBusy && (
+                                            <Tooltip title="Sedang menangani pekerjaan aktif">
+                                              <Warning sx={{ fontSize: 14, color: 'warning.main' }} />
+                                            </Tooltip>
+                                          )}
+                                        </Box>
+                                      }
+                                      secondary={`${DIVISI_LABELS[t.divisi] || t.divisi}${t.nip ? ` · NIP ${t.nip}` : ''}`}
+                                    />
+                                  </MenuItem>
+                                );
+                              })
+                            )}
+                          </Select>
+                        </FormControl>
+                      )}
+                    </Box>
+                  </>
+                )}
+
+                {/* Catatan Admin — optional for any status change */}
+                <TextField
+                  label="Catatan Admin (opsional)"
+                  size="small"
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  value={catatanAdmin}
+                  onChange={(e) => setCatatanAdmin(e.target.value)}
+                  placeholder="Catatan tambahan untuk teknisi atau rekam internal..."
+                />
               </Stack>
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => { setUpdateDialogOpen(false); setNewStatus(''); }}>Batal</Button>
+            <Button onClick={() => { setUpdateDialogOpen(false); setNewStatus(''); setSelectedTeknisiId(''); setCatatanAdmin(''); }}>
+              Batal
+            </Button>
             <Button
               variant="contained"
               onClick={handleUpdateStatus}
-              disabled={!newStatus || updatingStatus}
+              disabled={!newStatus || updatingStatus || (requiresTeknisi && !selectedTeknisiId)}
               startIcon={updatingStatus ? <CircularProgress size={16} color="inherit" /> : <AssignmentTurnedIn />}
             >
               {updatingStatus ? 'Menyimpan...' : 'Simpan Status'}

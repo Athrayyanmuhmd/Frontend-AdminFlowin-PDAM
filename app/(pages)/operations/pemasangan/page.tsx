@@ -3,140 +3,296 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import {
-  Box, Card, CardContent, Typography, IconButton, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, Avatar, Tooltip, Pagination,
-  CircularProgress, Alert, Snackbar, Stack, Dialog, DialogTitle, DialogContent,
-  DialogActions, Button, Grid, Divider,
+  Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Chip, Avatar, Tooltip, Pagination, CircularProgress, Alert, Snackbar,
+  Stack, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Divider,
+  IconButton, Badge,
 } from '@mui/material';
-import { Visibility, Build } from '@mui/icons-material';
+import {
+  Search, Visibility, Build, CheckCircle, HourglassEmpty, Cancel,
+  ThumbUp, ThumbDown, Refresh, OpenInNew, Image as ImageIcon,
+} from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { GET_ALL_PEMASANGAN } from '@/lib/graphql/queries/pemasangan';
+import { REVIEW_PEMASANGAN } from '@/lib/graphql/mutations/pemasangan';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function parseFlexDate(val: string | number | null | undefined): Date | null {
+  if (!val) return null;
+  const num = typeof val === 'number' ? val : (/^\d+$/.test(String(val)) ? Number(val) : NaN);
+  if (!isNaN(num)) return new Date(num);
+  const d = new Date(val as string);
+  return isNaN(d.getTime()) ? null : d;
+}
+const fmtDate = (v: string | number | null | undefined) => {
+  const d = parseFlexDate(v);
+  return d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+};
+const fmtDateTime = (v: string | number | null | undefined) => {
+  const d = parseFlexDate(v);
+  return d ? d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+};
+
+const STATUS_ADMIN_LABEL: Record<string, string> = {
+  menunggu_review: 'Menunggu Review',
+  disetujui: 'Disetujui',
+  ditolak: 'Ditolak',
+};
+const STATUS_ADMIN_COLOR: Record<string, 'warning' | 'success' | 'error' | 'default'> = {
+  menunggu_review: 'warning',
+  disetujui: 'success',
+  ditolak: 'error',
+};
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function PemasanganPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading, userRole } = useAdmin();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
+  const PER_PAGE = 10;
+
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewApprove, setReviewApprove] = useState(true);
+  const [catatanReview, setCatatanReview] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, msg: '', ok: true });
+  const toast = (msg: string, ok = true) => setSnackbar({ open: true, msg, ok });
 
   const { data, loading, error, refetch } = useQuery(GET_ALL_PEMASANGAN, { fetchPolicy: 'network-only' });
-
   const allData: any[] = (data as any)?.getAllPemasangan || [];
-  const totalPages = Math.ceil(allData.length / rowsPerPage);
-  const paginated = allData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  const [reviewPemasangan, { loading: reviewing }] = useMutation(REVIEW_PEMASANGAN, {
+    onCompleted: () => {
+      refetch();
+      setReviewOpen(false);
+      setCatatanReview('');
+      toast(reviewApprove ? 'Pemasangan disetujui' : 'Pemasangan ditolak — teknisi perlu perbaikan');
+    },
+    onError: (e) => toast(e.message, false),
+  });
+
+  const filtered = allData.filter(item => {
+    const name = item.idKoneksiData?.IdPelanggan?.namaLengkap || '';
+    const seri = item.seriMeteran || '';
+    const alamat = item.idKoneksiData?.Alamat || '';
+    return !search || [name, seri, alamat].some(s => s.toLowerCase().includes(search.toLowerCase()));
+  });
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const rows = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  const counts = {
+    total: allData.length,
+    menunggu: allData.filter(d => d.statusAdmin === 'menunggu_review' || !d.statusAdmin).length,
+    disetujui: allData.filter(d => d.statusAdmin === 'disetujui').length,
+    ditolak: allData.filter(d => d.statusAdmin === 'ditolak').length,
+  };
+
+  const openReview = (item: any, approve: boolean) => {
+    setSelectedItem(item);
+    setReviewApprove(approve);
+    setCatatanReview('');
+    setReviewOpen(true);
+  };
+
+  const handleReview = () => {
+    if (!selectedItem) return;
+    reviewPemasangan({
+      variables: { id: selectedItem._id, disetujui: reviewApprove, catatan: catatanReview || undefined },
+    });
+  };
 
   if (authLoading || !isAuthenticated) return null;
+  const isAdmin = userRole === 'admin';
 
   return (
     <AdminLayout title="Pemasangan Meter">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" fontWeight={600} sx={{ mb: 3 }}>
-          Pemasangan Meter
-        </Typography>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box>
+            <Typography variant="h5" fontWeight={700}>Pemasangan Meter</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Review dan kelola data pemasangan meteran air
+            </Typography>
+          </Box>
+          <Button variant="outlined" size="small" startIcon={<Refresh />} onClick={() => refetch()} disabled={loading}>
+            Refresh
+          </Button>
+        </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>Gagal memuat data: {error.message}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>Gagal memuat: {error.message}</Alert>}
 
-        {/* Stats */}
+        {/* Summary Cards */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main' }}><Build /></Avatar>
-                  <Box>
-                    <Typography variant="h5" fontWeight={700}>{allData.length}</Typography>
-                    <Typography variant="body2" color="text.secondary">Total Pemasangan</Typography>
+          {[
+            { label: 'Total',          value: counts.total,    color: '#1976d2', icon: <Build /> },
+            { label: 'Menunggu Review', value: counts.menunggu, color: counts.menunggu > 0 ? '#ed6c02' : '#9e9e9e', icon: <HourglassEmpty /> },
+            { label: 'Disetujui',      value: counts.disetujui,color: '#2e7d32', icon: <CheckCircle /> },
+            { label: 'Ditolak',        value: counts.ditolak,  color: '#d32f2f', icon: <Cancel /> },
+          ].map(s => (
+            <Grid item xs={6} md={3} key={s.label}>
+              <Card variant="outlined" sx={{ borderRadius: 2, borderColor: s.label === 'Menunggu Review' && s.value > 0 ? 'warning.main' : 'divider' }}>
+                <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar sx={{ bgcolor: s.color, width: 36, height: 36, fontSize: 18 }}>{s.icon}</Avatar>
+                    <Box>
+                      <Typography variant="h5" fontWeight={700} lineHeight={1.2}>{s.value}</Typography>
+                      <Typography variant="caption" color="text.secondary">{s.label}</Typography>
+                    </Box>
                   </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
 
-        {/* Toolbar */}
-        <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ py: 1.5 }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Button variant="outlined" size="small" onClick={() => refetch()} disabled={loading}>Refresh</Button>
-            </Stack>
+        {/* Search */}
+        <Card variant="outlined" sx={{ mb: 2, borderRadius: 2 }}>
+          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <TextField fullWidth size="small"
+              placeholder="Cari nama pelanggan, seri meteran, alamat..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
+            />
           </CardContent>
         </Card>
 
         {/* Table */}
-        <Card>
+        <Card variant="outlined" sx={{ borderRadius: 2 }}>
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>
           ) : (
             <>
               <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: 'grey.50' }}>
-                      <TableCell sx={{ fontWeight: 700 }}>No</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Pelanggan</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Alamat</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Seri Meteran</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Tanggal</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="center">Aksi</TableCell>
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableHead sx={{ bgcolor: 'grey.50' }}>
+                    <TableRow>
+                      <TableCell width={44} sx={{ fontWeight: 600 }}>No</TableCell>
+                      <TableCell width={180} sx={{ fontWeight: 600 }}>Pelanggan</TableCell>
+                      <TableCell width={150} sx={{ fontWeight: 600 }}>Alamat</TableCell>
+                      <TableCell width={130} sx={{ fontWeight: 600 }}>Seri Meteran</TableCell>
+                      <TableCell width={80} sx={{ fontWeight: 600 }} align="center">Foto</TableCell>
+                      <TableCell width={130} sx={{ fontWeight: 600 }} align="center">Status Review</TableCell>
+                      <TableCell width={90} sx={{ fontWeight: 600 }}>Tanggal</TableCell>
+                      <TableCell width={isAdmin ? 130 : 56} sx={{ fontWeight: 600 }} align="center">Aksi</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {paginated.length === 0 ? (
+                    {rows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                          Tidak ada data pemasangan
+                        <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                          <Typography color="text.secondary">Tidak ada data</Typography>
                         </TableCell>
                       </TableRow>
-                    ) : paginated.map((item: any, idx: number) => (
-                      <TableRow key={item._id} hover>
-                        <TableCell>{(page - 1) * rowsPerPage + idx + 1}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
-                            {item.idKoneksiData?.IdPelanggan?.namaLengkap || '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="caption" color="text.secondary">
-                            {item.idKoneksiData?.Alamat || '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontFamily="monospace">{item.seriMeteran || '-'}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="caption">
-                            {item.createdAt ? new Date(Number(item.createdAt)).toLocaleDateString('id-ID') : '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Tooltip title="Lihat Detail">
-                            <IconButton size="small" onClick={() => { setSelectedItem(item); setDetailOpen(true); }}>
-                              <Visibility fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    ) : rows.map((item, idx) => {
+                      const status = item.statusAdmin || 'menunggu_review';
+                      const needsReview = status === 'menunggu_review';
+                      const photoCount = ['fotoRumah', 'fotoMeteran', 'fotoMeteranDanRumah'].filter(k => item[k]).length;
+
+                      return (
+                        <TableRow key={item._id} hover
+                          sx={{
+                            bgcolor: needsReview ? 'rgba(255,152,0,0.06)' : undefined,
+                            borderLeft: `3px solid ${needsReview ? '#ed6c02' : 'transparent'}`,
+                          }}
+                        >
+                          <TableCell>
+                            {needsReview ? (
+                              <Tooltip title="Perlu review" arrow>
+                                <Badge color="warning" variant="dot">
+                                  <Typography variant="body2" fontWeight={600}>{(page - 1) * PER_PAGE + idx + 1}</Typography>
+                                </Badge>
+                              </Tooltip>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">{(page - 1) * PER_PAGE + idx + 1}</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={600} noWrap>
+                              {item.idKoneksiData?.IdPelanggan?.namaLengkap || '—'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                              {item.idKoneksiData?.IdPelanggan?.noHP || ''}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
+                              {item.idKoneksiData?.Alamat || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontFamily="monospace" noWrap>{item.seriMeteran || '—'}</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            {photoCount > 0 ? (
+                              <Chip icon={<ImageIcon sx={{ fontSize: '14px !important' }} />}
+                                label={`${photoCount} foto`} size="small" color="info" variant="outlined" sx={{ fontSize: 11 }} />
+                            ) : (
+                              <Typography variant="caption" color="text.disabled">—</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              size="small"
+                              label={STATUS_ADMIN_LABEL[status] || status}
+                              color={STATUS_ADMIN_COLOR[status] || 'default'}
+                              sx={{ fontSize: 11 }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">{fmtDate(item.createdAt)}</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Stack direction="row" spacing={0.5} justifyContent="center">
+                              <Tooltip title="Lihat Detail">
+                                <IconButton size="small" onClick={() => { setSelectedItem(item); setDetailOpen(true); }}>
+                                  <Visibility fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              {isAdmin && status === 'menunggu_review' && (
+                                <>
+                                  <Tooltip title="Setujui">
+                                    <IconButton size="small" color="success" onClick={() => openReview(item, true)}>
+                                      <ThumbUp fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Tolak">
+                                    <IconButton size="small" color="error" onClick={() => openReview(item, false)}>
+                                      <ThumbDown fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
+
               {totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" size="small" />
                 </Box>
               )}
-              <Box sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Box sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="caption" color="text.secondary">
-                  Menampilkan {paginated.length} dari {allData.length} pemasangan
+                  Menampilkan {rows.length} dari {filtered.length} pemasangan
                 </Typography>
               </Box>
             </>
@@ -144,84 +300,164 @@ export default function PemasanganPage() {
         </Card>
       </Box>
 
-      {/* Detail Dialog */}
+      {/* ─── Detail Dialog ────────────────────────────────────────────────────── */}
       <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Build color="primary" />
-            Detail Pemasangan Meter
-          </Box>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Build color="primary" /> Detail Pemasangan Meter
         </DialogTitle>
         <DialogContent dividers>
           {selectedItem && (
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Pelanggan</Typography>
-                <Typography variant="body1" fontWeight={600} sx={{ mb: 0.5 }}>
-                  {selectedItem.idKoneksiData?.IdPelanggan?.namaLengkap || '-'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {selectedItem.idKoneksiData?.IdPelanggan?.noHP || ''}
-                </Typography>
+            <Stack spacing={2}>
+              {/* Status Admin */}
+              {selectedItem.statusAdmin && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="caption" color="text.secondary">Status Review:</Typography>
+                  <Chip
+                    size="small"
+                    label={STATUS_ADMIN_LABEL[selectedItem.statusAdmin] || selectedItem.statusAdmin}
+                    color={STATUS_ADMIN_COLOR[selectedItem.statusAdmin] || 'default'}
+                  />
+                </Box>
+              )}
+              {selectedItem.catatanAdmin && (
+                <Alert severity={selectedItem.statusAdmin === 'ditolak' ? 'error' : 'info'} sx={{ py: 0.5 }}>
+                  <Typography variant="caption"><strong>Catatan Admin:</strong> {selectedItem.catatanAdmin}</Typography>
+                </Alert>
+              )}
 
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Alamat</Typography>
-                <Typography variant="body2">{selectedItem.idKoneksiData?.Alamat || '-'}</Typography>
+              <Divider />
 
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Seri Meteran</Typography>
-                <Typography variant="body1" fontFamily="monospace" fontWeight={600}>{selectedItem.seriMeteran}</Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="caption" color="text.secondary">Pelanggan</Typography>
+                  <Typography variant="body1" fontWeight={600}>{selectedItem.idKoneksiData?.IdPelanggan?.namaLengkap || '—'}</Typography>
+                  <Typography variant="caption" color="text.secondary">{selectedItem.idKoneksiData?.IdPelanggan?.noHP || ''}</Typography>
 
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>Tanggal Dibuat</Typography>
-                <Typography variant="body2">
-                  {selectedItem.createdAt ? new Date(Number(selectedItem.createdAt)).toLocaleString('id-ID') : '-'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                {selectedItem.catatan && (
-                  <>
-                    <Typography variant="subtitle2" color="text.secondary">Catatan</Typography>
-                    <Typography variant="body2">{selectedItem.catatan}</Typography>
-                  </>
-                )}
-              </Grid>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>Alamat</Typography>
+                  <Typography variant="body2">{selectedItem.idKoneksiData?.Alamat || '—'}</Typography>
 
-              <Grid item xs={12}>
-                <Divider sx={{ mb: 2 }} />
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Foto Pemasangan</Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  {['fotoRumah', 'fotoMeteran', 'fotoMeteranDanRumah'].map((key) =>
-                    selectedItem[key] ? (
-                      <Box key={key}>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-                          {key === 'fotoRumah' ? 'Foto Rumah' : key === 'fotoMeteran' ? 'Foto Meteran' : 'Foto Rumah & Meteran'}
-                        </Typography>
-                        <Box
-                          component="img"
-                          src={selectedItem[key]}
-                          alt={key}
-                          sx={{ width: 120, height: 90, objectFit: 'cover', borderRadius: 1, cursor: 'pointer', border: '1px solid', borderColor: 'divider' }}
-                          onClick={() => window.open(selectedItem[key], '_blank')}
-                        />
-                      </Box>
-                    ) : null
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>Seri Meteran</Typography>
+                  <Typography variant="body1" fontFamily="monospace" fontWeight={600}>{selectedItem.seriMeteran || '—'}</Typography>
+
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>Tanggal Pemasangan</Typography>
+                  <Typography variant="body2">{fmtDateTime(selectedItem.createdAt)}</Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  {selectedItem.catatan && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" color="text.secondary">Catatan Teknisi</Typography>
+                      <Typography variant="body2">{selectedItem.catatan}</Typography>
+                    </Box>
                   )}
-                </Stack>
+                </Grid>
               </Grid>
-            </Grid>
+
+              <Divider />
+              <Typography variant="subtitle2" color="text.secondary">Foto Dokumentasi</Typography>
+              <Stack direction="row" spacing={1.5} flexWrap="wrap">
+                {[
+                  { key: 'fotoRumah', label: 'Foto Rumah' },
+                  { key: 'fotoMeteran', label: 'Foto Meteran' },
+                  { key: 'fotoMeteranDanRumah', label: 'Foto Rumah & Meteran' },
+                ].map(({ key, label }) =>
+                  selectedItem[key] ? (
+                    <Box key={key} sx={{ textAlign: 'center' }}>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>{label}</Typography>
+                      <Box
+                        component="img"
+                        src={selectedItem[key]}
+                        alt={label}
+                        sx={{ width: 120, height: 90, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', cursor: 'pointer' }}
+                        onClick={() => window.open(selectedItem[key], '_blank')}
+                      />
+                      <Button size="small" startIcon={<OpenInNew sx={{ fontSize: 12 }} />}
+                        onClick={() => window.open(selectedItem[key], '_blank')}
+                        sx={{ fontSize: 10, mt: 0.5 }}>
+                        Buka
+                      </Button>
+                    </Box>
+                  ) : null
+                )}
+                {!['fotoRumah', 'fotoMeteran', 'fotoMeteranDanRumah'].some(k => selectedItem[k]) && (
+                  <Typography variant="body2" color="text.disabled">Belum ada foto terlampir</Typography>
+                )}
+              </Stack>
+            </Stack>
           )}
         </DialogContent>
         <DialogActions>
+          {isAdmin && selectedItem?.statusAdmin === 'menunggu_review' && (
+            <>
+              <Button variant="contained" color="success" startIcon={<ThumbUp />}
+                onClick={() => { setDetailOpen(false); openReview(selectedItem, true); }}>
+                Setujui
+              </Button>
+              <Button variant="outlined" color="error" startIcon={<ThumbDown />}
+                onClick={() => { setDetailOpen(false); openReview(selectedItem, false); }}>
+                Tolak
+              </Button>
+            </>
+          )}
           <Button onClick={() => setDetailOpen(false)}>Tutup</Button>
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
+      {/* ─── Review Dialog ────────────────────────────────────────────────────── */}
+      <Dialog open={reviewOpen} onClose={() => setReviewOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {reviewApprove ? 'Setujui Pemasangan' : 'Tolak Pemasangan'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedItem && (
+            <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+              <Alert severity={reviewApprove ? 'success' : 'warning'} sx={{ py: 0.5 }}>
+                {reviewApprove
+                  ? 'Menyetujui pemasangan ini akan menandai tahap pemasangan sebagai selesai diverifikasi.'
+                  : 'Menolak pemasangan ini berarti teknisi perlu melakukan perbaikan atau pengulangan.'}
+              </Alert>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Pelanggan</Typography>
+                <Typography variant="body2" fontWeight={600}>{selectedItem.idKoneksiData?.IdPelanggan?.namaLengkap || '—'}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Seri Meteran</Typography>
+                <Typography variant="body2" fontFamily="monospace">{selectedItem.seriMeteran || '—'}</Typography>
+              </Box>
+              <TextField
+                label={reviewApprove ? 'Catatan (opsional)' : 'Catatan / Alasan Penolakan'}
+                multiline minRows={3}
+                fullWidth size="small"
+                value={catatanReview}
+                onChange={e => setCatatanReview(e.target.value)}
+                placeholder={reviewApprove
+                  ? 'Catatan tambahan untuk teknisi...'
+                  : 'Jelaskan alasan penolakan dan perbaikan yang diperlukan...'}
+                required={!reviewApprove}
+                error={!reviewApprove && !catatanReview}
+                helperText={!reviewApprove && !catatanReview ? 'Catatan wajib diisi saat menolak' : ''}
+              />
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReviewOpen(false)}>Batal</Button>
+          <Button
+            variant="contained"
+            color={reviewApprove ? 'success' : 'error'}
+            onClick={handleReview}
+            disabled={reviewing || (!reviewApprove && !catatanReview)}
+            startIcon={reviewing ? <CircularProgress size={16} color="inherit" /> : (reviewApprove ? <ThumbUp /> : <ThumbDown />)}
+          >
+            {reviewing ? 'Menyimpan...' : (reviewApprove ? 'Setujui' : 'Tolak')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000}
         onClose={() => setSnackbar(s => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
-          {snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert severity={snackbar.ok ? 'success' : 'error'} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+          {snackbar.msg}
         </Alert>
       </Snackbar>
     </AdminLayout>

@@ -85,8 +85,9 @@ export default function SurveyDataManagement() {
     const query = searchQuery.toLowerCase();
     return surveyData.filter((item: any) =>
       item.idKoneksiData?.IdPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
-      item.idTeknisi?.namaLengkap?.toLowerCase().includes(query) ||
-      item.idKoneksiData?.Alamat?.toLowerCase().includes(query)
+      item.idKoneksiData?.Alamat?.toLowerCase().includes(query) ||
+      item.idKoneksiData?.Kelurahan?.toLowerCase().includes(query) ||
+      item.idKoneksiData?.Kecamatan?.toLowerCase().includes(query)
     );
   }, [surveyData, searchQuery]);
 
@@ -147,7 +148,7 @@ export default function SurveyDataManagement() {
           <CardContent>
             <TextField
               fullWidth
-              placeholder='Cari Nama Pelanggan, Alamat, atau Teknisi...'
+              placeholder='Cari nama pelanggan, alamat, kelurahan, kecamatan...'
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
               InputProps={{
@@ -181,7 +182,7 @@ export default function SurveyDataManagement() {
                     <TableHead>
                       <TableRow>
                         <TableCell>Alamat / Pelanggan</TableCell>
-                        <TableCell>Teknisi</TableCell>
+                        <TableCell>Kelurahan / Kecamatan</TableCell>
                         <TableCell>Diameter Pipa</TableCell>
                         <TableCell>Jumlah Penghuni</TableCell>
                         <TableCell>Standar</TableCell>
@@ -204,7 +205,12 @@ export default function SurveyDataManagement() {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {item.idTeknisi?.namaLengkap || 'N/A'}
+                            <Typography variant='body2'>
+                              {item.idKoneksiData?.Kelurahan || '—'}
+                            </Typography>
+                            <Typography variant='caption' color='text.secondary'>
+                              {item.idKoneksiData?.Kecamatan || ''}
+                            </Typography>
                           </TableCell>
                           <TableCell>
                             {item.diameterPipa ? `${item.diameterPipa} mm` : 'N/A'}

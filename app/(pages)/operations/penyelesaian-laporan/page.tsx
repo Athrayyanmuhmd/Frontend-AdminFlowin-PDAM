@@ -20,24 +20,46 @@ import { GET_ALL_TEKNISI } from '@/lib/graphql/queries/technicians';
 import { CREATE_PENYELESAIAN_LAPORAN } from '@/lib/graphql/mutations/pemasangan';
 
 const JENIS_LABELS: Record<string, string> = {
-  AirTidakMengalir: 'Air Tidak Mengalir',
-  AirKeruh: 'Air Keruh',
-  KebocoranPipa: 'Kebocoran Pipa',
-  MeteranBermasalah: 'Meteran Bermasalah',
-  KendalaLainnya: 'Kendala Lainnya',
+  AIR_TIDAK_MENGALIR: 'Air Tidak Mengalir',
+  AIR_KERUH: 'Air Keruh',
+  KEBOCORAN_PIPA: 'Kebocoran Pipa',
+  METERAN_BERMASALAH: 'Meteran Bermasalah',
+  KENDALA_LAINNYA: 'Kendala Lainnya',
 };
 
-const STATUS_COLORS: Record<string, 'warning' | 'info' | 'success'> = {
-  Diajukan: 'warning',
-  ProsesPerbaikan: 'info',
-  Selesai: 'success',
+const STATUS_COLORS: Record<string, 'warning' | 'info' | 'success' | 'primary' | 'error' | 'default'> = {
+  DITUNDA: 'warning',
+  DITUGASKAN: 'info',
+  DITINJAU_ADMIN: 'info',
+  SEDANG_DIKERJAKAN: 'primary',
+  SELESAI: 'success',
+  DIBATALKAN: 'error',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  Diajukan: 'Diajukan',
-  ProsesPerbaikan: 'Proses Perbaikan',
-  Selesai: 'Selesai',
+  DITUNDA: 'Menunggu',
+  DITUGASKAN: 'Ditugaskan',
+  DITINJAU_ADMIN: 'Ditinjau Admin',
+  SEDANG_DIKERJAKAN: 'Sedang Dikerjakan',
+  SELESAI: 'Selesai',
+  DIBATALKAN: 'Dibatalkan',
 };
+
+function parseFlexDate(val: string | number | null | undefined): Date | null {
+  if (!val) return null;
+  const num = typeof val === 'number' ? val : (/^\d+$/.test(String(val)) ? Number(val) : NaN);
+  if (!isNaN(num)) return new Date(num);
+  const d = new Date(val as string);
+  return isNaN(d.getTime()) ? null : d;
+}
+function fmtDate(val: string | number | null | undefined) {
+  const d = parseFlexDate(val);
+  return d ? d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+}
+function fmtDateTime(val: string | number | null | undefined) {
+  const d = parseFlexDate(val);
+  return d ? d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+}
 
 export default function PenyelesaianLaporanPage() {
   const router = useRouter();
@@ -48,7 +70,7 @@ export default function PenyelesaianLaporanPage() {
   }, [authLoading, isAuthenticated, router]);
 
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('ProsesPerbaikan');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
   const [selectedLaporan, setSelectedLaporan] = useState<any>(null);
@@ -92,9 +114,9 @@ export default function PenyelesaianLaporanPage() {
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
   const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  const totalDiajukan = allLaporan.filter(l => l.status === 'Diajukan').length;
-  const totalProses = allLaporan.filter(l => l.status === 'ProsesPerbaikan').length;
-  const totalSelesai = allLaporan.filter(l => l.status === 'Selesai').length;
+  const totalDiajukan = allLaporan.filter(l => l.status === 'DITUNDA' || l.status === 'DITUGASKAN').length;
+  const totalProses = allLaporan.filter(l => l.status === 'SEDANG_DIKERJAKAN' || l.status === 'DITINJAU_ADMIN').length;
+  const totalSelesai = allLaporan.filter(l => l.status === 'SELESAI').length;
 
   const handleResolve = (laporan: any) => {
     setSelectedLaporan(laporan);
@@ -172,9 +194,11 @@ export default function PenyelesaianLaporanPage() {
                 <InputLabel>Status</InputLabel>
                 <Select value={filterStatus} label="Status" onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}>
                   <MenuItem value="all">Semua</MenuItem>
-                  <MenuItem value="Diajukan">Diajukan</MenuItem>
-                  <MenuItem value="ProsesPerbaikan">Proses Perbaikan</MenuItem>
-                  <MenuItem value="Selesai">Selesai</MenuItem>
+                  <MenuItem value="DITUNDA">Menunggu</MenuItem>
+                  <MenuItem value="DITUGASKAN">Ditugaskan</MenuItem>
+                  <MenuItem value="SEDANG_DIKERJAKAN">Sedang Dikerjakan</MenuItem>
+                  <MenuItem value="SELESAI">Selesai</MenuItem>
+                  <MenuItem value="DIBATALKAN">Dibatalkan</MenuItem>
                 </Select>
               </FormControl>
               <Button variant="outlined" size="small" onClick={() => refetch()} disabled={loading}>Refresh</Button>
@@ -211,7 +235,7 @@ export default function PenyelesaianLaporanPage() {
                       <TableRow key={laporan._id} hover>
                         <TableCell>
                           <Typography variant="caption">
-                            {laporan.createdAt ? new Date(laporan.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                            {fmtDate(laporan.createdAt)}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -255,7 +279,7 @@ export default function PenyelesaianLaporanPage() {
                                 <Visibility fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            {laporan.status === 'ProsesPerbaikan' && (
+                            {laporan.status === 'SEDANG_DIKERJAKAN' && (
                               <Tooltip title="Tandai Selesai & Buat Penyelesaian">
                                 <IconButton size="small" color="success" onClick={() => handleResolve(laporan)}>
                                   <AssignmentTurnedIn fontSize="small" />
@@ -315,13 +339,13 @@ export default function PenyelesaianLaporanPage() {
                 <Typography variant="body2">{selectedLaporan.masalah}</Typography>
               </Box>
               <Typography variant="caption" color="text.secondary">
-                Dilaporkan: {selectedLaporan.createdAt ? new Date(selectedLaporan.createdAt).toLocaleString('id-ID') : '-'}
+                Dilaporkan: {fmtDateTime(selectedLaporan.createdAt)}
               </Typography>
             </Stack>
           )}
         </DialogContent>
         <DialogActions>
-          {selectedLaporan?.status === 'ProsesPerbaikan' && (
+          {selectedLaporan?.status === 'SEDANG_DIKERJAKAN' && (
             <Button variant="contained" color="success" startIcon={<AssignmentTurnedIn />} onClick={() => { setDetailOpen(false); handleResolve(selectedLaporan); }}>
               Tandai Selesai
             </Button>

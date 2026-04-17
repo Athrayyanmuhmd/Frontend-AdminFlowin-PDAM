@@ -59,6 +59,8 @@ import {
   Download,
   Upload,
   Refresh,
+  LinkOff,
+  VerifiedUser,
 } from '@mui/icons-material';
 import AdminLayout from '../../layouts/AdminLayout';
 import { useAdmin } from '../../layouts/AdminProvider';
@@ -69,6 +71,8 @@ import {
   useCreateCustomer,
   useUpdateCustomer,
   useDeleteCustomer,
+  useDeactivateCustomer,
+  useKonfirmasiPembayaranLoket,
 } from '../../../lib/graphql/hooks/useCustomers';
 
 
@@ -90,6 +94,8 @@ export default function CustomerManagement() {
   } = useGetAllCustomers();
 
   const { deleteCustomer: deleteCustomerMutation } = useDeleteCustomer();
+  const { deactivateCustomer: deactivateCustomerMutation } = useDeactivateCustomer();
+  const { konfirmasiPembayaranLoket: konfirmasiPembayaranLoketMutation } = useKonfirmasiPembayaranLoket();
 
   // ==================== Local State ====================
   const [accounts, setAccounts] = useState<CustomerAccount[]>([]);
@@ -185,6 +191,34 @@ export default function CustomerManagement() {
       }
     }
     handleMenuClose();
+  };
+
+  const handlePemutusan = async () => {
+    if (!selectedCustomer) return;
+    handleMenuClose();
+    if (!window.confirm(
+      `Putuskan sambungan air untuk ${selectedCustomer.name}?\n\nPemutusan hanya bisa dilakukan jika pelanggan menunggak minimal 3 bulan. Denda pemutusan akan otomatis ditambahkan ke tagihan.`
+    )) return;
+    try {
+      await deactivateCustomerMutation({ variables: { userId: selectedCustomer.id } });
+      setSnackbar({ open: true, message: 'Sambungan berhasil diputus. Billing denda telah dibuat.', severity: 'success' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Gagal memutus sambungan', severity: 'error' });
+    }
+  };
+
+  const handleAktifkanKembali = async () => {
+    if (!selectedCustomer) return;
+    handleMenuClose();
+    if (!window.confirm(
+      `Aktifkan kembali sambungan air untuk ${selectedCustomer.name}?\n\nPastikan pelanggan sudah membayar semua tunggakan di loket.`
+    )) return;
+    try {
+      await konfirmasiPembayaranLoketMutation({ variables: { userId: selectedCustomer.id } });
+      setSnackbar({ open: true, message: 'Sambungan berhasil diaktifkan kembali.', severity: 'success' });
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.message || 'Gagal mengaktifkan kembali', severity: 'error' });
+    }
   };
 
   const handleExportData = () => {
@@ -473,17 +507,17 @@ export default function CustomerManagement() {
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'info.main' }}>
-                    <Phone />
+                    <VerifiedUser />
                   </Avatar>
                   <Box>
                     <Typography variant='h4' sx={{ fontWeight: 600 }}>
                       {customers
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        .filter((c: any) => c.customerType === 'komersial')
+                        .filter((c: any) => c.isVerified === true)
                         .length.toLocaleString('id-ID')}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Komersial
+                      Terverifikasi PDAM
                     </Typography>
                   </Box>
                 </Box>
@@ -628,7 +662,8 @@ export default function CustomerManagement() {
                   <TableCell>Pelanggan</TableCell>
                   <TableCell>Kontak</TableCell>
                   <TableCell>Jenis</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>Status Akun</TableCell>
+                  <TableCell>Status PDAM</TableCell>
                   <TableCell>Tanggal Daftar</TableCell>
                   <TableCell align='right'>Aksi</TableCell>
                 </TableRow>
@@ -719,6 +754,16 @@ export default function CustomerManagement() {
                       />
                     </TableCell>
                     <TableCell>
+                      <Chip
+                        icon={customer.isVerified ? <VerifiedUser /> : <Warning />}
+                        label={customer.isVerified ? 'Terverifikasi' : 'Belum Terverifikasi'}
+                        size='small'
+                        color={customer.isVerified ? 'info' : 'default'}
+                        variant={customer.isVerified ? 'filled' : 'outlined'}
+                        sx={{ fontWeight: 600 }}
+                      />
+                    </TableCell>
+                    <TableCell>
                       {customer.registrationDate && !isNaN(customer.registrationDate.getTime())
                         ? customer.registrationDate.toLocaleDateString('id-ID')
                         : '-'}
@@ -735,7 +780,7 @@ export default function CustomerManagement() {
                 ))}
                 {paginatedCustomers.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                       <Typography color="text.secondary">
                         {customers.length === 0 ? 'Belum ada data pelanggan' : 'Tidak ada pelanggan yang sesuai filter'}
                       </Typography>
@@ -771,6 +816,18 @@ export default function CustomerManagement() {
           <Edit sx={{ mr: 1 }} />
           Edit
         </MenuItem>
+        {selectedCustomer?.accountStatus !== 'inactive' && (
+          <MenuItem onClick={handlePemutusan} sx={{ color: 'warning.dark' }}>
+            <LinkOff sx={{ mr: 1 }} />
+            Pemutusan Sambungan
+          </MenuItem>
+        )}
+        {selectedCustomer?.accountStatus === 'inactive' && (
+          <MenuItem onClick={handleAktifkanKembali} sx={{ color: 'success.dark' }}>
+            <CheckCircle sx={{ mr: 1 }} />
+            Aktifkan Kembali
+          </MenuItem>
+        )}
         <MenuItem onClick={handleDeleteCustomer} sx={{ color: 'error.main' }}>
           <Delete sx={{ mr: 1 }} />
           Hapus

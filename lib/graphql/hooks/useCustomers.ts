@@ -13,6 +13,8 @@ import {
   CREATE_CUSTOMER,
   UPDATE_CUSTOMER,
   DELETE_CUSTOMER,
+  DEACTIVATE_CUSTOMER,
+  KONFIRMASI_BAYAR_LOKET,
 } from '../queries/customers';
 
 // ==================== QUERIES ====================
@@ -86,12 +88,38 @@ export function useUpdateCustomer() {
 
 export function useDeleteCustomer() {
   const [deleteCustomer, { data, loading, error }] = useMutation(DELETE_CUSTOMER, {
-    refetchQueries: [{ query: GET_ALL_CUSTOMERS }], // Refresh list after delete
+    refetchQueries: [{ query: GET_ALL_CUSTOMERS }],
   });
 
   return {
     deleteCustomer,
     data: data?.deletePelanggan,
+    loading,
+    error,
+  };
+}
+
+export function useDeactivateCustomer() {
+  const [deactivateCustomer, { data, loading, error }] = useMutation(DEACTIVATE_CUSTOMER, {
+    refetchQueries: [{ query: GET_ALL_CUSTOMERS }],
+  });
+
+  return {
+    deactivateCustomer,
+    data: data?.deactivateCustomer,
+    loading,
+    error,
+  };
+}
+
+export function useKonfirmasiPembayaranLoket() {
+  const [konfirmasiPembayaranLoket, { data, loading, error }] = useMutation(KONFIRMASI_BAYAR_LOKET, {
+    refetchQueries: [{ query: GET_ALL_CUSTOMERS }],
+  });
+
+  return {
+    konfirmasiPembayaranLoket,
+    data: data?.konfirmasiPembayaranLoket,
     loading,
     error,
   };

@@ -78,7 +78,7 @@ export default function RabConnectionManagement() {
 
     // Filter by payment status
     if (paymentFilter === 'paid') {
-      filtered = filtered.filter((item: any) => item.statusPembayaran === 'Settlement');
+      filtered = filtered.filter((item: any) => item.statusPembayaran?.toLowerCase() === 'settlement');
     } else if (paymentFilter === 'unpaid') {
       filtered = filtered.filter((item: any) => item.statusPembayaran !== 'Settlement');
     }
@@ -245,7 +245,7 @@ export default function RabConnectionManagement() {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {item.statusPembayaran === 'Settlement' ? (
+                            {item.statusPembayaran?.toLowerCase() === 'settlement' ? (
                               <Chip
                                 label='Lunas'
                                 color='success'

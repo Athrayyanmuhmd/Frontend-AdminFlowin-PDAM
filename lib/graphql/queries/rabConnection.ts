@@ -59,6 +59,8 @@ export const GET_RAB_CONNECTION_BY_ID = gql`
       paymentUrl
       urlRab
       catatan
+      statusKonfirmasiPembayaran
+      catatanKonfirmasi
       createdAt
       updatedAt
     }
@@ -71,6 +73,8 @@ export const GET_RAB_BY_KONEKSI_DATA = gql`
       _id
       totalBiaya
       statusPembayaran
+      statusKonfirmasiPembayaran
+      catatanKonfirmasi
       createdAt
     }
   }

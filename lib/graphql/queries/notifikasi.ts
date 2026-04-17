@@ -19,7 +19,7 @@ export const GET_ALL_NOTIFIKASI_ADMIN = gql`
         namaLengkap
       }
       idTeknisi {
-        _id
+        id
         namaLengkap
       }
       createdAt

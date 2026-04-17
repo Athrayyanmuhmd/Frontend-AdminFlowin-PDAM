@@ -42,6 +42,15 @@ export const GET_ALL_CONNECTION_DATA = gql`
   }
 `;
 
+export const GET_KONEKSI_DATA_BY_PELANGGAN = gql`
+  ${KONEKSI_DATA_FIELDS}
+  query GetKoneksiDataByPelanggan($idPelanggan: ID!) {
+    getKoneksiDataByPelanggan(idPelanggan: $idPelanggan) {
+      ...KoneksiDataFields
+    }
+  }
+`;
+
 export const GET_CONNECTION_DATA_BY_ID = gql`
   ${KONEKSI_DATA_FIELDS}
   query GetKoneksiData($id: ID!) {

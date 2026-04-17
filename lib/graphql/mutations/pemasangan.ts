@@ -34,6 +34,39 @@ export const DELETE_PEMASANGAN = gql`
   }
 `;
 
+export const REVIEW_PEMASANGAN = gql`
+  mutation ReviewPemasangan($id: ID!, $disetujui: Boolean!, $catatan: String) {
+    reviewPemasangan(id: $id, disetujui: $disetujui, catatan: $catatan) {
+      _id
+      statusAdmin
+      catatanAdmin
+      updatedAt
+    }
+  }
+`;
+
+export const REVIEW_PENGAWASAN_PEMASANGAN = gql`
+  mutation ReviewPengawasanPemasangan($id: ID!, $disetujui: Boolean!, $catatan: String) {
+    reviewPengawasanPemasangan(id: $id, disetujui: $disetujui, catatan: $catatan) {
+      _id
+      statusAdmin
+      catatanAdmin
+      updatedAt
+    }
+  }
+`;
+
+export const REVIEW_PENGAWASAN_SETELAH_PEMASANGAN = gql`
+  mutation ReviewPengawasanSetelahPemasangan($id: ID!, $disetujui: Boolean!, $catatan: String) {
+    reviewPengawasanSetelahPemasangan(id: $id, disetujui: $disetujui, catatan: $catatan) {
+      _id
+      statusAdmin
+      catatanAdmin
+      updatedAt
+    }
+  }
+`;
+
 export const CREATE_PENYELESAIAN_LAPORAN = gql`
   mutation CreatePenyelesaianLaporan($input: CreatePenyelesaianLaporanInput!) {
     createPenyelesaianLaporan(input: $input) {

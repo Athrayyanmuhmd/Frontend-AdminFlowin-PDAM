@@ -790,7 +790,7 @@ export default function SmartMeterManagement() {
                               <TableCell>{idx + 1}</TableCell>
                               <TableCell>
                                 {r.createdAt
-                                  ? new Date(Number(r.createdAt)).toLocaleString('id-ID')
+                                  ? new Date(r.createdAt).toLocaleString('id-ID')
                                   : '-'}
                               </TableCell>
                               <TableCell align="right">

@@ -2,11 +2,15 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AdminUser, Permission, Notification } from '../types/admin.types';
-import { loginAdmin, loginTechnician } from '../services/auth.service';
 import ApolloWrapper from '../lib/ApolloWrapper';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
 import { gql } from '@apollo/client';
-import { LOGOUT_ADMIN, LOGOUT_TECHNICIAN } from '../../lib/graphql/mutations/auth';
+import {
+  LOGIN_ADMIN,
+  LOGIN_TECHNICIAN,
+  LOGOUT_ADMIN,
+  LOGOUT_TECHNICIAN,
+} from '../../lib/graphql/mutations/auth';
 
 const GET_ALL_NOTIFIKASI_ADMIN = gql`
   query GetAllNotifikasiAdmin {
@@ -106,6 +110,14 @@ function AdminProviderInner({ children }: AdminProviderProps) {
   const [logoutAdminMutation] = useMutation(LOGOUT_ADMIN);
   const [logoutTechnicianMutation] = useMutation(LOGOUT_TECHNICIAN);
 
+  // GraphQL login queries (lazy — dipanggil manual saat user submit form)
+  const [execLoginAdmin] = useLazyQuery(LOGIN_ADMIN, {
+    fetchPolicy: 'no-cache',
+  });
+  const [execLoginTechnician] = useLazyQuery(LOGIN_TECHNICIAN, {
+    fetchPolicy: 'no-cache',
+  });
+
   // Sync notifikasi dari GraphQL ke state
   useEffect(() => {
     if ((notifData as any)?.getAllNotifikasiAdmin) {
@@ -170,56 +182,59 @@ function AdminProviderInner({ children }: AdminProviderProps) {
     setIsLoading(true);
 
     try {
-      let response;
+      let token: string | undefined;
+      let userData: any;
 
       if (role === 'admin') {
-        response = await loginAdmin({ email, password });
-      } else {
-        response = await loginTechnician({ email, password });
-      }
-
-      const token = response.token || response.data?.token;
-      const userData = response.data;
-
-      if (response.status === 200 && userData && token) {
-        const newUser: AdminUser = {
-          id: userData._id || userData.id,
-          username: userData.namaLengkap || userData.fullName,
-          email: userData.email,
-          role: role === 'admin' ? 'administrator' : 'technician',
-          permissions: [],
-          isActive: true,
-        };
-
-        setUser(newUser);
-        setUserRole(role);
-        setIsAuthenticated(true);
-
-        if (typeof window !== 'undefined') {
-          const authData = {
-            user: newUser,
-            role: role,
-            token: token,
-            permissions: [],
-          };
-
-          localStorage.setItem('adminAuth', JSON.stringify(authData));
-          localStorage.setItem('admin_token', token);
+        const result: any = await execLoginAdmin({ variables: { email, password } });
+        if (result.errors?.length || !result.data?.loginAdmin) {
+          const msg = result.errors?.[0]?.message ?? 'Login gagal';
+          throw new Error(msg);
         }
-
-        // Refetch notifikasi setelah login
-        setTimeout(() => refetchNotif(), 500);
-
-        setIsLoading(false);
-        return true;
+        token = result.data.loginAdmin.token;
+        userData = result.data.loginAdmin.admin;
+      } else {
+        const result: any = await execLoginTechnician({ variables: { email, password } });
+        if (result.errors?.length || !result.data?.loginTechnician) {
+          const msg = result.errors?.[0]?.message ?? 'Login gagal';
+          throw new Error(msg);
+        }
+        token = result.data.loginTechnician.token;
+        userData = result.data.loginTechnician.technician;
       }
+
+      if (!token || !userData) {
+        setIsLoading(false);
+        return false;
+      }
+
+      const newUser: AdminUser = {
+        id: userData._id,
+        username: userData.namaLengkap,
+        email: userData.email,
+        role: role === 'admin' ? 'administrator' : 'technician',
+        permissions: [],
+        isActive: true,
+      };
+
+      setUser(newUser);
+      setUserRole(role);
+      setIsAuthenticated(true);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('adminAuth', JSON.stringify({ user: newUser, role, token, permissions: [] }));
+        localStorage.setItem('admin_token', token);
+      }
+
+      // Refetch notifikasi setelah login
+      setTimeout(() => refetchNotif(), 500);
 
       setIsLoading(false);
-      return false;
-    } catch (error) {
+      return true;
+    } catch (error: any) {
       console.error('Login error:', error);
       setIsLoading(false);
-      return false;
+      throw error; // re-throw agar halaman login bisa tampilkan pesan error
     }
   };
 

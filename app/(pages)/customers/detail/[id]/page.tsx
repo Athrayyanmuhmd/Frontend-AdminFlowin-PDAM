@@ -43,6 +43,9 @@ import {
   CheckCircle,
   Warning,
   Refresh,
+  Badge,
+  OpenInNew,
+  Assignment,
 } from '@mui/icons-material';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
@@ -50,6 +53,7 @@ import AdminLayout from '../../../../layouts/AdminLayout';
 import { GET_CUSTOMER, UPDATE_CUSTOMER } from '../../../../../lib/graphql/queries/customers';
 import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billing';
 import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
+import { GET_KONEKSI_DATA_BY_PELANGGAN } from '../../../../../lib/graphql/queries/connectionData';
 
 const KONFIRMASI_PEMBAYARAN_LOKET = gql`
   mutation KonfirmasiPembayaranLoket($userId: ID!) {
@@ -179,6 +183,17 @@ export default function CustomerDetailPage() {
   }, [meteranData]);
 
   const meteranId = meteranInfo?._id || null;
+
+  // GraphQL Query - KoneksiData yang disubmit user untuk verifikasi
+  const { data: koneksiDataResult, loading: loadingKoneksiData } = useQuery(GET_KONEKSI_DATA_BY_PELANGGAN, {
+    variables: { idPelanggan: customerId },
+    skip: !customerId,
+    fetchPolicy: 'network-only',
+  });
+
+  const koneksiData = useMemo(() => {
+    return (koneksiDataResult as any)?.getKoneksiDataByPelanggan ?? null;
+  }, [koneksiDataResult]);
 
   // GraphQL Query - Get Billing History by Meteran ID
   const {
@@ -460,6 +475,7 @@ export default function CustomerDetailPage() {
             <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
               <Tab icon={<Receipt />} label='Riwayat Tagihan' iconPosition='start' />
               <Tab icon={<History />} label='Riwayat Pembacaan' iconPosition='start' />
+              <Tab icon={<Assignment />} label='Data Verifikasi' iconPosition='start' />
               <Tab icon={<Settings />} label='Pengaturan Akun' iconPosition='start' />
             </Tabs>
           </Box>
@@ -613,7 +629,157 @@ export default function CustomerDetailPage() {
             )}
           </TabPanel>
 
+          {/* ── Tab: Data Verifikasi (KoneksiData yang disubmit user) ── */}
           <TabPanel value={tabValue} index={2}>
+            {loadingKoneksiData ? (
+              <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
+            ) : !koneksiData ? (
+              <Alert severity='info'>
+                Pelanggan ini belum mengajukan data verifikasi sambungan air (NIK, KK, IMB, Alamat).
+              </Alert>
+            ) : (
+              <Grid container spacing={3}>
+                {/* Status Pengajuan */}
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                    <Typography variant='h6' sx={{ fontWeight: 600 }}>Status Pengajuan Sambungan</Typography>
+                    <Chip
+                      label={
+                        koneksiData.StatusPengajuan === 'APPROVED' ? 'Disetujui' :
+                        koneksiData.StatusPengajuan === 'REJECTED' ? 'Ditolak' : 'Menunggu Verifikasi'
+                      }
+                      color={
+                        koneksiData.StatusPengajuan === 'APPROVED' ? 'success' :
+                        koneksiData.StatusPengajuan === 'REJECTED' ? 'error' : 'warning'
+                      }
+                      icon={koneksiData.StatusPengajuan === 'APPROVED' ? <CheckCircle /> : <Warning />}
+                    />
+                    {koneksiData.TanggalVerifikasi && (
+                      <Typography variant='caption' color='text.secondary'>
+                        Diverifikasi: {new Date(koneksiData.TanggalVerifikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </Typography>
+                    )}
+                  </Box>
+                  {koneksiData.AlasanPenolakan && (
+                    <Alert severity='error' sx={{ mb: 2 }}>
+                      Alasan Penolakan: {koneksiData.AlasanPenolakan}
+                    </Alert>
+                  )}
+                  {koneksiData.catatan && (
+                    <Alert severity='info' sx={{ mb: 2 }}>
+                      Catatan Admin: {koneksiData.catatan}
+                    </Alert>
+                  )}
+                </Grid>
+
+                {/* Identitas & Dokumen */}
+                <Grid item xs={12} md={6}>
+                  <Card variant='outlined'>
+                    <CardContent>
+                      <Typography variant='subtitle1' sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Badge color='primary' />
+                        Dokumen Identitas
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box>
+                          <Typography variant='caption' color='text.secondary'>NIK (KTP)</Typography>
+                          <Typography variant='body2' sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                            {koneksiData.NIK || '-'}
+                          </Typography>
+                          {koneksiData.NIKUrl && (
+                            <Button size='small' startIcon={<OpenInNew />} href={koneksiData.NIKUrl} target='_blank' sx={{ mt: 0.5, p: 0 }}>
+                              Lihat Foto KTP
+                            </Button>
+                          )}
+                        </Box>
+                        <Divider />
+                        <Box>
+                          <Typography variant='caption' color='text.secondary'>No. Kartu Keluarga (KK)</Typography>
+                          <Typography variant='body2' sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                            {koneksiData.NoKK || '-'}
+                          </Typography>
+                          {koneksiData.KKUrl && (
+                            <Button size='small' startIcon={<OpenInNew />} href={koneksiData.KKUrl} target='_blank' sx={{ mt: 0.5, p: 0 }}>
+                              Lihat Foto KK
+                            </Button>
+                          )}
+                        </Box>
+                        <Divider />
+                        <Box>
+                          <Typography variant='caption' color='text.secondary'>No. IMB (Izin Mendirikan Bangunan)</Typography>
+                          <Typography variant='body2' sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                            {koneksiData.IMB || '-'}
+                          </Typography>
+                          {koneksiData.IMBUrl && (
+                            <Button size='small' startIcon={<OpenInNew />} href={koneksiData.IMBUrl} target='_blank' sx={{ mt: 0.5, p: 0 }}>
+                              Lihat Dokumen IMB
+                            </Button>
+                          )}
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Alamat & Properti */}
+                <Grid item xs={12} md={6}>
+                  <Card variant='outlined'>
+                    <CardContent>
+                      <Typography variant='subtitle1' sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LocationOn color='primary' />
+                        Alamat & Properti
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box>
+                          <Typography variant='caption' color='text.secondary'>Alamat Lengkap</Typography>
+                          <Typography variant='body2' sx={{ fontWeight: 500 }}>{koneksiData.Alamat || '-'}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 3 }}>
+                          <Box>
+                            <Typography variant='caption' color='text.secondary'>Kelurahan</Typography>
+                            <Typography variant='body2' sx={{ fontWeight: 500 }}>{koneksiData.Kelurahan || '-'}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant='caption' color='text.secondary'>Kecamatan</Typography>
+                            <Typography variant='body2' sx={{ fontWeight: 500 }}>{koneksiData.Kecamatan || '-'}</Typography>
+                          </Box>
+                        </Box>
+                        <Divider />
+                        <Box>
+                          <Typography variant='caption' color='text.secondary'>Luas Bangunan</Typography>
+                          <Typography variant='body1' sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            {koneksiData.LuasBangunan ? `${koneksiData.LuasBangunan} m²` : '-'}
+                          </Typography>
+                        </Box>
+                        <Divider />
+                        <Box>
+                          <Typography variant='caption' color='text.secondary'>Tanggal Pengajuan</Typography>
+                          <Typography variant='body2'>
+                            {koneksiData.createdAt
+                              ? new Date(koneksiData.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                              : '-'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Tombol ke halaman detail koneksi */}
+                <Grid item xs={12}>
+                  <Button
+                    variant='outlined'
+                    startIcon={<OpenInNew />}
+                    onClick={() => router.push(`/operations/connection-data/${koneksiData._id}`)}
+                  >
+                    Buka Halaman Detail Sambungan Lengkap
+                  </Button>
+                </Grid>
+              </Grid>
+            )}
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={3}>
             <Grid container spacing={3}>
               {/* Status Akun */}
               <Grid item xs={12} md={6}>

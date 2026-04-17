@@ -70,7 +70,7 @@ interface NotifikasiItem {
   isRead: boolean;
   idPelanggan?: { _id: string; namaLengkap: string; email: string };
   idAdmin?: { _id: string; namaLengkap: string };
-  idTeknisi?: { _id: string; namaLengkap: string };
+  idTeknisi?: { id: string; namaLengkap: string };
   createdAt: string;
 }
 
