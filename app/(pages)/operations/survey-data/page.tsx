@@ -1,339 +1,169 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  Chip,
-  CircularProgress,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton as MuiIconButton,
-  Pagination,
-} from '@mui/material';
-import {
-  Search,
-  Refresh,
-  Visibility,
-  Description,
-  Close,
-  ZoomIn,
-  ZoomOut,
-  RestartAlt,
-} from '@mui/icons-material';
-import AdminLayout from '../../../layouts/AdminLayout';
-import { useQuery } from '@apollo/client/react';
-import { GET_ALL_SURVEY_DATA } from '../../../../lib/graphql/queries/surveyData';
 import { useAdmin } from '../../../layouts/AdminProvider';
+import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
+import {
+  Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Chip, Tooltip, Pagination, CircularProgress, Alert, IconButton,
+} from '@mui/material';
+import { Search, Visibility, Refresh } from '@mui/icons-material';
+import AdminLayout from '../../../layouts/AdminLayout';
 
-export default function SurveyDataManagement() {
+const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
+  dikirim: { label: 'Dikirim', color: 'info' },
+  selesai: { label: 'Selesai', color: 'success' },
+};
+
+const fmtDate = (v: string) => {
+  const d = /^\d+$/.test(v) ? new Date(Number(v)) : new Date(v);
+  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+export default function SurveyDataPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 10;
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  // GraphQL Query
-  const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_SURVEY_DATA, {
-    fetchPolicy: 'network-only',
-  });
-
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
-
-  // Document viewer
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerImage, setViewerImage] = useState('');
-  const [zoom, setZoom] = useState(100);
-
-  // Handle GraphQL errors
-  useEffect(() => {
-    if (graphqlError) {
-      console.error('GraphQL Error:', graphqlError);
-      setError('Gagal memuat data survey: ' + graphqlError.message);
+  const fetchData = useCallback(async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await getWorkOrdersByJenis(token, 'survei');
+      if (res.errors?.length) { setError(res.errors[0].message); return; }
+      const all: any[] = (res.data as any)?.workOrders?.data ?? [];
+      setData(all.filter(wo => wo.status === 'dikirim' || wo.status === 'selesai'));
+    } catch (err: any) {
+      setError(err.message ?? 'Gagal memuat data');
+    } finally {
+      setLoading(false);
     }
-  }, [graphqlError]);
+  }, []);
 
-  // Get survey data from GraphQL response
-  const surveyData = (data as any)?.getAllSurvei || [];
+  useEffect(() => { if (isAuthenticated) fetchData(); }, [isAuthenticated, fetchData]);
 
-  // Filter data using useMemo for reactive updates
-  const filteredData = useMemo(() => {
-    if (searchQuery.trim() === '') {
-      return surveyData;
-    }
-
-    const query = searchQuery.toLowerCase();
-    return surveyData.filter((item: any) =>
-      item.idKoneksiData?.IdPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
-      item.idKoneksiData?.Alamat?.toLowerCase().includes(query) ||
-      item.idKoneksiData?.Kelurahan?.toLowerCase().includes(query) ||
-      item.idKoneksiData?.Kecamatan?.toLowerCase().includes(query)
+  const filtered = useMemo(() => {
+    if (!search.trim()) return data;
+    const q = search.toLowerCase();
+    return data.filter(wo =>
+      wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
+      wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
+      wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q)
     );
-  }, [surveyData, searchQuery]);
+  }, [data, search]);
 
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-  const paginatedData = filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
-
-  const openImageViewer = (url: string) => {
-    setViewerImage(url);
-    setZoom(100);
-    setViewerOpen(true);
-  };
-
-  const handleViewDetail = (id: string) => {
-    router.push(`/operations/survey-data/${id}`);
-  };
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   if (authLoading || !isAuthenticated) return null;
 
   return (
-    <AdminLayout>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
+    <AdminLayout title='Data Survei'>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
-            <Typography variant='h4' gutterBottom>
-              Data Survey
-            </Typography>
+            <Typography variant='h5' fontWeight={700}>Data Survei</Typography>
             <Typography variant='body2' color='text.secondary'>
-              Kelola data survey lokasi sambungan
+              Work order survei yang telah disubmit oleh teknisi
             </Typography>
           </Box>
-          <Button
-            variant='contained'
-            startIcon={<Refresh />}
-            onClick={() => refetch()}
-            disabled={loading}
-          >
+          <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
             Refresh
           </Button>
         </Box>
 
-        {/* Alert */}
-        {error && (
-          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {/* Search */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ pb: '12px !important' }}>
             <TextField
-              fullWidth
-              placeholder='Cari nama pelanggan, alamat, kelurahan, kecamatan...'
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position='start'>
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
+              fullWidth size='small'
+              placeholder='Cari nama pelanggan, alamat, teknisi...'
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
             />
           </CardContent>
         </Card>
 
-        {/* Table */}
         <Card>
           <CardContent>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-                <CircularProgress />
-              </Box>
-            ) : filteredData.length === 0 ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress /></Box>
+            ) : filtered.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 5 }}>
-                <Typography variant='h6' color='text.secondary'>
-                  Tidak ada data survey
-                </Typography>
+                <Typography color='text.secondary'>Belum ada data survei yang disubmit teknisi</Typography>
               </Box>
             ) : (
               <>
                 <TableContainer>
-                  <Table>
+                  <Table size='small'>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Alamat / Pelanggan</TableCell>
-                        <TableCell>Kelurahan / Kecamatan</TableCell>
-                        <TableCell>Diameter Pipa</TableCell>
-                        <TableCell>Jumlah Penghuni</TableCell>
-                        <TableCell>Standar</TableCell>
-                        <TableCell>Tanggal Survey</TableCell>
+                        <TableCell>No</TableCell>
+                        <TableCell>Pelanggan / Alamat</TableCell>
+                        <TableCell>Teknisi</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Catatan Review</TableCell>
+                        <TableCell>Tanggal Submit</TableCell>
                         <TableCell align='center'>Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paginatedData.map((item: any) => (
-                        <TableRow key={item._id} hover>
-                          <TableCell>
-                            <Typography variant='body2' fontWeight='bold'>
-                              {item.idKoneksiData?.Alamat || 'N/A'}
-                            </Typography>
-                            <Typography
-                              variant='caption'
-                              color='text.secondary'
-                            >
-                              {item.idKoneksiData?.IdPelanggan?.namaLengkap || 'N/A'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant='body2'>
-                              {item.idKoneksiData?.Kelurahan || '—'}
-                            </Typography>
-                            <Typography variant='caption' color='text.secondary'>
-                              {item.idKoneksiData?.Kecamatan || ''}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {item.diameterPipa ? `${item.diameterPipa} mm` : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            {item.jumlahPenghuni ? `${item.jumlahPenghuni} orang` : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={item.standar ? 'Sesuai' : 'Tidak Sesuai'}
-                              size='small'
-                              color={item.standar ? 'success' : 'warning'}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {new Date(item.createdAt).toLocaleDateString(
-                              'id-ID'
-                            )}
-                          </TableCell>
-                          <TableCell align='center'>
-                            <Tooltip title='Lihat Detail'>
-                              <IconButton
-                                size='small'
-                                color='primary'
-                                onClick={() => handleViewDetail(item._id)}
-                              >
-                                <Visibility />
-                              </IconButton>
-                            </Tooltip>
-                            {item.urlJaringan && (
-                              <Tooltip title='Lihat Foto Jaringan'>
-                                <IconButton
-                                  size='small'
-                                  color='info'
-                                  onClick={() =>
-                                    openImageViewer(item.urlJaringan)
-                                  }
-                                >
-                                  <Description />
+                      {paginated.map((wo, idx) => {
+                        const s = STATUS_WO[wo.status];
+                        return (
+                          <TableRow key={wo.id} hover>
+                            <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
+                            <TableCell>
+                              <Typography variant='body2' fontWeight={600}>{wo.koneksiData?.alamat || '-'}</Typography>
+                              <Typography variant='caption' color='text.secondary'>{wo.koneksiData?.pelanggan?.namaLengkap || '-'}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant='body2'>{wo.teknisiPenanggungJawab?.namaLengkap || '-'}</Typography>
+                              <Typography variant='caption' color='text.secondary'>{wo.teknisiPenanggungJawab?.nip || ''}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={s?.label ?? wo.status} color={s?.color ?? 'default'} size='small' />
+                            </TableCell>
+                            <TableCell><Typography variant='caption'>{wo.catatanReview || '-'}</Typography></TableCell>
+                            <TableCell>{fmtDate(wo.updatedAt)}</TableCell>
+                            <TableCell align='center'>
+                              <Tooltip title='Lihat Detail'>
+                                <IconButton size='small' color='primary' onClick={() => router.push(`/operations/survey-data/${wo.id}`)}>
+                                  <Visibility fontSize='small' />
                                 </IconButton>
                               </Tooltip>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
                 {totalPages > 1 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                  <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2 }}>
+                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color='primary' size='small' />
                   </Box>
                 )}
               </>
             )}
           </CardContent>
         </Card>
-
-        {/* Image Viewer Dialog */}
-        <Dialog
-          open={viewerOpen}
-          onClose={() => setViewerOpen(false)}
-          maxWidth='lg'
-          fullWidth
-        >
-          <DialogTitle>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Typography variant='h6'>Foto Lokasi Survey</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <IconButton
-                  size='small'
-                  onClick={() => setZoom(prev => Math.max(prev - 25, 50))}
-                >
-                  <ZoomOut />
-                </IconButton>
-                <Typography
-                  variant='body2'
-                  sx={{ minWidth: 60, textAlign: 'center' }}
-                >
-                  {zoom}%
-                </Typography>
-                <IconButton
-                  size='small'
-                  onClick={() => setZoom(prev => Math.min(prev + 25, 300))}
-                >
-                  <ZoomIn />
-                </IconButton>
-                <IconButton size='small' onClick={() => setZoom(100)}>
-                  <RestartAlt />
-                </IconButton>
-                <IconButton onClick={() => setViewerOpen(false)}>
-                  <Close />
-                </IconButton>
-              </Box>
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                minHeight: 400,
-                overflow: 'auto',
-              }}
-            >
-              <img
-                src={viewerImage}
-                alt='Foto Lokasi'
-                style={{
-                  width: `${zoom}%`,
-                  height: 'auto',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </Box>
-          </DialogContent>
-        </Dialog>
       </Box>
     </AdminLayout>
   );

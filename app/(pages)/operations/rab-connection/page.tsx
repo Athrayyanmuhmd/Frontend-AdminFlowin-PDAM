@@ -1,290 +1,163 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  Chip,
-  CircularProgress,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  Grid,
-  Pagination,
-} from '@mui/material';
-import {
-  Search,
-  Refresh,
-  Visibility,
-  CheckCircle,
-  HourglassEmpty,
-  AttachMoney,
-} from '@mui/icons-material';
-import AdminLayout from '../../../layouts/AdminLayout';
-import { useQuery } from '@apollo/client/react';
-import { GET_ALL_RAB_CONNECTIONS } from '../../../../lib/graphql/queries/rabConnection';
 import { useAdmin } from '../../../layouts/AdminProvider';
+import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
+import {
+  Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Chip, Tooltip, Pagination, CircularProgress, Alert, IconButton,
+} from '@mui/material';
+import { Search, Visibility, Refresh } from '@mui/icons-material';
+import AdminLayout from '../../../layouts/AdminLayout';
 
-export default function RabConnectionManagement() {
+const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
+  dikirim: { label: 'Dikirim', color: 'info' },
+  selesai: { label: 'Selesai', color: 'success' },
+};
+
+const fmtDate = (v: string) => {
+  const d = /^\d+$/.test(v) ? new Date(Number(v)) : new Date(v);
+  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+export default function RabConnectionPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
+
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 10;
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  // GraphQL Query
-  const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_RAB_CONNECTIONS, {
-    fetchPolicy: 'network-only',
-  });
-
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [paymentFilter, setPaymentFilter] = useState<string>('all');
-  const [page, setPage] = useState(1);
-  const rowsPerPage = 10;
-
-  // Handle GraphQL errors
-  useEffect(() => {
-    if (graphqlError) {
-      console.error('GraphQL Error:', graphqlError);
-      setError('Gagal memuat data RAB: ' + graphqlError.message);
+  const fetchData = useCallback(async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await getWorkOrdersByJenis(token, 'rab');
+      if (res.errors?.length) { setError(res.errors[0].message); return; }
+      const all: any[] = (res.data as any)?.workOrders?.data ?? [];
+      setData(all.filter(wo => wo.status === 'dikirim' || wo.status === 'selesai'));
+    } catch (err: any) {
+      setError(err.message ?? 'Gagal memuat data');
+    } finally {
+      setLoading(false);
     }
-  }, [graphqlError]);
+  }, []);
 
-  // Get RAB data from GraphQL response
-  const rabData = (data as any)?.getAllRABConnections || [];
+  useEffect(() => { if (isAuthenticated) fetchData(); }, [isAuthenticated, fetchData]);
 
-  // Filter data using useMemo for reactive updates
-  const filteredData = useMemo(() => {
-    let filtered = [...rabData];
+  const filtered = useMemo(() => {
+    if (!search.trim()) return data;
+    const q = search.toLowerCase();
+    return data.filter(wo =>
+      wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
+      wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
+      wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q)
+    );
+  }, [data, search]);
 
-    // Filter by payment status
-    if (paymentFilter === 'paid') {
-      filtered = filtered.filter((item: any) => item.statusPembayaran?.toLowerCase() === 'settlement');
-    } else if (paymentFilter === 'unpaid') {
-      filtered = filtered.filter((item: any) => item.statusPembayaran !== 'Settlement');
-    }
-
-    // Filter by search query
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((item: any) =>
-        item.idKoneksiData?.NIK?.toLowerCase().includes(query) ||
-        item.idKoneksiData?.IdPelanggan?.namaLengkap?.toLowerCase().includes(query) ||
-        item.idKoneksiData?.Alamat?.toLowerCase().includes(query)
-      );
-    }
-
-    return filtered;
-  }, [rabData, searchQuery, paymentFilter]);
-
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-  const paginatedData = filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
-
-  const handleViewDetail = (id: string) => {
-    router.push(`/operations/rab-connection/${id}`);
-  };
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   if (authLoading || !isAuthenticated) return null;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   return (
-    <AdminLayout>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
+    <AdminLayout title='Data RAB'>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
-            <Typography variant='h4' gutterBottom>
-              RAB Sambungan
-            </Typography>
+            <Typography variant='h5' fontWeight={700}>Data RAB</Typography>
             <Typography variant='body2' color='text.secondary'>
-              Rencana Anggaran Biaya sambungan air
+              Work order RAB yang telah disubmit oleh teknisi
             </Typography>
           </Box>
-          <Button
-            variant='contained'
-            startIcon={<Refresh />}
-            onClick={() => refetch()}
-            disabled={loading}
-          >
+          <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
             Refresh
           </Button>
         </Box>
 
-        {/* Alert */}
-        {error && (
-          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {/* Filters */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Grid container spacing={2} alignItems='center'>
-              <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  placeholder='Cari NIK, Nama Pelanggan, atau Alamat...'
-                  value={searchQuery}
-                  onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Status Pembayaran</InputLabel>
-                  <Select
-                    value={paymentFilter}
-                    label='Status Pembayaran'
-                    onChange={(e: SelectChangeEvent) => {
-                      setPaymentFilter(e.target.value); setPage(1);
-                    }}
-                  >
-                    <MenuItem value='all'>Semua</MenuItem>
-                    <MenuItem value='paid'>Lunas</MenuItem>
-                    <MenuItem value='unpaid'>Belum Lunas</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ pb: '12px !important' }}>
+            <TextField
+              fullWidth size='small'
+              placeholder='Cari nama pelanggan, alamat, teknisi...'
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
+            />
           </CardContent>
         </Card>
 
-        {/* Table */}
         <Card>
           <CardContent>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-                <CircularProgress />
-              </Box>
-            ) : filteredData.length === 0 ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress /></Box>
+            ) : filtered.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 5 }}>
-                <Typography variant='h6' color='text.secondary'>
-                  Tidak ada data RAB
-                </Typography>
+                <Typography color='text.secondary'>Belum ada data RAB yang disubmit teknisi</Typography>
               </Box>
             ) : (
               <>
                 <TableContainer>
-                  <Table>
+                  <Table size='small'>
                     <TableHead>
                       <TableRow>
-                        <TableCell>NIK / Pelanggan</TableCell>
-                        <TableCell>Alamat</TableCell>
-                        <TableCell align='right'>Total Biaya</TableCell>
-                        <TableCell>Status Pembayaran</TableCell>
-                        <TableCell>Tanggal Dibuat</TableCell>
+                        <TableCell>No</TableCell>
+                        <TableCell>Pelanggan / Alamat</TableCell>
+                        <TableCell>Teknisi</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Catatan Review</TableCell>
+                        <TableCell>Tanggal Submit</TableCell>
                         <TableCell align='center'>Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paginatedData.map((item: any) => (
-                        <TableRow key={item._id} hover>
-                          <TableCell>
-                            <Typography variant='body2' fontWeight='bold'>
-                              {item.idKoneksiData?.NIK || 'N/A'}
-                            </Typography>
-                            <Typography
-                              variant='caption'
-                              color='text.secondary'
-                            >
-                              {item.idKoneksiData?.IdPelanggan?.namaLengkap || 'N/A'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant='body2'>
-                              {item.idKoneksiData?.Alamat || 'N/A'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align='right'>
-                            <Typography
-                              variant='body2'
-                              fontWeight='bold'
-                              color='primary'
-                            >
-                              {formatCurrency(item.totalBiaya)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {item.statusPembayaran?.toLowerCase() === 'settlement' ? (
-                              <Chip
-                                label='Lunas'
-                                color='success'
-                                size='small'
-                                icon={<CheckCircle />}
-                              />
-                            ) : (
-                              <Chip
-                                label='Belum Lunas'
-                                color='warning'
-                                size='small'
-                                icon={<HourglassEmpty />}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(item.createdAt).toLocaleDateString(
-                              'id-ID'
-                            )}
-                          </TableCell>
-                          <TableCell align='center'>
-                            <Tooltip title='Lihat Detail'>
-                              <IconButton
-                                size='small'
-                                color='primary'
-                                onClick={() => handleViewDetail(item._id)}
-                              >
-                                <Visibility />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {paginated.map((wo, idx) => {
+                        const s = STATUS_WO[wo.status];
+                        return (
+                          <TableRow key={wo.id} hover>
+                            <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
+                            <TableCell>
+                              <Typography variant='body2' fontWeight={600}>{wo.koneksiData?.alamat || '-'}</Typography>
+                              <Typography variant='caption' color='text.secondary'>{wo.koneksiData?.pelanggan?.namaLengkap || '-'}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant='body2'>{wo.teknisiPenanggungJawab?.namaLengkap || '-'}</Typography>
+                              <Typography variant='caption' color='text.secondary'>{wo.teknisiPenanggungJawab?.nip || ''}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={s?.label ?? wo.status} color={s?.color ?? 'default'} size='small' />
+                            </TableCell>
+                            <TableCell><Typography variant='caption'>{wo.catatanReview || '-'}</Typography></TableCell>
+                            <TableCell>{fmtDate(wo.updatedAt)}</TableCell>
+                            <TableCell align='center'>
+                              <Tooltip title='Lihat Detail'>
+                                <IconButton size='small' color='primary' onClick={() => router.push(`/operations/rab-connection/${wo.id}`)}>
+                                  <Visibility fontSize='small' />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
                 {totalPages > 1 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                  <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2 }}>
+                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color='primary' size='small' />
                   </Box>
                 )}
               </>

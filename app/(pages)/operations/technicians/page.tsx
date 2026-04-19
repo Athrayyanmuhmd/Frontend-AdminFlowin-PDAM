@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -30,6 +30,7 @@ import {
   FormControl,
   InputLabel,
   Pagination,
+  Chip,
 } from '@mui/material';
 import {
   Search,
@@ -38,16 +39,18 @@ import {
   Delete,
   Refresh,
   Engineering,
+  Lock,
 } from '@mui/icons-material';
-import { useQuery, useMutation } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
-  GET_ALL_TEKNISI,
-  CREATE_TEKNISI,
-  UPDATE_TEKNISI,
-  DELETE_TEKNISI,
-} from '../../../../lib/graphql/queries/technicians';
+  getTeknisiUsers,
+  registerTeknisi,
+  updateTeknisiUser,
+  deleteTeknisiUser,
+  toggleTeknisiUserStatus,
+  changeTeknisiPassword,
+} from '../../../../lib/graphql/teknisiServer';
 
 // Types
 interface Technician {
@@ -58,6 +61,7 @@ interface Technician {
   noHp: string;
   divisi: string;
   isActive?: boolean;
+  pekerjaanSekarang?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -79,48 +83,12 @@ export default function TechnicianManagement() {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  // ==================== GraphQL Queries & Mutations ====================
-  const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_TEKNISI, {
-    fetchPolicy: 'network-only',
-  });
+  // ==================== State ====================
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [graphqlError, setGraphqlError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const [createTeknisi, { loading: createLoading }] = useMutation(CREATE_TEKNISI, {
-    refetchQueries: [{ query: GET_ALL_TEKNISI }],
-    onCompleted: () => {
-      setSuccess('Teknisi berhasil ditambahkan');
-      setCreateDialogOpen(false);
-      resetForm();
-    },
-    onError: (error) => {
-      setError(error.message || 'Gagal menambahkan teknisi');
-    },
-  });
-
-  const [updateTeknisi, { loading: updateLoading }] = useMutation(UPDATE_TEKNISI, {
-    refetchQueries: [{ query: GET_ALL_TEKNISI }],
-    onCompleted: () => {
-      setSuccess('Teknisi berhasil diperbarui');
-      setEditDialogOpen(false);
-      resetForm();
-    },
-    onError: (error) => {
-      setError(error.message || 'Gagal memperbarui teknisi');
-    },
-  });
-
-  const [deleteTeknisi, { loading: deleteLoading }] = useMutation(DELETE_TEKNISI, {
-    refetchQueries: [{ query: GET_ALL_TEKNISI }],
-    onCompleted: () => {
-      setSuccess('Teknisi berhasil dihapus');
-      setDeleteDialogOpen(false);
-      setSelectedTechnician(null);
-    },
-    onError: (error) => {
-      setError(error.message || 'Gagal menghapus teknisi');
-    },
-  });
-
-  // ==================== Local State ====================
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -131,6 +99,7 @@ export default function TechnicianManagement() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [selectedTechnician, setSelectedTechnician] =
     useState<Technician | null>(null);
 
@@ -144,13 +113,39 @@ export default function TechnicianManagement() {
     divisi: 'perencanaan_teknik',
   });
 
-  // ==================== Data Processing ====================
-  const technicians = (data as any)?.getAllTeknisi || [];
+  // Password form
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: '',
+    newPassword: '',
+  });
 
-  // Helper: parse epoch-ms string OR ISO string → Date (null-safe)
+  // ==================== Fetch Data ====================
+  const fetchTechnicians = useCallback(async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+    setLoading(true);
+    setGraphqlError(null);
+    try {
+      const res = await getTeknisiUsers(token);
+      if (res.errors?.length) {
+        setGraphqlError(res.errors[0].message);
+        return;
+      }
+      setTechnicians((res.data as any)?.users ?? []);
+    } catch (e: any) {
+      setGraphqlError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) fetchTechnicians();
+  }, [authLoading, isAuthenticated, fetchTechnicians]);
+
+  // ==================== Data Processing ====================
   const parseDate = (val: string | undefined | null): Date | null => {
     if (!val) return null;
-    // Epoch ms as all-digit string (e.g. "1718000000000" from Rafli's String scalar)
     if (/^\d+$/.test(val)) {
       const d = new Date(Number(val));
       return isNaN(d.getTime()) ? null : d;
@@ -159,7 +154,6 @@ export default function TechnicianManagement() {
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Helper function to format date safely
   const formatDate = (dateString: string | undefined | null): string => {
     const date = parseDate(dateString);
     if (!date) return '-';
@@ -170,30 +164,30 @@ export default function TechnicianManagement() {
     });
   };
 
-  // Sort technicians by createdAt (newest first), then apply filter
   const filteredTechnicians = useMemo(() => {
-    // First, sort by createdAt descending (newest first)
     const sorted = [...technicians].sort((a, b) => {
       const dateA = parseDate(a.createdAt)?.getTime() ?? 0;
       const dateB = parseDate(b.createdAt)?.getTime() ?? 0;
-      return dateB - dateA; // Descending order (newest first)
+      return dateB - dateA;
     });
 
-    // Then apply search filter
     if (searchQuery.trim() === '') return sorted;
 
     const query = searchQuery.toLowerCase();
-    return sorted.filter((tech: Technician) =>
-      tech.namaLengkap?.toLowerCase().includes(query) ||
-      tech.email?.toLowerCase().includes(query) ||
-      tech.noHp?.toLowerCase().includes(query) ||
-      tech.nip?.toLowerCase().includes(query)
+    return sorted.filter(
+      (tech: Technician) =>
+        tech.namaLengkap?.toLowerCase().includes(query) ||
+        tech.email?.toLowerCase().includes(query) ||
+        tech.noHp?.toLowerCase().includes(query) ||
+        tech.nip?.toLowerCase().includes(query)
     );
   }, [technicians, searchQuery]);
 
   const totalPages = Math.ceil(filteredTechnicians.length / rowsPerPage);
-  const paginatedTechnicians = filteredTechnicians.slice((page - 1) * rowsPerPage, page * rowsPerPage);
-  const actionLoading = createLoading || updateLoading || deleteLoading;
+  const paginatedTechnicians = filteredTechnicians.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
 
   // ==================== Handlers ====================
   const resetForm = () => {
@@ -230,6 +224,12 @@ export default function TechnicianManagement() {
     setDeleteDialogOpen(true);
   };
 
+  const handlePasswordOpen = (technician: Technician) => {
+    setSelectedTechnician(technician);
+    setPasswordForm({ oldPassword: '', newPassword: '' });
+    setPasswordDialogOpen(true);
+  };
+
   const handleCreate = async () => {
     setError('');
     setSuccess('');
@@ -243,27 +243,33 @@ export default function TechnicianManagement() {
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) { setError('Password harus mengandung minimal 1 karakter khusus'); return; }
     if (!formData.noHp.trim() || !/^[0-9]{10,15}$/.test(formData.noHp.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
 
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
+    setActionLoading(true);
     try {
-      await createTeknisi({
-        variables: {
-          input: {
-            namaLengkap: formData.namaLengkap,
-            nip: formData.nip,
-            email: formData.email,
-            noHp: formData.noHp,
-            divisi: formData.divisi,
-            password: formData.password,
-          },
-        },
+      const res = await registerTeknisi(token, {
+        namaLengkap: formData.namaLengkap,
+        nip: formData.nip,
+        email: formData.email,
+        noHp: formData.noHp,
+        divisi: formData.divisi,
+        password: formData.password,
       });
+      if (res.errors?.length) { setError(res.errors[0].message); return; }
+      setSuccess('Teknisi berhasil ditambahkan');
+      setCreateDialogOpen(false);
+      resetForm();
+      fetchTechnicians();
     } catch (err: any) {
-      console.error('Error creating technician:', err);
+      setError(err.message || 'Gagal menambahkan teknisi');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleUpdate = async () => {
     if (!selectedTechnician) return;
-
     setError('');
     setSuccess('');
 
@@ -271,47 +277,106 @@ export default function TechnicianManagement() {
     if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { setError('Email tidak valid'); return; }
     if (!formData.noHp.trim() || !/^[0-9]{10,15}$/.test(formData.noHp.replace(/\D/g, ''))) { setError('Nomor HP tidak valid (10-15 digit)'); return; }
 
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
+    setActionLoading(true);
     try {
-      const updateData: any = {
+      const res = await updateTeknisiUser(token, selectedTechnician.id, {
         namaLengkap: formData.namaLengkap,
         nip: formData.nip,
         email: formData.email,
         noHp: formData.noHp,
         divisi: formData.divisi,
-      };
-
-      await updateTeknisi({
-        variables: {
-          id: selectedTechnician.id,
-          input: updateData,
-        },
       });
+      if (res.errors?.length) { setError(res.errors[0].message); return; }
+      setSuccess('Teknisi berhasil diperbarui');
+      setEditDialogOpen(false);
+      resetForm();
+      fetchTechnicians();
     } catch (err: any) {
-      console.error('Error updating technician:', err);
-      // Error handled by mutation onError
+      setError(err.message || 'Gagal memperbarui teknisi');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleDelete = async () => {
     if (!selectedTechnician) return;
-
     setError('');
     setSuccess('');
 
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
+    setActionLoading(true);
     try {
-      await deleteTeknisi({
-        variables: {
-          id: selectedTechnician.id,
-        },
-      });
+      const res = await deleteTeknisiUser(token, selectedTechnician.id);
+      if (res.errors?.length) { setError(res.errors[0].message); return; }
+      setSuccess('Teknisi berhasil dihapus');
+      setDeleteDialogOpen(false);
+      setSelectedTechnician(null);
+      fetchTechnicians();
     } catch (err: any) {
-      console.error('Error deleting technician:', err);
+      setError(err.message || 'Gagal menghapus teknisi');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (technician: Technician) => {
+    setError('');
+    setSuccess('');
+
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
+    setActionLoading(true);
+    try {
+      const res = await toggleTeknisiUserStatus(token, technician.id);
+      if (res.errors?.length) { setError(res.errors[0].message); return; }
+      const newStatus = technician.isActive ? 'dinonaktifkan' : 'diaktifkan';
+      setSuccess(`Teknisi ${technician.namaLengkap} berhasil ${newStatus}`);
+      fetchTechnicians();
+    } catch (err: any) {
+      setError(err.message || 'Gagal mengubah status teknisi');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!selectedTechnician) return;
+    setError('');
+    setSuccess('');
+
+    if (!passwordForm.oldPassword) { setError('Password lama wajib diisi'); return; }
+    if (!passwordForm.newPassword || passwordForm.newPassword.length < 8) { setError('Password baru minimal 8 karakter'); return; }
+    if (!/[A-Z]/.test(passwordForm.newPassword)) { setError('Password baru harus mengandung minimal 1 huruf kapital'); return; }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(passwordForm.newPassword)) { setError('Password baru harus mengandung minimal 1 karakter khusus'); return; }
+
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
+    setActionLoading(true);
+    try {
+      const res = await changeTeknisiPassword(token, {
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      if (res.errors?.length) { setError(res.errors[0].message); return; }
+      setSuccess(`Password teknisi ${selectedTechnician.namaLengkap} berhasil diubah`);
+      setPasswordDialogOpen(false);
+      setPasswordForm({ oldPassword: '', newPassword: '' });
+    } catch (err: any) {
+      setError(err.message || 'Gagal mengubah password');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   if (authLoading || !isAuthenticated) return null;
 
-  // Only admin can manage technicians
   if (userRole !== 'admin') {
     return (
       <AdminLayout>
@@ -328,36 +393,16 @@ export default function TechnicianManagement() {
     <AdminLayout>
       <Box sx={{ p: 3 }}>
         {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
-            <Typography variant='h4' gutterBottom>
-              Manajemen Teknisi
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Kelola data teknisi lapangan
-            </Typography>
+            <Typography variant='h4' gutterBottom>Manajemen Teknisi</Typography>
+            <Typography variant='body2' color='text.secondary'>Kelola data teknisi lapangan</Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant='outlined'
-              startIcon={<Refresh />}
-              onClick={() => refetch()}
-              disabled={loading}
-            >
+            <Button variant='outlined' startIcon={<Refresh />} onClick={() => fetchTechnicians()} disabled={loading}>
               Refresh
             </Button>
-            <Button
-              variant='contained'
-              startIcon={<Add />}
-              onClick={handleCreateOpen}
-            >
+            <Button variant='contained' startIcon={<Add />} onClick={handleCreateOpen}>
               Tambah Teknisi
             </Button>
           </Box>
@@ -366,25 +411,15 @@ export default function TechnicianManagement() {
         {/* Alerts */}
         {graphqlError && (
           <Alert severity='error' sx={{ mb: 2 }}>
-            Gagal memuat data: {graphqlError.message}
-            <Button size="small" onClick={() => refetch()} sx={{ ml: 2 }}>
-              Coba Lagi
-            </Button>
+            Gagal memuat data: {graphqlError}
+            <Button size='small' onClick={() => fetchTechnicians()} sx={{ ml: 2 }}>Coba Lagi</Button>
           </Alert>
         )}
         {error && (
-          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
+          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>
         )}
         {success && (
-          <Alert
-            severity='success'
-            sx={{ mb: 2 }}
-            onClose={() => setSuccess('')}
-          >
-            {success}
-          </Alert>
+          <Alert severity='success' sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>
         )}
 
         {/* Search */}
@@ -392,14 +427,12 @@ export default function TechnicianManagement() {
           <CardContent>
             <TextField
               fullWidth
-              placeholder='Cari nama, email, atau nomor telepon...'
+              placeholder='Cari nama, email, NIP, atau nomor telepon...'
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position='start'>
-                    <Search />
-                  </InputAdornment>
+                  <InputAdornment position='start'><Search /></InputAdornment>
                 ),
               }}
             />
@@ -410,17 +443,11 @@ export default function TechnicianManagement() {
         <Card>
           <CardContent>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-                <CircularProgress />
-              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress /></Box>
             ) : filteredTechnicians.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 5 }}>
-                <Engineering
-                  sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}
-                />
-                <Typography variant='h6' color='text.secondary'>
-                  Tidak ada data teknisi
-                </Typography>
+                <Engineering sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant='h6' color='text.secondary'>Tidak ada data teknisi</Typography>
               </Box>
             ) : (
               <>
@@ -429,36 +456,52 @@ export default function TechnicianManagement() {
                     <TableHead>
                       <TableRow>
                         <TableCell>Nama Lengkap</TableCell>
+                        <TableCell>NIP</TableCell>
                         <TableCell>Email</TableCell>
-                        <TableCell>Nomor Telepon</TableCell>
-                        <TableCell>Tanggal Dibuat</TableCell>
+                        <TableCell>No. HP</TableCell>
+                        <TableCell>Divisi</TableCell>
+                        <TableCell align='center'>Status</TableCell>
+                        <TableCell>Tgl Dibuat</TableCell>
                         <TableCell align='center'>Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paginatedTechnicians.map(tech => (
+                      {paginatedTechnicians.map((tech: Technician) => (
                         <TableRow key={tech.id} hover>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Engineering color='primary' />
-                              <Typography variant='body2' fontWeight='bold'>
-                                {tech.namaLengkap}
-                              </Typography>
+                              <Typography variant='body2' fontWeight='bold'>{tech.namaLengkap}</Typography>
                             </Box>
                           </TableCell>
+                          <TableCell>{tech.nip || '-'}</TableCell>
                           <TableCell>{tech.email}</TableCell>
                           <TableCell>{tech.noHp}</TableCell>
+                          <TableCell>
+                            {tech.divisi?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '-'}
+                          </TableCell>
+                          <TableCell align='center'>
+                            <Tooltip title={tech.isActive !== false ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}>
+                              <Chip
+                                label={tech.isActive !== false ? 'Aktif' : 'Nonaktif'}
+                                color={tech.isActive !== false ? 'success' : 'default'}
+                                size='small'
+                                onClick={() => handleToggleStatus(tech)}
+                                disabled={actionLoading}
+                                sx={{ cursor: 'pointer' }}
+                              />
+                            </Tooltip>
+                          </TableCell>
                           <TableCell>{formatDate(tech.createdAt)}</TableCell>
                           <TableCell align='center'>
                             <Tooltip title='Edit'>
-                              <IconButton size='small' color='primary' onClick={() => handleEditOpen(tech)}>
-                                <Edit />
-                              </IconButton>
+                              <IconButton size='small' color='primary' onClick={() => handleEditOpen(tech)}><Edit /></IconButton>
+                            </Tooltip>
+                            <Tooltip title='Ganti Password'>
+                              <IconButton size='small' color='warning' onClick={() => handlePasswordOpen(tech)}><Lock /></IconButton>
                             </Tooltip>
                             <Tooltip title='Hapus'>
-                              <IconButton size='small' color='error' onClick={() => handleDeleteOpen(tech)}>
-                                <Delete />
-                              </IconButton>
+                              <IconButton size='small' color='error' onClick={() => handleDeleteOpen(tech)}><Delete /></IconButton>
                             </Tooltip>
                           </TableCell>
                         </TableRow>
@@ -468,7 +511,7 @@ export default function TechnicianManagement() {
                 </TableContainer>
                 {totalPages > 1 && (
                   <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color="primary" />
+                    <Pagination count={totalPages} page={page} onChange={(_, v) => setPage(v)} color='primary' />
                   </Box>
                 )}
               </>
@@ -476,73 +519,33 @@ export default function TechnicianManagement() {
           </CardContent>
         </Card>
 
-        {/* Create Dialog */}
-        <Dialog
-          open={createDialogOpen}
-          onClose={() => setCreateDialogOpen(false)}
-          maxWidth='sm'
-          fullWidth
-        >
+        {/* ==================== Create Dialog ==================== */}
+        <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth='sm' fullWidth>
           <DialogTitle>Tambah Teknisi Baru</DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Nama Lengkap'
-                  required
-                  value={formData.namaLengkap}
-                  onChange={e =>
-                    setFormData({ ...formData, namaLengkap: e.target.value })
-                  }
-                />
+                <TextField fullWidth label='Nama Lengkap' required value={formData.namaLengkap}
+                  onChange={e => setFormData({ ...formData, namaLengkap: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='NIP'
-                  required
-                  placeholder='Contoh: 199001012020121001'
-                  helperText='Hanya angka, tanpa spasi atau tanda baca'
-                  value={formData.nip}
-                  onChange={e =>
-                    setFormData({ ...formData, nip: e.target.value.replace(/\D/g, '') })
-                  }
-                />
+                <TextField fullWidth label='NIP' required placeholder='Contoh: 199001012020121001'
+                  helperText='Hanya angka, tanpa spasi atau tanda baca' value={formData.nip}
+                  onChange={e => setFormData({ ...formData, nip: e.target.value.replace(/\D/g, '') })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Email'
-                  type='email'
-                  required
-                  value={formData.email}
-                  onChange={e =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
+                <TextField fullWidth label='Email' type='email' required value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Nomor Telepon'
-                  required
-                  value={formData.noHp}
-                  onChange={e =>
-                    setFormData({ ...formData, noHp: e.target.value })
-                  }
-                />
+                <TextField fullWidth label='Nomor Telepon' required value={formData.noHp}
+                  onChange={e => setFormData({ ...formData, noHp: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth>
                   <InputLabel>Divisi</InputLabel>
-                  <Select
-                    value={formData.divisi}
-                    label='Divisi'
-                    onChange={e =>
-                      setFormData({ ...formData, divisi: e.target.value })
-                    }
-                  >
+                  <Select value={formData.divisi} label='Divisi'
+                    onChange={e => setFormData({ ...formData, divisi: e.target.value })}>
                     <MenuItem value='perencanaan_teknik'>Perencanaan Teknik</MenuItem>
                     <MenuItem value='teknik_cabang'>Teknik Cabang</MenuItem>
                     <MenuItem value='pengawasan_teknik'>Pengawasan Teknik</MenuItem>
@@ -550,141 +553,66 @@ export default function TechnicianManagement() {
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Password'
-                  type='password'
-                  required
-                  value={formData.password}
-                  onChange={e =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                />
+                <TextField fullWidth label='Password' type='password' required
+                  helperText='Min 8 karakter, 1 huruf kapital, 1 karakter khusus' value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })} />
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setCreateDialogOpen(false)}>Batal</Button>
-            <Button
-              variant='contained'
-              onClick={handleCreate}
-              disabled={
-                actionLoading ||
-                !formData.namaLengkap ||
-                !formData.nip ||
-                !formData.email ||
-                !formData.noHp ||
-                !formData.password
-              }
-            >
+            <Button variant='contained' onClick={handleCreate}
+              disabled={actionLoading || !formData.namaLengkap || !formData.nip || !formData.email || !formData.noHp || !formData.password}>
               {actionLoading ? <CircularProgress size={24} /> : 'Tambah'}
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Edit Dialog */}
-        <Dialog
-          open={editDialogOpen}
-          onClose={() => setEditDialogOpen(false)}
-          maxWidth='sm'
-          fullWidth
-        >
+        {/* ==================== Edit Dialog ==================== */}
+        <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth='sm' fullWidth>
           <DialogTitle>Edit Teknisi</DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Nama Lengkap'
-                  value={formData.namaLengkap}
-                  onChange={e =>
-                    setFormData({ ...formData, namaLengkap: e.target.value })
-                  }
-                />
+                <TextField fullWidth label='Nama Lengkap' value={formData.namaLengkap}
+                  onChange={e => setFormData({ ...formData, namaLengkap: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='NIP'
-                  helperText='Hanya angka, tanpa spasi atau tanda baca'
-                  value={formData.nip}
-                  onChange={e =>
-                    setFormData({ ...formData, nip: e.target.value.replace(/\D/g, '') })
-                  }
-                />
+                <TextField fullWidth label='NIP' helperText='Hanya angka, tanpa spasi atau tanda baca' value={formData.nip}
+                  onChange={e => setFormData({ ...formData, nip: e.target.value.replace(/\D/g, '') })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Email'
-                  type='email'
-                  value={formData.email}
-                  onChange={e =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
+                <TextField fullWidth label='Email' type='email' value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Nomor Telepon'
-                  value={formData.noHp}
-                  onChange={e =>
-                    setFormData({ ...formData, noHp: e.target.value })
-                  }
-                />
+                <TextField fullWidth label='Nomor Telepon' value={formData.noHp}
+                  onChange={e => setFormData({ ...formData, noHp: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth>
                   <InputLabel>Divisi</InputLabel>
-                  <Select
-                    value={formData.divisi}
-                    label='Divisi'
-                    onChange={e =>
-                      setFormData({ ...formData, divisi: e.target.value })
-                    }
-                  >
+                  <Select value={formData.divisi} label='Divisi'
+                    onChange={e => setFormData({ ...formData, divisi: e.target.value })}>
                     <MenuItem value='perencanaan_teknik'>Perencanaan Teknik</MenuItem>
                     <MenuItem value='teknik_cabang'>Teknik Cabang</MenuItem>
                     <MenuItem value='pengawasan_teknik'>Pengawasan Teknik</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label='Password (Kosongkan jika tidak ingin diubah)'
-                  type='password'
-                  value={formData.password}
-                  onChange={e =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                />
-              </Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEditDialogOpen(false)}>Batal</Button>
-            <Button
-              variant='contained'
-              onClick={handleUpdate}
-              disabled={
-                actionLoading ||
-                !formData.namaLengkap ||
-                !formData.email ||
-                !formData.noHp
-              }
-            >
+            <Button variant='contained' onClick={handleUpdate}
+              disabled={actionLoading || !formData.namaLengkap || !formData.email || !formData.noHp}>
               {actionLoading ? <CircularProgress size={24} /> : 'Simpan'}
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Delete Dialog */}
-        <Dialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-        >
+        {/* ==================== Delete Dialog ==================== */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
           <DialogTitle>Konfirmasi Hapus</DialogTitle>
           <DialogContent>
             <Typography>
@@ -694,13 +622,33 @@ export default function TechnicianManagement() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDeleteDialogOpen(false)}>Batal</Button>
-            <Button
-              variant='contained'
-              color='error'
-              onClick={handleDelete}
-              disabled={actionLoading}
-            >
+            <Button variant='contained' color='error' onClick={handleDelete} disabled={actionLoading}>
               {actionLoading ? <CircularProgress size={24} /> : 'Hapus'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ==================== Change Password Dialog ==================== */}
+        <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)} maxWidth='sm' fullWidth>
+          <DialogTitle>Ganti Password — {selectedTechnician?.namaLengkap}</DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <TextField fullWidth label='Password Lama' type='password' required value={passwordForm.oldPassword}
+                  onChange={e => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label='Password Baru' type='password' required
+                  helperText='Min 8 karakter, 1 huruf kapital, 1 karakter khusus' value={passwordForm.newPassword}
+                  onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPasswordDialogOpen(false)}>Batal</Button>
+            <Button variant='contained' onClick={handleChangePassword}
+              disabled={actionLoading || !passwordForm.oldPassword || !passwordForm.newPassword}>
+              {actionLoading ? <CircularProgress size={24} /> : 'Ganti Password'}
             </Button>
           </DialogActions>
         </Dialog>

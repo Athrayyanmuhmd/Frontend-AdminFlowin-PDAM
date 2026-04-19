@@ -46,7 +46,10 @@ const WORK_ORDER_FRAGMENT = gql`
 
 export const GET_WORK_ORDERS = gql`
   ${WORK_ORDER_FRAGMENT}
-  query GetWorkOrders($pagination: PaginationInput, $filter: WorkOrderFilterInput) {
+  query GetWorkOrders(
+    $pagination: PaginationInput
+    $filter: WorkOrderFilterInput
+  ) {
     workOrders(pagination: $pagination, filter: $filter) {
       data {
         ...WorkOrderFields
@@ -75,19 +78,13 @@ export const GET_WORK_ORDER_BY_ID = gql`
         aksi
         alasan
         tanggal
-        oleh {
-          id
-          namaLengkap
-        }
+        oleh
       }
       riwayatReview {
         status
         catatan
         tanggal
-        oleh {
-          id
-          namaLengkap
-        }
+        oleh
       }
       idSurvei
       idRAB
@@ -125,7 +122,13 @@ export const GET_WORKFLOW_CHAIN = gql`
 `;
 
 export const CEK_PREREQUISITE_PEKERJAAN = gql`
-  query CekPrerequisitePekerjaan($idKoneksiData: ID!, $jenisPekerjaan: JenisPekerjaan!) {
-    cekPrerequisitePekerjaan(idKoneksiData: $idKoneksiData, jenisPekerjaan: $jenisPekerjaan)
+  query CekPrerequisitePekerjaan(
+    $idKoneksiData: ID!
+    $jenisPekerjaan: JenisPekerjaan!
+  ) {
+    cekPrerequisitePekerjaan(
+      idKoneksiData: $idKoneksiData
+      jenisPekerjaan: $jenisPekerjaan
+    )
   }
 `;
