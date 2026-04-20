@@ -33,6 +33,12 @@ export const GET_CUSTOMER = gql`
       namaLengkap
       email
       noHP
+      nik
+      address
+      customerType
+      gender
+      birthDate
+      occupation
       profilePicture
       isVerified
       accountStatus

@@ -137,23 +137,40 @@ export default function CustomerDetailPage() {
     fetchPolicy: 'network-only',
   });
 
+  // GraphQL Query - KoneksiData (harus sebelum customer useMemo agar tersedia sebagai fallback)
+  const { data: koneksiDataResult, loading: loadingKoneksiData } = useQuery(GET_KONEKSI_DATA_BY_PELANGGAN, {
+    variables: { idPelanggan: customerId },
+    skip: !customerId,
+    fetchPolicy: 'network-only',
+  });
+
+  const koneksiData = useMemo(() => {
+    return (koneksiDataResult as any)?.getKoneksiDataByPelanggan ?? null;
+  }, [koneksiDataResult]);
+
   // Memoized customer data mapping
   const customer = useMemo(() => {
     if (!(customerData as any)?.getPengguna) return null;
     const c = (customerData as any).getPengguna;
+    // NIK & alamat: pakai dari User model, fallback ke ConnectionData
+    const nikFromKoneksi = (koneksiDataResult as any)?.getKoneksiDataByPelanggan?.NIK;
+    const alamatFromKoneksi = (koneksiDataResult as any)?.getKoneksiDataByPelanggan?.Alamat;
     return {
       id: c._id,
-      NIK: c.nik || 'N/A',
+      NIK: c.nik || nikFromKoneksi || 'N/A',
       namaLengkap: c.namaLengkap || 'N/A',
       email: c.email || 'N/A',
       noHP: c.noHP || 'N/A',
-      alamat: c.address || '-',
+      alamat: c.address || alamatFromKoneksi || '-',
       customerType: c.customerType || 'rumah_tangga',
+      gender: c.gender || '-',
+      birthDate: c.birthDate || '-',
+      occupation: c.occupation || '-',
       accountStatus: c.accountStatus || 'active',
       isVerified: c.isVerified,
       registrationDate: new Date(c.createdAt),
     };
-  }, [customerData]);
+  }, [customerData, koneksiDataResult]);
 
   // GraphQL Query - Get Meteran by Pelanggan ID
   const {
@@ -183,17 +200,6 @@ export default function CustomerDetailPage() {
   }, [meteranData]);
 
   const meteranId = meteranInfo?._id || null;
-
-  // GraphQL Query - KoneksiData yang disubmit user untuk verifikasi
-  const { data: koneksiDataResult, loading: loadingKoneksiData } = useQuery(GET_KONEKSI_DATA_BY_PELANGGAN, {
-    variables: { idPelanggan: customerId },
-    skip: !customerId,
-    fetchPolicy: 'network-only',
-  });
-
-  const koneksiData = useMemo(() => {
-    return (koneksiDataResult as any)?.getKoneksiDataByPelanggan ?? null;
-  }, [koneksiDataResult]);
 
   // GraphQL Query - Get Billing History by Meteran ID
   const {
