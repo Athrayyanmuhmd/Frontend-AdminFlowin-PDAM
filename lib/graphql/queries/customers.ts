@@ -14,6 +14,9 @@ export const GET_ALL_CUSTOMERS = gql`
       namaLengkap
       email
       noHP
+      nik
+      address
+      customerType
       profilePicture
       isVerified
       accountStatus
