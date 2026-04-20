@@ -330,9 +330,10 @@ export default function ConnectionDataDetailPage() {
     setActionLoading(true); setErrorMsg(null);
     try {
       await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      await refetch();
+      await refetchMeteran();
       setSuccess('Pelanggan berhasil diaktifkan. Sambungan air sudah aktif.');
       setAktifasiDialogOpen(false);
-      refetchMeteran(); refetch();
     } catch (err: any) { setErrorMsg(err.message || 'Gagal mengaktifkan pelanggan'); }
     finally { setActionLoading(false); }
   };
@@ -359,9 +360,10 @@ export default function ConnectionDataDetailPage() {
         },
       });
       await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      await refetch();
+      await refetchMeteran();
       setSuccess('Pelanggan berhasil didaftarkan dan diaktifkan. Sambungan air sudah aktif.');
       setRegAktivasiOpen(false);
-      refetchMeteran(); refetch();
     } catch (err: any) { setErrorMsg(err.message || 'Gagal mendaftarkan atau mengaktifkan pelanggan'); }
     finally { setActionLoading(false); }
   };
