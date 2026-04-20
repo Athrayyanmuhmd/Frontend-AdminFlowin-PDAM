@@ -332,7 +332,10 @@ export default function ConnectionDataDetailPage() {
   const handleAktifkanPelanggan = async () => {
     setActionLoading(true); setErrorMsg(null);
     try {
-      await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      const result = await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      if ((result as any).errors?.length) {
+        throw new Error((result as any).errors.map((e: any) => e.message).join(', '));
+      }
       setLocalActivated(true);
       await refetch();
       await refetchMeteran();
@@ -363,7 +366,10 @@ export default function ConnectionDataDetailPage() {
           IdKoneksiData: id,
         },
       });
-      await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      const aktivasiResult = await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      if ((aktivasiResult as any).errors?.length) {
+        throw new Error((aktivasiResult as any).errors.map((e: any) => e.message).join(', '));
+      }
       setLocalActivated(true);
       await refetch();
       await refetchMeteran();
