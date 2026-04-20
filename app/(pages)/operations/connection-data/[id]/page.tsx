@@ -98,6 +98,10 @@ export default function ConnectionDataDetailPage() {
   } | null>(null);
   const [instReviewCatatan, setInstReviewCatatan] = useState('');
 
+  // Aktivasi pelanggan dialog
+  const [aktivasiDialogOpen, setAktifasiDialogOpen] = useState(false);
+  const [aktivasiCatatan, setAktifasiCatatan] = useState('');
+
   // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
@@ -202,7 +206,7 @@ export default function ConnectionDataDetailPage() {
   const step6Done = step5Done && pemasangan?.statusAdmin === 'disetujui';
   const step7Done = step6Done && pengawasan?.statusAdmin === 'disetujui';
   const step8Done = step7Done && pengawasanSetelah?.statusAdmin === 'disetujui';
-  const step9Done = step8Done && !!meteran?.statusAktif;
+  const step9Done = step8Done && data?.IdPelanggan?.accountStatus === 'active';
 
   // ─── Dialog helpers ───────────────────────────────────────────────────────
   const openDocumentViewer = (url: string, title: string) => {
@@ -311,8 +315,13 @@ export default function ConnectionDataDetailPage() {
   const handleAktifkanPelanggan = async () => {
     setActionLoading(true); setErrorMsg(null);
     try {
-      await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
-      setSuccess('Pelanggan berhasil diaktifkan. Sambungan air sudah aktif.'); refetchMeteran(); refetch();
+      await aktivasiPelangganMut({
+        variables: { koneksiDataId: id, catatan: aktivasiCatatan || undefined },
+      });
+      setSuccess('Pelanggan berhasil diaktifkan. Sambungan air sudah aktif.');
+      setAktifasiDialogOpen(false);
+      setAktifasiCatatan('');
+      refetchMeteran(); refetch();
     } catch (err: any) { setErrorMsg(err.message || 'Gagal mengaktifkan pelanggan'); }
     finally { setActionLoading(false); }
   };
@@ -1018,7 +1027,9 @@ export default function ConnectionDataDetailPage() {
                       {step9Done ? (
                         <Alert severity="success">
                           Pelanggan telah aktif. Sambungan air sudah berjalan.
-                          {meteran?.NomorMeteran && <> Nomor meteran: <strong>{meteran.NomorMeteran}</strong>.</>}
+                          {(pemasangan?.seriMeteran || meteran?.NomorMeteran) && (
+                            <> Seri meteran: <strong>{pemasangan?.seriMeteran || meteran?.NomorMeteran}</strong>.</>
+                          )}
                         </Alert>
                       ) : userRole === 'admin' ? (
                         <Box>
@@ -1035,10 +1046,10 @@ export default function ConnectionDataDetailPage() {
                           ) : (
                             <>
                               <Typography variant="body2" sx={{ mb: 1 }}>
-                                <strong>Meteran:</strong> {meteran.NomorMeteran} · {meteran.NomorAkun}
+                                <strong>Seri Meteran:</strong> {pemasangan?.seriMeteran || meteran.NomorMeteran}
                               </Typography>
-                              <Button variant="contained" color="success" startIcon={actionLoading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
-                                onClick={handleAktifkanPelanggan} disabled={actionLoading}>
+                              <Button variant="contained" color="success" startIcon={<CheckCircle />}
+                                onClick={() => setAktifasiDialogOpen(true)}>
                                 Aktifkan Pelanggan
                               </Button>
                             </>
@@ -1057,6 +1068,40 @@ export default function ConnectionDataDetailPage() {
             </Stepper>
           </CardContent>
         </Card>
+
+        {/* Dialog Konfirmasi Aktivasi Pelanggan */}
+        <Dialog open={aktivasiDialogOpen} onClose={() => setAktifasiDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Konfirmasi Aktivasi Pelanggan</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Sambungan air pelanggan <strong>{data?.IdPelanggan?.namaLengkap}</strong> akan segera
+              diaktifkan. Tindakan ini tidak dapat dibatalkan.
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Catatan Aktivasi (Opsional)"
+              placeholder="Contoh: Aktivasi setelah pemeriksaan lapangan selesai"
+              value={aktivasiCatatan}
+              onChange={(e) => setAktifasiCatatan(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAktifasiDialogOpen(false)} disabled={actionLoading}>
+              Batal
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleAktifkanPelanggan}
+              disabled={actionLoading}
+              startIcon={actionLoading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
+            >
+              Konfirmasi Aktivasi
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Info Pelanggan */}
         <Card sx={{ mb: 3 }}>

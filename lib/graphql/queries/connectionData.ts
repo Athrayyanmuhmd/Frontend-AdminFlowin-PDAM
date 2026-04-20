@@ -13,6 +13,7 @@ const KONEKSI_DATA_FIELDS = gql`
       namaLengkap
       email
       noHP
+      accountStatus
     }
     NIK
     NIKUrl

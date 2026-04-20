@@ -25,6 +25,7 @@ import AdminLayout from '../../../../layouts/AdminLayout';
 import { GET_CONNECTION_DATA_BY_ID } from '../../../../../lib/graphql/queries/connectionData';
 import { GET_ALL_KELOMPOK_PELANGGAN } from '../../../../../lib/graphql/queries/kelompokPelanggan';
 import { CREATE_METERAN, GET_ALL_METERAN } from '../../../../../lib/graphql/queries/meteran';
+import { GET_PEMASANGAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/pemasangan';
 
 export default function CreateMeteran() {
   const router = useRouter();
@@ -51,13 +52,28 @@ export default function CreateMeteran() {
     fetchPolicy: 'network-only',
   });
 
+  // Fetch pemasangan data untuk auto-fill seriMeteran
+  const { data: pemasanganResult } = useQuery(GET_PEMASANGAN_BY_KONEKSI_DATA, {
+    variables: { idKoneksiData: connectionId },
+    skip: !connectionId,
+    fetchPolicy: 'network-only',
+  });
+
   // Fetch kelompok pelanggan list
   const { data: kelompokResult, loading: loadingKelompok } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
     fetchPolicy: 'network-only',
   });
 
   const connectionData = (connResult as any)?.getKoneksiData || null;
+  const pemasangan = (pemasanganResult as any)?.getPemasanganByKoneksiData || null;
   const kelompokList = (kelompokResult as any)?.getAllKelompokPelanggan || [];
+
+  // Auto-fill nomor meteran dari seriMeteran yang diinput teknisi saat pemasangan
+  useEffect(() => {
+    if (pemasangan?.seriMeteran && !nomorMeteran) {
+      setNomorMeteran(pemasangan.seriMeteran);
+    }
+  }, [pemasangan]);
 
   const [createMeteranMutation] = useMutation(CREATE_METERAN, {
     refetchQueries: [{ query: GET_ALL_METERAN }],
@@ -167,7 +183,7 @@ export default function CreateMeteran() {
                         onChange={e => setNomorMeteran(e.target.value)}
                         required
                         placeholder='Contoh: MTR-2024-0001'
-                        helperText='Nomor fisik pada meteran'
+                        helperText={pemasangan?.seriMeteran ? `Diisi otomatis dari data pemasangan teknisi (${pemasangan.seriMeteran})` : 'Nomor fisik pada meteran'}
                         InputProps={{ startAdornment: <Speed sx={{ mr: 1, color: 'action.active' }} /> }}
                       />
                     </Grid>
