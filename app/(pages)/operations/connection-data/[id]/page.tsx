@@ -7,7 +7,7 @@ import {
   Chip, Stepper, Step, StepLabel, StepContent, Alert, CircularProgress,
   Divider, Dialog, DialogTitle, DialogContent, DialogActions,
   IconButton, Paper, TextField, List, ListItem, ListItemButton,
-  ListItemIcon, ListItemText, Checkbox,
+  ListItemIcon, ListItemText, Checkbox, Select, MenuItem, FormControl, InputLabel,
 } from '@mui/material';
 import {
   ArrowBack, CheckCircle, HourglassEmpty, Cancel, Description,
@@ -22,9 +22,10 @@ import { GET_CONNECTION_DATA_BY_ID } from '../../../../../lib/graphql/queries/co
 import { VERIFY_CONNECTION_DATA } from '../../../../../lib/graphql/mutations/connectionData';
 import { GET_SURVEI_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/surveyData';
 import { GET_RAB_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/rabConnection';
-import { GET_METERAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/meteran';
+import { GET_METERAN_BY_KONEKSI_DATA, CREATE_METERAN } from '../../../../../lib/graphql/queries/meteran';
 import { AKTIVASI_PELANGGAN } from '../../../../../lib/graphql/queries/customers';
 import { GET_PEMASANGAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/pemasangan';
+import { GET_ALL_KELOMPOK_PELANGGAN } from '../../../../../lib/graphql/queries/kelompokPelanggan';
 import {
   GET_PENGAWASAN_BY_PEMASANGAN_ID,
   GET_PENGAWASAN_SETELAH_BY_PEMASANGAN_ID,
@@ -98,8 +99,14 @@ export default function ConnectionDataDetailPage() {
   } | null>(null);
   const [instReviewCatatan, setInstReviewCatatan] = useState('');
 
-  // Aktivasi pelanggan dialog
+  // Aktivasi pelanggan dialog (jika meteran sudah ada)
   const [aktivasiDialogOpen, setAktifasiDialogOpen] = useState(false);
+
+  // Dialog gabungan: daftarkan meteran + aktivasi sekaligus
+  const [regAktivasiOpen, setRegAktivasiOpen] = useState(false);
+  const [inputNomorMeteran, setInputNomorMeteran] = useState('');
+  const [inputNomorAkun, setInputNomorAkun] = useState('');
+  const [inputKelompokId, setInputKelompokId] = useState('');
 
   // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -173,11 +180,19 @@ export default function ConnectionDataDetailPage() {
   });
   const allTeknisi: any[] = (teknisiResult as any)?.getAllTeknisi || [];
 
+  // Kelompok pelanggan untuk dropdown di dialog registrasi+aktivasi
+  const { data: kelompokResult } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
+    skip: !regAktivasiOpen,
+    fetchPolicy: 'network-only',
+  });
+  const kelompokList: any[] = (kelompokResult as any)?.getAllKelompokPelanggan || [];
+
   // ─── Mutations ───────────────────────────────────────────────────────────
   const [verifyKoneksiData] = useMutation(VERIFY_CONNECTION_DATA);
   const [buatWorkOrder] = useMutation(BUAT_WORK_ORDER);
   const [reviewHasil] = useMutation(REVIEW_HASIL);
   const [aktivasiPelangganMut] = useMutation(AKTIVASI_PELANGGAN);
+  const [createMeteranMut] = useMutation(CREATE_METERAN);
   const [reviewPemasanganMut] = useMutation(REVIEW_PEMASANGAN);
   const [reviewPengawasanMut] = useMutation(REVIEW_PENGAWASAN_PEMASANGAN);
   const [reviewSetelahMut] = useMutation(REVIEW_PENGAWASAN_SETELAH_PEMASANGAN);
@@ -319,6 +334,35 @@ export default function ConnectionDataDetailPage() {
       setAktifasiDialogOpen(false);
       refetchMeteran(); refetch();
     } catch (err: any) { setErrorMsg(err.message || 'Gagal mengaktifkan pelanggan'); }
+    finally { setActionLoading(false); }
+  };
+
+  const openRegAktivasi = () => {
+    setInputNomorMeteran(pemasangan?.seriMeteran || '');
+    setInputNomorAkun('');
+    setInputKelompokId('');
+    setRegAktivasiOpen(true);
+  };
+
+  const handleRegistrasiDanAktivasi = async () => {
+    if (!inputNomorMeteran) { setErrorMsg('Nomor meteran wajib diisi'); return; }
+    if (!inputNomorAkun) { setErrorMsg('No. Akun wajib diisi'); return; }
+    if (!inputKelompokId) { setErrorMsg('Kelompok pelanggan wajib dipilih'); return; }
+    setActionLoading(true); setErrorMsg(null);
+    try {
+      await createMeteranMut({
+        variables: {
+          IdKelompokPelanggan: inputKelompokId,
+          NomorMeteran: inputNomorMeteran,
+          NomorAkun: inputNomorAkun,
+          IdKoneksiData: id,
+        },
+      });
+      await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      setSuccess('Pelanggan berhasil didaftarkan dan diaktifkan. Sambungan air sudah aktif.');
+      setRegAktivasiOpen(false);
+      refetchMeteran(); refetch();
+    } catch (err: any) { setErrorMsg(err.message || 'Gagal mendaftarkan atau mengaktifkan pelanggan'); }
     finally { setActionLoading(false); }
   };
 
@@ -1030,15 +1074,10 @@ export default function ConnectionDataDetailPage() {
                       ) : userRole === 'admin' ? (
                         <Box>
                           {!meteran ? (
-                            <>
-                              <Alert severity="warning" sx={{ mb: 1 }}>
-                                Meteran belum terdaftar. Daftarkan meteran terlebih dahulu sebelum mengaktifkan pelanggan.
-                              </Alert>
-                              <Button size="small" variant="outlined"
-                                onClick={() => router.push(`/operations/meteran/create?connectionId=${data._id}`)}>
-                                Daftarkan Meteran
-                              </Button>
-                            </>
+                            <Button variant="contained" color="success" startIcon={<CheckCircle />}
+                              onClick={openRegAktivasi}>
+                              Daftarkan &amp; Aktifkan Pelanggan
+                            </Button>
                           ) : (
                             <>
                               <Typography variant="body2" sx={{ mb: 1 }}>
@@ -1064,6 +1103,58 @@ export default function ConnectionDataDetailPage() {
             </Stepper>
           </CardContent>
         </Card>
+
+        {/* Dialog Gabungan: Daftarkan Meteran + Aktivasi */}
+        <Dialog open={regAktivasiOpen} onClose={() => setRegAktivasiOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Daftarkan &amp; Aktifkan Pelanggan</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+            <TextField
+              fullWidth
+              label="Nomor Meteran"
+              value={inputNomorMeteran}
+              onChange={(e) => setInputNomorMeteran(e.target.value)}
+              required
+              helperText={pemasangan?.seriMeteran ? `Diisi dari data pemasangan teknisi — bisa diedit jika perlu` : 'Nomor fisik pada meteran'}
+            />
+            <TextField
+              fullWidth
+              label="No. Akun Pelanggan"
+              value={inputNomorAkun}
+              onChange={(e) => setInputNomorAkun(e.target.value)}
+              required
+              placeholder="Contoh: AKN-2025-0001"
+              helperText="Nomor akun unik pelanggan — diisi manual sesuai sistem PDAM"
+            />
+            <FormControl fullWidth required>
+              <InputLabel>Kelompok Tarif</InputLabel>
+              <Select
+                value={inputKelompokId}
+                label="Kelompok Tarif"
+                onChange={(e) => setInputKelompokId(e.target.value)}
+              >
+                <MenuItem value=""><em>-- Pilih Kelompok --</em></MenuItem>
+                {kelompokList.map((k: any) => (
+                  <MenuItem key={k._id} value={k._id}>
+                    {k.NamaKelompok}
+                    {k.BiayaBeban ? ` — Beban Rp ${k.BiayaBeban.toLocaleString('id-ID')}` : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setRegAktivasiOpen(false)} disabled={actionLoading}>Batal</Button>
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleRegistrasiDanAktivasi}
+              disabled={actionLoading || !inputNomorMeteran || !inputNomorAkun || !inputKelompokId}
+              startIcon={actionLoading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
+            >
+              Daftarkan &amp; Aktifkan
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Dialog Konfirmasi Aktivasi Pelanggan */}
         <Dialog open={aktivasiDialogOpen} onClose={() => setAktifasiDialogOpen(false)} maxWidth="sm" fullWidth>
