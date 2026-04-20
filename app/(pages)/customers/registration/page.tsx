@@ -140,7 +140,7 @@ export default function CustomerRegistration() {
         noHP: formData.phone,
         address: formData.address,
         customerType: formData.customerType,
-        gender: formData.gender || undefined,
+        gender: formData.gender || null,
         birthDate: formData.birthDate || undefined,
         occupation: formData.occupation || undefined,
         accountStatus: formData.accountStatus,
