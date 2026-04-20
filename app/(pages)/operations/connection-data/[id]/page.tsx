@@ -100,7 +100,6 @@ export default function ConnectionDataDetailPage() {
 
   // Aktivasi pelanggan dialog
   const [aktivasiDialogOpen, setAktifasiDialogOpen] = useState(false);
-  const [aktivasiCatatan, setAktifasiCatatan] = useState('');
 
   // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -315,12 +314,9 @@ export default function ConnectionDataDetailPage() {
   const handleAktifkanPelanggan = async () => {
     setActionLoading(true); setErrorMsg(null);
     try {
-      await aktivasiPelangganMut({
-        variables: { koneksiDataId: id, catatan: aktivasiCatatan || undefined },
-      });
+      await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
       setSuccess('Pelanggan berhasil diaktifkan. Sambungan air sudah aktif.');
       setAktifasiDialogOpen(false);
-      setAktifasiCatatan('');
       refetchMeteran(); refetch();
     } catch (err: any) { setErrorMsg(err.message || 'Gagal mengaktifkan pelanggan'); }
     finally { setActionLoading(false); }
@@ -1073,19 +1069,10 @@ export default function ConnectionDataDetailPage() {
         <Dialog open={aktivasiDialogOpen} onClose={() => setAktifasiDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Konfirmasi Aktivasi Pelanggan</DialogTitle>
           <DialogContent>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
               Sambungan air pelanggan <strong>{data?.IdPelanggan?.namaLengkap}</strong> akan segera
               diaktifkan. Tindakan ini tidak dapat dibatalkan.
             </Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Catatan Aktivasi (Opsional)"
-              placeholder="Contoh: Aktivasi setelah pemeriksaan lapangan selesai"
-              value={aktivasiCatatan}
-              onChange={(e) => setAktifasiCatatan(e.target.value)}
-            />
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setAktifasiDialogOpen(false)} disabled={actionLoading}>

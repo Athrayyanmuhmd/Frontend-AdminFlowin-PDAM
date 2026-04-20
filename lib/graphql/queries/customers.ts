@@ -86,8 +86,8 @@ export const KONFIRMASI_BAYAR_LOKET = gql`
 
 // Aktivasi pelanggan baru — aktifkan akun + meter setelah semua tahap pemasangan selesai
 export const AKTIVASI_PELANGGAN = gql`
-  mutation AktivasiPelanggan($koneksiDataId: ID!, $catatan: String) {
-    aktivasiPelanggan(koneksiDataId: $koneksiDataId, catatan: $catatan) {
+  mutation AktivasiPelanggan($koneksiDataId: ID!) {
+    aktivasiPelanggan(koneksiDataId: $koneksiDataId) {
       _id
       namaLengkap
       accountStatus
