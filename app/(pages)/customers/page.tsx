@@ -697,7 +697,7 @@ export default function CustomerManagement() {
                             {customer.name}
                           </Typography>
                           <Typography variant='caption' color='text.secondary'>
-                            NIK: {customer.nik}
+                            NIK: {customer.nik || '—'}
                           </Typography>
                         </Box>
                       </Box>
@@ -732,7 +732,7 @@ export default function CustomerManagement() {
                               verticalAlign: 'middle',
                             }}
                           />
-                          {customer.address}
+                          {customer.address || '—'}
                         </Typography>
                       </Box>
                     </TableCell>
