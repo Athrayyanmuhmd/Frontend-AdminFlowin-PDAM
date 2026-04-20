@@ -27,9 +27,8 @@ import {
   Person,
   Home,
   Badge,
-  Work,
-  CheckCircle,
   Cancel,
+  CheckCircle,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import {
@@ -85,9 +84,7 @@ export default function CustomerRegistration() {
     phone: '',
     address: '',
     customerType: 'rumah_tangga',
-    gender: '',
     birthDate: '',
-    occupation: '',
     accountStatus: 'active',
   });
 
@@ -100,9 +97,7 @@ export default function CustomerRegistration() {
       phone: graphqlCustomer.noHP || '',
       address: graphqlCustomer.address || koneksiDataFallback?.Alamat || '',
       customerType: graphqlCustomer.customerType || 'rumah_tangga',
-      gender: graphqlCustomer.gender || '',
       birthDate: graphqlCustomer.birthDate ? graphqlCustomer.birthDate.split('T')[0] : '',
-      occupation: graphqlCustomer.occupation || '',
       accountStatus: graphqlCustomer.accountStatus || 'active',
     });
   }, [graphqlCustomer, koneksiDataFallback, isEditMode]);
@@ -140,9 +135,7 @@ export default function CustomerRegistration() {
         noHP: formData.phone,
         address: formData.address,
         customerType: formData.customerType,
-        gender: formData.gender || null,
         birthDate: formData.birthDate || undefined,
-        occupation: formData.occupation || undefined,
         accountStatus: formData.accountStatus,
       };
 
@@ -305,20 +298,6 @@ export default function CustomerRegistration() {
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth>
-                    <InputLabel>Jenis Kelamin</InputLabel>
-                    <Select
-                      value={formData.gender}
-                      onChange={e => handleChange('gender', e.target.value)}
-                      label="Jenis Kelamin"
-                    >
-                      <MenuItem value="">Belum diisi</MenuItem>
-                      <MenuItem value="L">Laki-laki</MenuItem>
-                      <MenuItem value="P">Perempuan</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
                     <InputLabel>Jenis Pelanggan *</InputLabel>
                     <Select
                       value={formData.customerType}
@@ -341,16 +320,6 @@ export default function CustomerRegistration() {
                     onChange={e => handleChange('birthDate', e.target.value)}
                     InputLabelProps={{ shrink: true }}
                     helperText="Opsional"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Pekerjaan"
-                    value={formData.occupation}
-                    onChange={e => handleChange('occupation', e.target.value)}
-                    helperText="Opsional"
-                    placeholder="Contoh: PNS, Wiraswasta, dll."
                   />
                 </Grid>
               </Grid>
@@ -402,7 +371,7 @@ export default function CustomerRegistration() {
             <Card sx={{ mt: 2 }}>
               <CardContent>
                 <Box display="flex" alignItems="center" gap={1} mb={2}>
-                  <Work color="primary" />
+                  <Badge color="primary" />
                   <Typography variant="h6" fontWeight={600}>Status Akun</Typography>
                 </Box>
                 <Divider sx={{ mb: 2 }} />
