@@ -256,7 +256,7 @@ export default function NotifikasiPage() {
     const input: Record<string, string> = {
       judul: formJudul,
       pesan: formPesan,
-      kategori: formKategori,
+      kategori: formKategori.toUpperCase(),
       ...(formLink.trim() && { link: formLink.trim() }),
     };
 
