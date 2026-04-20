@@ -108,6 +108,9 @@ export default function ConnectionDataDetailPage() {
   const [inputNomorAkun, setInputNomorAkun] = useState('');
   const [inputKelompokId, setInputKelompokId] = useState('');
 
+  // Local flag: immediately hide activation button after success (Apollo cache may lag)
+  const [localActivated, setLocalActivated] = useState(false);
+
   // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
@@ -220,7 +223,7 @@ export default function ConnectionDataDetailPage() {
   const step6Done = step5Done && pemasangan?.statusAdmin === 'disetujui';
   const step7Done = step6Done && pengawasan?.statusAdmin === 'disetujui';
   const step8Done = step7Done && pengawasanSetelah?.statusAdmin === 'disetujui';
-  const step9Done = step8Done && data?.IdPelanggan?.accountStatus === 'active';
+  const step9Done = step8Done && (localActivated || data?.IdPelanggan?.accountStatus === 'active');
 
   // ─── Dialog helpers ───────────────────────────────────────────────────────
   const openDocumentViewer = (url: string, title: string) => {
@@ -330,6 +333,7 @@ export default function ConnectionDataDetailPage() {
     setActionLoading(true); setErrorMsg(null);
     try {
       await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      setLocalActivated(true);
       await refetch();
       await refetchMeteran();
       setSuccess('Pelanggan berhasil diaktifkan. Sambungan air sudah aktif.');
@@ -360,6 +364,7 @@ export default function ConnectionDataDetailPage() {
         },
       });
       await aktivasiPelangganMut({ variables: { koneksiDataId: id } });
+      setLocalActivated(true);
       await refetch();
       await refetchMeteran();
       setSuccess('Pelanggan berhasil didaftarkan dan diaktifkan. Sambungan air sudah aktif.');
