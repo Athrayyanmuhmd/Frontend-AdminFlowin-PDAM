@@ -16,7 +16,7 @@ export const CREATE_NOTIFIKASI = gql`
         namaLengkap
       }
       idTeknisi {
-        _id
+        id
         namaLengkap
       }
       link
