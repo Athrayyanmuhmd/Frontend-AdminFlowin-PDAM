@@ -32,6 +32,8 @@ import {
   useCreateCustomer,
   useUpdateCustomer,
 } from '../../../../lib/graphql/hooks/useCustomers';
+import { useQuery } from '@apollo/client/react';
+import { GET_KONEKSI_DATA_BY_PELANGGAN } from '../../../../lib/graphql/queries/connectionData';
 
 const steps = ['Informasi Pribadi', 'Data Tambahan', 'Konfirmasi'];
 
@@ -53,6 +55,14 @@ export default function CustomerRegistration() {
   );
   const { createCustomer, loading: creating } = useCreateCustomer();
   const { updateCustomer, loading: updating } = useUpdateCustomer();
+
+  // Fetch ConnectionData sebagai fallback untuk NIK & alamat (edit mode saja)
+  const { data: koneksiDataResult } = useQuery(GET_KONEKSI_DATA_BY_PELANGGAN, {
+    variables: { idPelanggan: editId || '' },
+    skip: !editId,
+    fetchPolicy: 'network-only',
+  });
+  const koneksiDataFallback = (koneksiDataResult as any)?.getKoneksiDataByPelanggan;
 
   // ==================== Local State ====================
   const [activeStep, setActiveStep] = useState(0);
@@ -79,13 +89,12 @@ export default function CustomerRegistration() {
   useEffect(() => {
     if (!graphqlCustomer || !isEditMode) return;
 
-    // Pre-populate form with existing data from GraphQL
     setFormData({
-      nik: graphqlCustomer.nik || '',
+      nik: graphqlCustomer.nik || koneksiDataFallback?.NIK || '',
       name: graphqlCustomer.namaLengkap || '',
       email: graphqlCustomer.email || '',
       phone: graphqlCustomer.noHP || '',
-      address: graphqlCustomer.address || '',
+      address: graphqlCustomer.address || koneksiDataFallback?.Alamat || '',
       customerType: graphqlCustomer.customerType || 'rumah_tangga',
       gender: graphqlCustomer.gender || '',
       birthDate: graphqlCustomer.birthDate
@@ -95,7 +104,7 @@ export default function CustomerRegistration() {
       accountStatus: graphqlCustomer.accountStatus || 'active',
     });
 
-  }, [graphqlCustomer, isEditMode]);
+  }, [graphqlCustomer, koneksiDataFallback, isEditMode]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
