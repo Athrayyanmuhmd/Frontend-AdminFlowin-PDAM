@@ -26,10 +26,10 @@ import {
   HourglassEmpty,
   Cancel,
 } from '@mui/icons-material';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Skeleton } from '@mui/material';
 
-const DashboardLineChart = dynamic(
+const DashboardLineChart = nextDynamic(
   () => import('../../components/charts/DashboardLineChart'),
   {
     ssr: false,
@@ -37,7 +37,7 @@ const DashboardLineChart = dynamic(
   }
 );
 
-const DashboardPieChart = dynamic(
+const DashboardPieChart = nextDynamic(
   () => import('../../components/charts/DashboardPieChart'),
   {
     ssr: false,
