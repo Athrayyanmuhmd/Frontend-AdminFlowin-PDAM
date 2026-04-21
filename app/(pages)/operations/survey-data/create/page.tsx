@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
@@ -30,7 +30,7 @@ import AdminLayout from '../../../../layouts/AdminLayout';
 import { GET_CONNECTION_DATA_BY_ID } from '../../../../../lib/graphql/queries/connectionData';
 import { createSurveyData } from '../../../../services/surveyData.service';
 
-export default function CreateSurveyData() {
+function CreateSurveyDataInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connectionId = searchParams.get('connectionId');
@@ -501,5 +501,13 @@ export default function CreateSurveyData() {
         </form>
       </Box>
     </AdminLayout>
+  );
+}
+
+export default function CreateSurveyData() {
+  return (
+    <Suspense fallback={<div />}>
+      <CreateSurveyDataInner />
+    </Suspense>
   );
 }

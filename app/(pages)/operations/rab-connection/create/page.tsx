@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
@@ -29,7 +29,7 @@ import AdminLayout from '../../../../layouts/AdminLayout';
 import { GET_CONNECTION_DATA_BY_ID } from '../../../../../lib/graphql/queries/connectionData';
 import API from '../../../../utils/API';
 
-export default function CreateRabConnection() {
+function CreateRabConnectionInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connectionId = searchParams.get('connectionId');
@@ -306,5 +306,13 @@ export default function CreateRabConnection() {
         </form>
       </Box>
     </AdminLayout>
+  );
+}
+
+export default function CreateRabConnection() {
+  return (
+    <Suspense fallback={<div />}>
+      <CreateRabConnectionInner />
+    </Suspense>
   );
 }

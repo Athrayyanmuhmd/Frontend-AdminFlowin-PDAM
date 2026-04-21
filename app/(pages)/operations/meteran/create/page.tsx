@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import {
@@ -28,7 +28,7 @@ import { GET_ALL_KELOMPOK_PELANGGAN } from '../../../../../lib/graphql/queries/k
 import { CREATE_METERAN, GET_ALL_METERAN } from '../../../../../lib/graphql/queries/meteran';
 import { GET_PEMASANGAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/pemasangan';
 
-export default function CreateMeteran() {
+function CreateMeteranInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const connectionId = searchParams.get('connectionId');
@@ -287,5 +287,13 @@ export default function CreateMeteran() {
         </form>
       </Box>
     </AdminLayout>
+  );
+}
+
+export default function CreateMeteran() {
+  return (
+    <Suspense fallback={<div />}>
+      <CreateMeteranInner />
+    </Suspense>
   );
 }
