@@ -1,5 +1,6 @@
 // pages/transaksi.js
 "use client";
+export const dynamic = 'force-dynamic';
 
 import API from "@/app/utils/API";
 import { useAuth } from "@/app/hooks/UseAuth";

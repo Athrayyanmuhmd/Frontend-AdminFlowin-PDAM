@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import { useAuth } from "@/app/hooks/UseAuth";
 import dynamic from "next/dynamic";
