@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { CircularProgress as SuspenseFallback } from '@mui/material';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
@@ -50,7 +51,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-export default function CustomerRegistration() {
+function CustomerRegistrationInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
@@ -416,5 +417,13 @@ export default function CustomerRegistration() {
         </Grid>
       </Grid>
     </AdminLayout>
+  );
+}
+
+export default function CustomerRegistration() {
+  return (
+    <Suspense fallback={<SuspenseFallback />}>
+      <CustomerRegistrationInner />
+    </Suspense>
   );
 }
