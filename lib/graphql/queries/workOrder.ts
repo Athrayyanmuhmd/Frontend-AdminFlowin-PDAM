@@ -27,6 +27,12 @@ const WORK_ORDER_FRAGMENT = gql`
         email
       }
     }
+    pelangganLaporan {
+      id
+      namaLengkap
+      noHp
+      email
+    }
     teknisiPenanggungJawab {
       id
       namaLengkap

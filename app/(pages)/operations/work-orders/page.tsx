@@ -349,7 +349,7 @@ export default function WorkOrderManagement() {
 
   // ─── Filter ──────────────────────────────────────────────────────────────
   const filtered = allWO.filter(wo => {
-    const name = wo.koneksiData?.pelanggan?.namaLengkap || '';
+    const name = wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || '';
     return (
       (filterStatus === 'all' || wo.status === filterStatus) &&
       (!search || name.toLowerCase().includes(search.toLowerCase()))
@@ -840,7 +840,7 @@ export default function WorkOrderManagement() {
                                 fontWeight={600}
                                 noWrap
                               >
-                                {wo.koneksiData?.pelanggan?.namaLengkap || (
+                                {wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || (
                                   <Typography
                                     component='span'
                                     variant='caption'
@@ -1252,11 +1252,11 @@ export default function WorkOrderManagement() {
                         Pelanggan
                       </Typography>
                       <Typography variant='body2' fontWeight={600}>
-                        {detailWO.koneksiData?.pelanggan?.namaLengkap || '—'}
+                        {detailWO.koneksiData?.pelanggan?.namaLengkap || detailWO.pelangganLaporan?.namaLengkap || '—'}
                       </Typography>
-                      {detailWO.koneksiData?.pelanggan?.noHp && (
+                      {(detailWO.koneksiData?.pelanggan?.noHp || detailWO.pelangganLaporan?.noHp) && (
                         <Typography variant='caption' color='text.secondary'>
-                          {detailWO.koneksiData.pelanggan.noHp}
+                          {detailWO.koneksiData?.pelanggan?.noHp || detailWO.pelangganLaporan?.noHp}
                         </Typography>
                       )}
                     </Grid>
