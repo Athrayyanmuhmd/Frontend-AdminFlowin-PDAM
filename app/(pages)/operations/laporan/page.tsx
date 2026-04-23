@@ -97,6 +97,7 @@ const JENIS_LAPORAN_LABELS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
+  DIAJUKAN: 'Diajukan',
   DITUNDA: 'Ditunda',
   DITUGASKAN: 'Ditugaskan',
   DITINJAU_ADMIN: 'Ditinjau Admin',
@@ -109,6 +110,7 @@ const STATUS_COLORS: Record<
   string,
   'warning' | 'info' | 'primary' | 'success' | 'error' | 'default'
 > = {
+  DIAJUKAN: 'warning',
   DITUNDA: 'warning',
   DITUGASKAN: 'primary',
   DITINJAU_ADMIN: 'info',
@@ -172,6 +174,10 @@ const JENIS_COLORS: Record<string, 'error' | 'warning' | 'info' | 'default'> = {
 
 // Status transitions yang diizinkan admin
 const NEXT_STATUSES: Record<string, { value: string; label: string }[]> = {
+  DIAJUKAN: [
+    { value: 'DITUGASKAN', label: 'Tugaskan ke Teknisi' },
+    { value: 'DIBATALKAN', label: 'Batalkan' },
+  ],
   DITUNDA: [
     { value: 'DITUGASKAN', label: 'Tugaskan ke Teknisi' },
     { value: 'DIBATALKAN', label: 'Batalkan' },
@@ -335,7 +341,7 @@ export default function LaporanPage() {
     return matchSearch && matchStatus;
   });
 
-  const totalMenunggu = laporanList.filter(l => l.status === 'DITUNDA').length;
+  const totalMenunggu = laporanList.filter(l => l.status === 'DITUNDA' || l.status === 'DIAJUKAN').length;
   const totalDiproses = laporanList.filter(l =>
     ['DITUGASKAN', 'DITINJAU_ADMIN', 'SEDANG_DIKERJAKAN'].includes(l.status)
   ).length;
@@ -487,6 +493,7 @@ export default function LaporanPage() {
                   onChange={e => setFilterStatus(e.target.value)}
                 >
                   <MenuItem value=''>Semua</MenuItem>
+                  <MenuItem value='DIAJUKAN'>Diajukan</MenuItem>
                   <MenuItem value='DITUNDA'>Ditunda</MenuItem>
                   <MenuItem value='DITUGASKAN'>Ditugaskan</MenuItem>
                   <MenuItem value='DITINJAU_ADMIN'>Ditinjau Admin</MenuItem>
