@@ -16,20 +16,17 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Chip,
   Button,
   Alert,
   CircularProgress,
   IconButton,
   Tooltip,
-  Badge,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   SelectChangeEvent,
-  Divider,
 } from '@mui/material';
 import {
   Speed,
@@ -38,31 +35,16 @@ import {
   CheckCircle,
   Error,
   Refresh,
-  Settings,
-  Wifi,
-  WifiOff,
-  Battery0Bar,
-  Battery1Bar,
-  Battery2Bar,
-  Battery3Bar,
-  BatteryFull,
   WaterDrop,
   LocationOn,
-  SignalCellular0Bar,
-  SignalCellular1Bar,
-  SignalCellular2Bar,
-  SignalCellular3Bar,
-  SignalCellular4Bar,
-  NetworkCheck,
-  DeviceHub,
   Add,
   MonitorHeart,
   AttachMoney,
+  OpenInNew,
+  Group,
+  AccountBalance,
 } from '@mui/icons-material';
 import {
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
   LineChart,
@@ -104,75 +86,33 @@ function TabPanel(props: TabPanelProps) {
 interface SmartMeter {
   id: string;
   serialNumber: string;
+  nomorAkun: string;
   customerId: string;
   customerName: string;
-  location: {
-    address: string;
-    latitude: number;
-    longitude: number;
-  };
-  status: 'online' | 'offline' | 'maintenance' | 'error';
-  connectivity: {
-    type: 'wifi' | 'cellular' | 'lora' | 'ethernet';
-    signalStrength: number;
-    lastSeen: string;
-  };
-  battery: {
-    level: number;
-    voltage: number;
-    lastReplaced: string;
-  };
-  readings: {
-    current: number;
-    previous: number;
-    usage: number;
-    timestamp: string;
-  };
-  alerts: string[];
+  customerEmail: string;
+  namaKelompok: string;
+  statusAktif: boolean;
+  location: { address: string };
+  pemakaianBelumTerbayar: number;
+  totalPemakaian: number;
+  lastUpdate: string;
 }
 
-const COLORS = ['#4caf50', '#ff9800', '#2196f3', '#f44336'];
-
-/**
- * Mapper Function: Convert backend Meteran to frontend SmartMeter interface
- * Backend fields: nomorMeteran, nomorAkun, idKelompokPelanggan, idKoneksiData
- * Note: IoT fields (battery, connectivity, status real-time) belum terintegrasi hardware.
- * Status ditampilkan sebagai 'online' default sampai data IoT tersedia.
- */
 function mapBackendToSmartMeter(meteranList: any[]): SmartMeter[] {
-  return meteranList.map((meteran) => {
-    const customerName = meteran.IdKoneksiData?.IdPelanggan?.namaLengkap || 'Pelanggan Unknown';
-    const address = meteran.IdKoneksiData?.Alamat || 'Alamat tidak tersedia';
-    const latitude = meteran.IdKoneksiData?.koordinat?.latitude || -5.5483;
-    const longitude = meteran.IdKoneksiData?.koordinat?.longitude || 95.3238;
-
-    return {
-      id: meteran._id,
-      serialNumber: meteran.NomorMeteran,
-      customerId: meteran.IdKoneksiData?.IdPelanggan?._id || '',
-      customerName,
-      location: { address, latitude, longitude },
-      // Status default 'online' — akan diupdate saat IoT terintegrasi
-      status: 'online' as SmartMeter['status'],
-      connectivity: {
-        type: 'cellular' as const,
-        signalStrength: 0, // Data belum tersedia dari IoT
-        lastSeen: meteran.updatedAt || new Date().toISOString(),
-      },
-      battery: {
-        level: 0, // Data belum tersedia dari IoT
-        voltage: 0,
-        lastReplaced: '-',
-      },
-      readings: {
-        current: meteran.pemakaianBelumTerbayar || 0,
-        previous: 0,
-        usage: meteran.pemakaianBelumTerbayar || 0,
-        timestamp: meteran.updatedAt || new Date().toISOString(),
-      },
-      alerts: [],
-    };
-  });
+  return meteranList.map((meteran) => ({
+    id: meteran._id,
+    serialNumber: meteran.NomorMeteran,
+    nomorAkun: meteran.NomorAkun || '-',
+    customerId: meteran.IdKoneksiData?.IdPelanggan?._id || '',
+    customerName: meteran.IdKoneksiData?.IdPelanggan?.namaLengkap || 'Belum terhubung',
+    customerEmail: meteran.IdKoneksiData?.IdPelanggan?.email || '-',
+    namaKelompok: meteran.IdKelompokPelanggan?.NamaKelompok || '-',
+    statusAktif: meteran.statusAktif ?? true,
+    location: { address: meteran.IdKoneksiData?.Alamat || 'Alamat tidak tersedia' },
+    pemakaianBelumTerbayar: meteran.pemakaianBelumTerbayar || 0,
+    totalPemakaian: meteran.totalPemakaian || 0,
+    lastUpdate: meteran.updatedAt || new Date().toISOString(),
+  }));
 }
 
 export default function SmartMeterManagement() {
@@ -226,53 +166,6 @@ export default function SmartMeterManagement() {
     }
   }, [selectedMeteranId]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'online': return 'success';
-      case 'offline': return 'error';
-      case 'maintenance': return 'warning';
-      case 'error': return 'error';
-      default: return 'default';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'online': return <CheckCircle />;
-      case 'offline': return <Error />;
-      case 'maintenance': return <Settings />;
-      case 'error': return <Warning />;
-      default: return <Warning />;
-    }
-  };
-
-  const getConnectivityIcon = (type: string, signalStrength: number) => {
-    switch (type) {
-      case 'wifi':
-        return signalStrength > 50 ? <Wifi color="success" /> : <WifiOff color="error" />;
-      case 'cellular':
-        if (signalStrength >= 80) return <SignalCellular4Bar color="success" />;
-        if (signalStrength >= 60) return <SignalCellular3Bar color="success" />;
-        if (signalStrength >= 40) return <SignalCellular2Bar color="warning" />;
-        if (signalStrength >= 20) return <SignalCellular1Bar color="warning" />;
-        return <SignalCellular0Bar color="error" />;
-      case 'lora':
-        return <NetworkCheck color={signalStrength > 50 ? 'success' : 'warning'} />;
-      case 'ethernet':
-        return <DeviceHub color="success" />;
-      default:
-        return <NetworkCheck />;
-    }
-  };
-
-  const getBatteryIcon = (level: number) => {
-    if (level >= 80) return <BatteryFull color="success" />;
-    if (level >= 60) return <Battery3Bar color="success" />;
-    if (level >= 40) return <Battery2Bar color="warning" />;
-    if (level >= 20) return <Battery1Bar color="warning" />;
-    return <Battery0Bar color="error" />;
-  };
-
   if (loading && meters.length === 0) {
     return (
       <AdminLayout title="Manajemen Meteran Pintar">
@@ -295,10 +188,9 @@ export default function SmartMeterManagement() {
 
   if (authLoading || !isAuthenticated) return null;
 
-  const onlineMeters = meters.filter(m => m.status === 'online').length;
-  const offlineMeters = meters.filter(m => m.status === 'offline').length;
-  const maintenanceMeters = meters.filter(m => m.status === 'maintenance').length;
-  const errorMeters = meters.filter(m => m.status === 'error').length;
+  const aktifMeters = meters.filter(m => m.statusAktif).length;
+  const nonaktifMeters = meters.filter(m => !m.statusAktif).length;
+  const totalPemakaianBelumTerbayar = meters.reduce((s, m) => s + m.pemakaianBelumTerbayar, 0);
 
   return (
     <AdminLayout title="Manajemen Meteran Pintar">
@@ -332,10 +224,23 @@ export default function SmartMeterManagement() {
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Speed color="primary" />
+                  <Box>
+                    <Typography variant="h6">{meters.length}</Typography>
+                    <Typography variant="body2" color="text.secondary">Total Meteran</Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CheckCircle color="success" />
                   <Box>
-                    <Typography variant="h6">{onlineMeters}</Typography>
-                    <Typography variant="body2" color="text.secondary">Online</Typography>
+                    <Typography variant="h6">{aktifMeters}</Typography>
+                    <Typography variant="body2" color="text.secondary">Aktif</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -347,8 +252,8 @@ export default function SmartMeterManagement() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Error color="error" />
                   <Box>
-                    <Typography variant="h6">{offlineMeters}</Typography>
-                    <Typography variant="body2" color="text.secondary">Offline</Typography>
+                    <Typography variant="h6">{nonaktifMeters}</Typography>
+                    <Typography variant="body2" color="text.secondary">Nonaktif</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -358,23 +263,12 @@ export default function SmartMeterManagement() {
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Settings color="warning" />
+                  <WaterDrop color="info" />
                   <Box>
-                    <Typography variant="h6">{maintenanceMeters}</Typography>
-                    <Typography variant="body2" color="text.secondary">Maintenance</Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Warning color="error" />
-                  <Box>
-                    <Typography variant="h6">{errorMeters}</Typography>
-                    <Typography variant="body2" color="text.secondary">Error</Typography>
+                    <Typography variant="h6">
+                      {totalPemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Total Pemakaian Belum Bayar (m³)</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -385,7 +279,6 @@ export default function SmartMeterManagement() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
             <Tab label="Daftar Meteran" icon={<Speed />} iconPosition="start" />
-            <Tab label="Analitik" icon={<TrendingUp />} iconPosition="start" />
             <Tab label="Monitoring Pemakaian" icon={<MonitorHeart />} iconPosition="start" />
           </Tabs>
         </Box>
@@ -394,95 +287,100 @@ export default function SmartMeterManagement() {
         <TabPanel value={activeTab} index={0}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Daftar Meteran Pintar
-              </Typography>
+              <Typography variant="h6" gutterBottom>Daftar Meteran Pintar</Typography>
               {meters.length === 0 ? (
                 <Alert severity="info">Belum ada meteran terdaftar.</Alert>
               ) : (
                 <TableContainer>
-                  <Table>
+                  <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Serial Number</TableCell>
+                        <TableCell>No. Meteran</TableCell>
+                        <TableCell>No. Akun</TableCell>
                         <TableCell>Pelanggan</TableCell>
+                        <TableCell>Kelompok Tarif</TableCell>
                         <TableCell>Lokasi</TableCell>
                         <TableCell align="center">Status</TableCell>
-                        <TableCell align="center">Konektivitas</TableCell>
-                        <TableCell align="center">Baterai</TableCell>
-                        <TableCell align="center">Pemakaian (m³)</TableCell>
+                        <TableCell align="right">Belum Terbayar (m³)</TableCell>
+                        <TableCell align="right">Total Pemakaian (m³)</TableCell>
+                        <TableCell align="center">Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {meters.map((meter) => (
-                        <TableRow key={meter.id}>
+                        <TableRow key={meter.id} hover>
                           <TableCell>
-                            <Typography variant="body2" fontWeight="bold">
+                            <Typography variant="body2" fontWeight="bold" sx={{ fontFamily: 'monospace' }}>
                               {meter.serialNumber}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                              {meter.nomorAkun}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Box>
                               <Typography variant="body2">{meter.customerName}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                ID: {meter.customerId || '-'}
-                              </Typography>
+                              {meter.customerEmail !== '-' && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {meter.customerEmail}
+                                </Typography>
+                              )}
                             </Box>
                           </TableCell>
                           <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <LocationOn fontSize="small" />
-                              <Typography variant="body2" sx={{ maxWidth: 200 }}>
+                            <Chip
+                              icon={<Group fontSize="small" />}
+                              label={meter.namaKelompok}
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                            />
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 180 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                              <LocationOn fontSize="small" color="action" sx={{ mt: 0.2, flexShrink: 0 }} />
+                              <Typography variant="caption" color="text.secondary">
                                 {meter.location.address}
                               </Typography>
                             </Box>
                           </TableCell>
                           <TableCell align="center">
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                              <Chip
-                                icon={getStatusIcon(meter.status)}
-                                label={
-                                  meter.status === 'online' ? 'Online' :
-                                  meter.status === 'offline' ? 'Offline' :
-                                  meter.status === 'maintenance' ? 'Maintenance' : 'Error'
-                                }
-                                color={getStatusColor(meter.status) as any}
+                            <Chip
+                              icon={meter.statusAktif ? <CheckCircle /> : <Error />}
+                              label={meter.statusAktif ? 'Aktif' : 'Nonaktif'}
+                              color={meter.statusAktif ? 'success' : 'default'}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              color={meter.pemakaianBelumTerbayar > 20 ? 'error.main' : 'text.primary'}
+                            >
+                              {meter.pemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              {meter.totalPemakaian.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="Lihat monitoring detail">
+                              <IconButton
                                 size="small"
-                              />
-                              {meter.alerts.length > 0 && (
-                                <Tooltip title={meter.alerts.join(', ')}>
-                                  <Badge badgeContent={meter.alerts.length} color="error">
-                                    <Warning fontSize="small" />
-                                  </Badge>
-                                </Tooltip>
-                              )}
-                            </Box>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                              {getConnectivityIcon(meter.connectivity.type, meter.connectivity.signalStrength)}
-                              <Typography variant="caption">
-                                {meter.connectivity.signalStrength}%
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                              {getBatteryIcon(meter.battery.level)}
-                              <Typography variant="caption">
-                                {meter.battery.level}%
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box>
-                              <Typography variant="body2" fontWeight={600}>
-                                {meter.readings.usage.toLocaleString('id-ID')}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                belum terbayar
-                              </Typography>
-                            </Box>
+                                color="primary"
+                                onClick={() => {
+                                  setSelectedMeteranId(meter.id);
+                                  setActiveTab(1);
+                                }}
+                              >
+                                <MonitorHeart fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -494,117 +392,8 @@ export default function SmartMeterManagement() {
           </Card>
         </TabPanel>
 
-        {/* Tab 1: Analitik */}
+        {/* Tab 1: Monitoring Pemakaian */}
         <TabPanel value={activeTab} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Distribusi Status Meteran
-                  </Typography>
-                  <Box sx={{ height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Online', value: onlineMeters },
-                            { name: 'Offline', value: offlineMeters },
-                            { name: 'Maintenance', value: maintenanceMeters },
-                            { name: 'Error', value: errorMeters },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={100}
-                          dataKey="value"
-                        >
-                          {COLORS.map((color, index) => (
-                            <Cell key={`cell-${index}`} fill={color} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Level Baterai Meteran
-                  </Typography>
-                  <Box sx={{ height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                        { range: '0-20%', count: meters.filter(m => m.battery.level <= 20).length },
-                        { range: '21-40%', count: meters.filter(m => m.battery.level > 20 && m.battery.level <= 40).length },
-                        { range: '41-60%', count: meters.filter(m => m.battery.level > 40 && m.battery.level <= 60).length },
-                        { range: '61-80%', count: meters.filter(m => m.battery.level > 60 && m.battery.level <= 80).length },
-                        { range: '81-100%', count: meters.filter(m => m.battery.level > 80).length },
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="range" />
-                        <YAxis allowDecimals={false} />
-                        <RechartsTooltip />
-                        <Bar dataKey="count" fill="#2196f3" name="Jumlah Meteran" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Statistik Meteran
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="primary">{meters.length}</Typography>
-                        <Typography variant="body2" color="text.secondary">Total Meteran</Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="success.main">
-                          {meters.length > 0 ? ((onlineMeters / meters.length) * 100).toFixed(1) : '0'}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">Uptime</Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="warning.main">
-                          {meters.filter(m => m.battery.level < 30).length}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">Baterai Rendah</Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="error.main">
-                          {meters.filter(m => m.alerts.length > 0).length}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">Alert Aktif</Typography>
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
-
-        {/* Tab 2: Monitoring Pemakaian */}
-        <TabPanel value={activeTab} index={2}>
           <Grid container spacing={3}>
             {/* Meter Selector */}
             <Grid item xs={12}>
