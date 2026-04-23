@@ -217,6 +217,94 @@ export const DELETE_METERAN = gql`
   }
 `;
 
+// ==================== MONITORING ====================
+
+export const GET_MONITORING_DASHBOARD = gql`
+  query GetMonitoringDashboard($meteranId: ID!) {
+    getMonitoringDashboard(meteranId: $meteranId) {
+      meteranId
+      nomorMeteran
+      nomorAkun
+      namaKelompok
+      bulanIni {
+        periode
+        totalPenggunaan
+        dataHarian {
+          tanggal
+          liter
+        }
+        sumberData
+      }
+      bulanLalu {
+        periode
+        totalPenggunaan
+        dataHarian {
+          tanggal
+          liter
+        }
+        sumberData
+      }
+      prediksi {
+        rataRataHarian
+        prediksiAkhirBulan
+        hariTersisa
+        hariTercatat
+      }
+      perbandingan {
+        bulanIni
+        bulanLalu
+        selisih
+        persentase
+        status
+      }
+      evaluasi {
+        kategori
+        deskripsi
+      }
+      estimasiBiayaBulanIni {
+        pemakaianBelumTerbayar
+        estimasiBiaya
+        biayaBeban
+        totalEstimasi
+        namaKelompok
+      }
+      chartHarian {
+        tanggal
+        liter
+      }
+      latestReading
+      lastUpdate
+      redisConnected
+    }
+  }
+`;
+
+export const GET_MONITORING_HISTORI = gql`
+  query GetMonitoringHistori($meteranId: ID!, $jumlahBulan: Int) {
+    getMonitoringHistori(meteranId: $meteranId, jumlahBulan: $jumlahBulan) {
+      periode
+      totalPenggunaan
+      dataHarian {
+        tanggal
+        liter
+      }
+    }
+  }
+`;
+
+export const GET_MONITORING_HARIAN = gql`
+  query GetMonitoringHarian($meteranId: ID!, $tanggal: String!) {
+    getMonitoringHarian(meteranId: $meteranId, tanggal: $tanggal) {
+      tanggal
+      dataPerJam {
+        jam
+        liter
+      }
+      totalHari
+    }
+  }
+`;
+
 // Stub — endpoint ini tidak ada di backend; hook useMeteran masih import ini
 export const GET_HISTORY_USAGE_BY_METERAN = gql`
   query GetHistoryUsageByMeteran($nomorMeteran: String!) {

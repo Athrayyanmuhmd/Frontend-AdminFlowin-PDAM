@@ -83,6 +83,7 @@ import {
   GET_RIWAYAT_PENGGUNAAN_BULANAN,
   GET_RIWAYAT_PENGGUNAAN,
   GET_ESTIMASI_BIAYA,
+  GET_MONITORING_DASHBOARD,
 } from '@/lib/graphql/queries/meteran';
 
 interface TabPanelProps {
@@ -193,9 +194,11 @@ export default function SmartMeterManagement() {
   const [fetchBulanan, { data: bulananDataRaw, loading: bulananLoading }] = useLazyQuery(GET_RIWAYAT_PENGGUNAAN_BULANAN);
   const [fetchRiwayat, { data: riwayatDataRaw, loading: riwayatLoading }] = useLazyQuery(GET_RIWAYAT_PENGGUNAAN);
   const [fetchEstimasi, { data: estimasiDataRaw, loading: estimasiLoading }] = useLazyQuery(GET_ESTIMASI_BIAYA);
+  const [fetchMonitoring, { data: monitoringDataRaw, loading: monitoringLoading }] = useLazyQuery(GET_MONITORING_DASHBOARD, { fetchPolicy: 'network-only' });
   const bulananData = bulananDataRaw as any;
   const riwayatData = riwayatDataRaw as any;
   const estimasiData = estimasiDataRaw as any;
+  const monitoringData = (monitoringDataRaw as any)?.getMonitoringDashboard;
 
   useEffect(() => {
     if ((data as any)?.getAllMeteran) {
@@ -219,6 +222,7 @@ export default function SmartMeterManagement() {
       fetchBulanan({ variables: { meteranId: selectedMeteranId } });
       fetchRiwayat({ variables: { meteranId: selectedMeteranId, limit: 30 } });
       fetchEstimasi({ variables: { meteranId: selectedMeteranId } });
+      fetchMonitoring({ variables: { meteranId: selectedMeteranId } });
     }
   }, [selectedMeteranId]);
 
@@ -606,7 +610,7 @@ export default function SmartMeterManagement() {
             <Grid item xs={12}>
               <Card>
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                     <FormControl sx={{ minWidth: 320 }}>
                       <InputLabel>Pilih Meteran</InputLabel>
                       <Select
@@ -621,17 +625,121 @@ export default function SmartMeterManagement() {
                         ))}
                       </Select>
                     </FormControl>
-                    {(bulananLoading || riwayatLoading || estimasiLoading) && (
-                      <CircularProgress size={24} />
+                    {monitoringLoading && <CircularProgress size={24} />}
+                    {monitoringData && (
+                      <Chip
+                        icon={monitoringData.redisConnected ? <CheckCircle /> : <Warning />}
+                        label={monitoringData.redisConnected ? 'Redis Terhubung' : 'Data MongoDB'}
+                        color={monitoringData.redisConnected ? 'success' : 'warning'}
+                        size="small"
+                      />
+                    )}
+                    {monitoringData?.lastUpdate && (
+                      <Typography variant="caption" color="text.secondary">
+                        Update: {new Date(monitoringData.lastUpdate).toLocaleString('id-ID')}
+                      </Typography>
                     )}
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
 
-            {/* Estimasi Biaya Cards */}
-            {estimasiData?.getEstimashiBiaya && (
+            {/* Monitoring Dashboard — tampil kalau ada data */}
+            {monitoringData && (
               <>
+                {/* Evaluasi + Prediksi Row */}
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <WaterDrop color="primary" />
+                        <Typography variant="body2" color="text.secondary">Pemakaian Bulan Ini</Typography>
+                      </Box>
+                      <Typography variant="h5" fontWeight="bold">
+                        {(monitoringData.bulanIni.totalPenggunaan / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {monitoringData.bulanIni.periode} · {monitoringData.bulanIni.dataHarian.length} hari tercatat
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <TrendingUp color={
+                          monitoringData.perbandingan?.status === 'naik' ? 'error' :
+                          monitoringData.perbandingan?.status === 'turun' ? 'success' : 'info'
+                        } />
+                        <Typography variant="body2" color="text.secondary">
+                          vs Bulan Lalu
+                        </Typography>
+                      </Box>
+                      {monitoringData.perbandingan ? (
+                        <>
+                          <Typography variant="h5" fontWeight="bold" color={
+                            monitoringData.perbandingan.status === 'naik' ? 'error.main' :
+                            monitoringData.perbandingan.status === 'turun' ? 'success.main' : 'text.primary'
+                          }>
+                            {monitoringData.perbandingan.status === 'naik' ? '+' : monitoringData.perbandingan.status === 'turun' ? '-' : ''}
+                            {monitoringData.perbandingan.persentase.toFixed(1)}%
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Bulan lalu: {(monitoringData.perbandingan.bulanLalu / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">Data bulan lalu belum tersedia</Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Speed color="warning" />
+                        <Typography variant="body2" color="text.secondary">Prediksi Akhir Bulan</Typography>
+                      </Box>
+                      <Typography variant="h5" fontWeight="bold">
+                        {(monitoringData.prediksi.prediksiAkhirBulan / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Rata-rata {(monitoringData.prediksi.rataRataHarian / 1000).toFixed(3)} m³/hari · {monitoringData.prediksi.hariTersisa} hari tersisa
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <MonitorHeart color={
+                          monitoringData.evaluasi.kategori === 'Hemat' ? 'success' :
+                          monitoringData.evaluasi.kategori === 'Normal' ? 'info' : 'warning'
+                        } />
+                        <Typography variant="body2" color="text.secondary">Kategori Pemakaian</Typography>
+                      </Box>
+                      <Chip
+                        label={monitoringData.evaluasi.kategori}
+                        color={
+                          monitoringData.evaluasi.kategori === 'Hemat' ? 'success' :
+                          monitoringData.evaluasi.kategori === 'Normal' ? 'info' : 'warning'
+                        }
+                        sx={{ mb: 0.5 }}
+                      />
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        {monitoringData.evaluasi.deskripsi}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Estimasi Biaya dari data monitoring bulan ini */}
                 <Grid item xs={12} sm={6} md={3}>
                   <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
                     <CardContent>
@@ -640,7 +748,7 @@ export default function SmartMeterManagement() {
                         <Typography variant="body2">Pemakaian Belum Terbayar</Typography>
                       </Box>
                       <Typography variant="h5" fontWeight="bold">
-                        {estimasiData.getEstimashiBiaya.pemakaianBelumTerbayar.toLocaleString('id-ID')} m³
+                        {monitoringData.estimasiBiayaBulanIni.pemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 3 })} m³
                       </Typography>
                     </CardContent>
                   </Card>
@@ -653,7 +761,7 @@ export default function SmartMeterManagement() {
                         <Typography variant="body2">Estimasi Biaya Pemakaian</Typography>
                       </Box>
                       <Typography variant="h5" fontWeight="bold">
-                        Rp {estimasiData.getEstimashiBiaya.estimasiBiaya.toLocaleString('id-ID')}
+                        Rp {monitoringData.estimasiBiayaBulanIni.estimasiBiaya.toLocaleString('id-ID')}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -666,7 +774,7 @@ export default function SmartMeterManagement() {
                         <Typography variant="body2">Biaya Beban</Typography>
                       </Box>
                       <Typography variant="h5" fontWeight="bold">
-                        Rp {estimasiData.getEstimashiBiaya.biayaBeban.toLocaleString('id-ID')}
+                        Rp {monitoringData.estimasiBiayaBulanIni.biayaBeban.toLocaleString('id-ID')}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -679,12 +787,81 @@ export default function SmartMeterManagement() {
                         <Typography variant="body2">Total Estimasi Tagihan</Typography>
                       </Box>
                       <Typography variant="h5" fontWeight="bold">
-                        Rp {estimasiData.getEstimashiBiaya.totalEstimasi.toLocaleString('id-ID')}
+                        Rp {monitoringData.estimasiBiayaBulanIni.totalEstimasi.toLocaleString('id-ID')}
                       </Typography>
-                      {estimasiData.getEstimashiBiaya.namaKelompok && (
+                      {monitoringData.estimasiBiayaBulanIni.namaKelompok && (
                         <Typography variant="caption">
-                          Tarif: {estimasiData.getEstimashiBiaya.namaKelompok}
+                          Tarif: {monitoringData.estimasiBiayaBulanIni.namaKelompok}
                         </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Grafik Harian (14 hari dari Redis) */}
+                <Grid item xs={12} md={8}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="h6">Pemakaian Harian — {monitoringData.bulanIni.periode}</Typography>
+                        <Chip
+                          label={`Sumber: ${monitoringData.bulanIni.sumberData === 'redis' ? 'Redis (Real-time)' : 'MongoDB'}`}
+                          color={monitoringData.bulanIni.sumberData === 'redis' ? 'success' : 'default'}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Box>
+                      {(monitoringData.chartHarian?.length ?? 0) === 0 ? (
+                        <Alert severity="info">
+                          Belum ada data harian dari Redis untuk meteran ini. Data akan muncul setelah IoT mengirim pembacaan.
+                        </Alert>
+                      ) : (
+                        <Box sx={{ height: 280 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={monitoringData.chartHarian.map((d: any) => ({
+                              tanggal: `Tgl ${d.tanggal}`,
+                              liter: d.liter,
+                              m3: +(d.liter / 1000).toFixed(3),
+                            }))}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="tanggal" tick={{ fontSize: 10 }} />
+                              <YAxis tickFormatter={(v: number) => `${v}L`} />
+                              <RechartsTooltip
+                                formatter={(value: number, name: string) => [
+                                  `${value.toLocaleString('id-ID')} L (${(value / 1000).toFixed(3)} m³)`,
+                                  'Pemakaian',
+                                ]}
+                              />
+                              <Bar dataKey="liter" fill="#2196f3" name="Pemakaian (L)" radius={[3, 3, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                {/* Grafik Bulanan historis */}
+                <Grid item xs={12} md={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>Riwayat Bulanan (IoT)</Typography>
+                      {bulananLoading ? (
+                        <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>
+                      ) : (bulananData?.getRiwayatPenggunaanBulanan?.length ?? 0) === 0 ? (
+                        <Alert severity="info">Belum ada data bulanan IoT.</Alert>
+                      ) : (
+                        <Box sx={{ height: 280 }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={bulananData?.getRiwayatPenggunaanBulanan || []}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="bulan" tick={{ fontSize: 9 }} />
+                              <YAxis allowDecimals={false} />
+                              <RechartsTooltip formatter={(v: number) => [`${v.toLocaleString('id-ID')} m³`, 'Pemakaian']} />
+                              <Line type="monotone" dataKey="totalPemakaian" stroke="#4caf50" strokeWidth={2} dot={{ r: 3 }} name="Total (m³)" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </Box>
                       )}
                     </CardContent>
                   </Card>
@@ -692,89 +869,22 @@ export default function SmartMeterManagement() {
               </>
             )}
 
-            {/* Grafik Bulanan */}
-            <Grid item xs={12} md={8}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Pemakaian Air per Bulan (m³)
-                  </Typography>
-                  {bulananLoading ? (
-                    <Box display="flex" justifyContent="center" py={4}>
-                      <CircularProgress />
-                    </Box>
-                  ) : (bulananData?.getRiwayatPenggunaanBulanan?.length ?? 0) === 0 ? (
-                    <Alert severity="info">Belum ada data pemakaian bulanan untuk meteran ini.</Alert>
-                  ) : (
-                    <Box sx={{ height: 300 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={bulananData?.getRiwayatPenggunaanBulanan || []}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="bulan" tick={{ fontSize: 11 }} />
-                          <YAxis allowDecimals={false} />
-                          <RechartsTooltip
-                            formatter={(value: number) => [`${value.toLocaleString('id-ID')} m³`, 'Pemakaian']}
-                          />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="totalPemakaian"
-                            stroke="#2196f3"
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
-                            name="Total Pemakaian (m³)"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
+            {/* Kalau monitoring belum dipilih atau loading */}
+            {!monitoringData && !monitoringLoading && selectedMeteranId && (
+              <Grid item xs={12}>
+                <Alert severity="warning">Gagal memuat data monitoring. Pastikan backend terhubung dan meteran valid.</Alert>
+              </Grid>
+            )}
 
-            {/* Jumlah Record per Bulan */}
-            <Grid item xs={12} md={4}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Frekuensi Pencatatan / Bulan
-                  </Typography>
-                  {bulananLoading ? (
-                    <Box display="flex" justifyContent="center" py={4}>
-                      <CircularProgress />
-                    </Box>
-                  ) : (bulananData?.getRiwayatPenggunaanBulanan?.length ?? 0) === 0 ? (
-                    <Alert severity="info">Tidak ada data.</Alert>
-                  ) : (
-                    <Box sx={{ height: 300 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={bulananData?.getRiwayatPenggunaanBulanan || []}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="bulan" tick={{ fontSize: 10 }} />
-                          <YAxis allowDecimals={false} />
-                          <RechartsTooltip />
-                          <Bar dataKey="jumlahRecord" fill="#4caf50" name="Jumlah Pencatatan" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Riwayat Terbaru */}
+            {/* Riwayat IoT Terbaru */}
             <Grid item xs={12}>
               <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    30 Pencatatan Pemakaian Terakhir
-                  </Typography>
+                  <Typography variant="h6" gutterBottom>30 Pencatatan IoT Terakhir</Typography>
                   {riwayatLoading ? (
-                    <Box display="flex" justifyContent="center" py={3}>
-                      <CircularProgress />
-                    </Box>
+                    <Box display="flex" justifyContent="center" py={3}><CircularProgress /></Box>
                   ) : (riwayatData?.getRiwayatPenggunaan?.length ?? 0) === 0 ? (
-                    <Alert severity="info">Belum ada data pencatatan untuk meteran ini.</Alert>
+                    <Alert severity="info">Belum ada data pencatatan IoT untuk meteran ini.</Alert>
                   ) : (
                     <TableContainer sx={{ maxHeight: 320 }}>
                       <Table size="small" stickyHeader>
@@ -790,9 +900,7 @@ export default function SmartMeterManagement() {
                             <TableRow key={r._id} hover>
                               <TableCell>{idx + 1}</TableCell>
                               <TableCell>
-                                {r.createdAt
-                                  ? new Date(r.createdAt).toLocaleString('id-ID')
-                                  : '-'}
+                                {r.createdAt ? new Date(r.createdAt).toLocaleString('id-ID') : '-'}
                               </TableCell>
                               <TableCell align="right">
                                 {r.penggunaanAir?.toLocaleString('id-ID', { maximumFractionDigits: 3 })}
