@@ -235,6 +235,11 @@ export default function WorkOrderManagement() {
   const [catatan, setCatatan] = useState('');
   const [mutating, setMutating] = useState(false);
 
+  // Reassign teknisi saat penolakan diterima
+  const [reassignTeknisiId, setReassignTeknisiId] = useState('');
+  const [reassignTeknisiList, setReassignTeknisiList] = useState<any[]>([]);
+  const [loadingReassignTeknisi, setLoadingReassignTeknisi] = useState(false);
+
   // Detail dialog extra tabs
   const [detailTab, setDetailTab] = useState(0);
   const [detailFull, setDetailFull] = useState<any>(null);
@@ -391,8 +396,22 @@ export default function WorkOrderManagement() {
       if (selectedWO) fetchDetail(selectedWO.id, selectedWO.idKoneksiData);
     } else if (dlg === 'cancel') setDlgCancel(true);
     else if (dlg === 'tim') setDlgTim(true);
-    else if (dlg === 'penolakan') setDlgPenolakan(true);
-    else if (dlg === 'hasil') setDlgHasil(true);
+    else if (dlg === 'penolakan') {
+      setDlgPenolakan(true);
+      setReassignTeknisiId('');
+      // Load daftar teknisi hanya saat admin akan terima penolakan (perlu reassign)
+      if (approve) {
+        setLoadingReassignTeknisi(true);
+        const tok = localStorage.getItem('admin_token') || '';
+        getTeknisiUsers(tok)
+          .then(res => {
+            const list: any[] = (res.data as any)?.users ?? [];
+            setReassignTeknisiList(list.filter((t: any) => t.isActive !== false));
+          })
+          .catch(() => {})
+          .finally(() => setLoadingReassignTeknisi(false));
+      }
+    } else if (dlg === 'hasil') setDlgHasil(true);
   };
 
   const handleReviewTim = () => {
@@ -409,20 +428,61 @@ export default function WorkOrderManagement() {
     );
   };
 
-  const handleReviewPenolakan = () => {
+  const handleReviewPenolakan = async () => {
     const token = localStorage.getItem('admin_token') || '';
-    runMutation(
-      () =>
-        srvReviewPenolakan(token, {
-          workOrderId: selectedWO.id,
-          disetujui: actionApprove,
-          catatan: catatan || undefined,
-        }),
-      actionApprove
-        ? 'Penolakan diterima'
-        : 'Penolakan ditolak — teknisi harus mengerjakan WO',
-      () => setDlgPenolakan(false)
-    );
+
+    // Tolak penolakan — teknisi tetap kerjakan, tidak perlu reassign
+    if (!actionApprove) {
+      runMutation(
+        () => srvReviewPenolakan(token, { workOrderId: selectedWO.id, disetujui: false, catatan: catatan || undefined }),
+        'Penolakan ditolak — teknisi harus mengerjakan WO',
+        () => setDlgPenolakan(false)
+      );
+      return;
+    }
+
+    // Terima penolakan + buat WO baru dengan teknisi pengganti
+    if (!reassignTeknisiId) {
+      toast('Pilih teknisi pengganti terlebih dahulu', false);
+      return;
+    }
+
+    setMutating(true);
+    try {
+      // Step 1: Terima penolakan dari teknisi
+      const res1 = await srvReviewPenolakan(token, {
+        workOrderId: selectedWO.id,
+        disetujui: true,
+        catatan: catatan || undefined,
+      });
+      if (res1.errors?.length) throw new Error(res1.errors[0].message);
+
+      // Step 2: Buat WO baru dengan jenis & koneksi yang sama, teknisi berbeda
+      const newInput: Parameters<typeof srvBuatWorkOrder>[1] = {
+        jenisPekerjaan: selectedWO.jenisPekerjaan,
+        teknisiPenanggungJawab: reassignTeknisiId,
+      };
+      if (selectedWO.jenisPekerjaan === 'penyelesaian_laporan') {
+        if (selectedWO.idLaporan) newInput.idLaporan = selectedWO.idLaporan;
+      } else {
+        newInput.idKoneksiData = selectedWO.idKoneksiData;
+      }
+
+      const res2 = await srvBuatWorkOrder(token, newInput);
+      if (res2.errors?.length) throw new Error(res2.errors[0].message);
+      const r2 = (res2.data as any)?.buatWorkOrder;
+      if (r2?.success === false) throw new Error(r2.message || 'Gagal membuat WO baru');
+
+      setDlgPenolakan(false);
+      setCatatan('');
+      setReassignTeknisiId('');
+      toast('Penolakan diterima & WO baru berhasil dibuat untuk teknisi pengganti');
+      fetchData();
+    } catch (e: any) {
+      toast(e.message || 'Gagal', false);
+    } finally {
+      setMutating(false);
+    }
   };
 
   const handleReviewHasil = () => {
@@ -1847,38 +1907,134 @@ export default function WorkOrderManagement() {
       {/* ─── Review Penolakan Dialog ──────────────────────────────────────────── */}
       <Dialog
         open={dlgPenolakan}
-        onClose={() => setDlgPenolakan(false)}
-        maxWidth='xs'
+        onClose={() => !mutating && setDlgPenolakan(false)}
+        maxWidth='sm'
         fullWidth
       >
         <DialogTitle>
           {actionApprove
-            ? 'Terima Penolakan Teknisi'
+            ? 'Terima Penolakan & Tugaskan Teknisi Pengganti'
             : 'Tolak Penolakan — Wajib Dikerjakan'}
         </DialogTitle>
         <DialogContent>
-          {selectedWO?.alasanPenolakan && (
-            <Alert severity='warning' sx={{ mb: 2, py: 0.5 }}>
-              <strong>Alasan teknisi:</strong> {selectedWO.alasanPenolakan}
-            </Alert>
-          )}
-          <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-            {actionApprove
-              ? 'Penolakan diterima. Work order ini perlu di-reassign ke teknisi lain.'
-              : 'Alasan penolakan tidak diterima. Teknisi tetap harus menjalankan WO ini.'}
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            size='small'
-            label='Catatan keputusan (opsional)'
-            value={catatan}
-            onChange={e => setCatatan(e.target.value)}
-          />
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            {selectedWO?.alasanPenolakan && (
+              <Alert severity='warning' sx={{ py: 0.5 }}>
+                <strong>Alasan penolakan teknisi:</strong>{' '}
+                {selectedWO.alasanPenolakan}
+              </Alert>
+            )}
+
+            {actionApprove ? (
+              <>
+                <Alert severity='info' sx={{ py: 0.5 }}>
+                  Penolakan akan diterima dan work order baru akan dibuat
+                  otomatis untuk teknisi pengganti yang Anda pilih.
+                </Alert>
+
+                {loadingReassignTeknisi ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={16} />
+                    <Typography variant='body2' color='text.secondary'>
+                      Memuat daftar teknisi…
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Autocomplete
+                    options={reassignTeknisiList}
+                    getOptionLabel={(opt: any) =>
+                      `${opt.namaLengkap} — ${opt.divisi ?? ''}`
+                    }
+                    value={
+                      reassignTeknisiList.find(
+                        t => t.id === reassignTeknisiId
+                      ) ?? null
+                    }
+                    onChange={(_e, val) =>
+                      setReassignTeknisiId(val?.id ?? '')
+                    }
+                    isOptionEqualToValue={(opt: any, val: any) =>
+                      opt.id === val?.id
+                    }
+                    getOptionDisabled={(opt: any) =>
+                      opt.id === selectedWO?.teknisiPenanggungJawab?.id
+                    }
+                    renderOption={(props, opt: any) => (
+                      <Box component='li' {...props}>
+                        <Avatar
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            fontSize: 12,
+                            mr: 1.5,
+                            bgcolor:
+                              opt.id ===
+                              selectedWO?.teknisiPenanggungJawab?.id
+                                ? 'grey.400'
+                                : 'primary.main',
+                          }}
+                        >
+                          {opt.namaLengkap?.[0]}
+                        </Avatar>
+                        <Box>
+                          <Typography variant='body2' fontWeight={600}>
+                            {opt.namaLengkap}
+                            {opt.id ===
+                              selectedWO?.teknisiPenanggungJawab?.id &&
+                              ' (teknisi sebelumnya)'}
+                          </Typography>
+                          <Typography
+                            variant='caption'
+                            color='text.secondary'
+                          >
+                            {opt.divisi} · NIP {opt.nip}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+                    renderInput={params => (
+                      <TextField
+                        {...params}
+                        size='small'
+                        label='Teknisi Pengganti *'
+                        error={!reassignTeknisiId && mutating}
+                        helperText={
+                          reassignTeknisiList.length === 0 &&
+                          !loadingReassignTeknisi
+                            ? 'Tidak ada teknisi aktif'
+                            : ''
+                        }
+                      />
+                    )}
+                    noOptionsText='Tidak ada teknisi aktif'
+                  />
+                )}
+              </>
+            ) : (
+              <Typography variant='body2' color='text.secondary'>
+                Alasan penolakan tidak diterima. Teknisi tetap harus
+                menjalankan work order ini.
+              </Typography>
+            )}
+
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              size='small'
+              label='Catatan keputusan (opsional)'
+              value={catatan}
+              onChange={e => setCatatan(e.target.value)}
+              disabled={mutating}
+            />
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDlgPenolakan(false)} size='small'>
+          <Button
+            onClick={() => setDlgPenolakan(false)}
+            size='small'
+            disabled={mutating}
+          >
             Batal
           </Button>
           <Button
@@ -1886,15 +2042,20 @@ export default function WorkOrderManagement() {
             color={actionApprove ? 'warning' : 'error'}
             size='small'
             onClick={handleReviewPenolakan}
-            disabled={mutating}
+            disabled={
+              mutating ||
+              (actionApprove &&
+                (!reassignTeknisiId || loadingReassignTeknisi))
+            }
+            startIcon={mutating ? <CircularProgress size={14} color='inherit' /> : undefined}
           >
-            {mutating ? (
-              <CircularProgress size={16} />
-            ) : actionApprove ? (
-              'Terima Penolakan'
-            ) : (
-              'Tolak Penolakan'
-            )}
+            {mutating
+              ? actionApprove
+                ? 'Memproses…'
+                : 'Menyimpan…'
+              : actionApprove
+                ? 'Terima & Buat WO Baru'
+                : 'Tolak Penolakan'}
           </Button>
         </DialogActions>
       </Dialog>
