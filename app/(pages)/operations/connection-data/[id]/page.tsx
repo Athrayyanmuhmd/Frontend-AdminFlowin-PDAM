@@ -224,7 +224,12 @@ export default function ConnectionDataDetailPage() {
   const step6Done = step5Done && pemasangan?.statusAdmin === 'disetujui';
   const step7Done = step6Done && pengawasan?.statusAdmin === 'disetujui';
   const step8Done = step7Done && pengawasanSetelah?.statusAdmin === 'disetujui';
-  const step9Done = step8Done && (localActivated || data?.IdPelanggan?.accountStatus === 'active');
+  // step9Done: cek accountStatus ATAU statusAktif meteran sebagai fallback
+  // localActivated: immediate hide after click (reset on re-mount, tapi data sudah refetched)
+  const alreadyActivated =
+    data?.IdPelanggan?.accountStatus === 'active' ||
+    meteran?.statusAktif === true;
+  const step9Done = step8Done && (localActivated || alreadyActivated);
 
   // ─── Dialog helpers ───────────────────────────────────────────────────────
   const openDocumentViewer = (url: string, title: string) => {
@@ -1089,7 +1094,8 @@ export default function ConnectionDataDetailPage() {
                         <Box>
                           {!meteran ? (
                             <Button variant="contained" color="success" startIcon={<CheckCircle />}
-                              onClick={openRegAktivasi}>
+                              onClick={openRegAktivasi}
+                              disabled={alreadyActivated || actionLoading}>
                               Daftarkan &amp; Aktifkan Pelanggan
                             </Button>
                           ) : (
@@ -1098,7 +1104,8 @@ export default function ConnectionDataDetailPage() {
                                 <strong>Seri Meteran:</strong> {pemasangan?.seriMeteran || meteran.NomorMeteran}
                               </Typography>
                               <Button variant="contained" color="success" startIcon={<CheckCircle />}
-                                onClick={() => setAktifasiDialogOpen(true)}>
+                                onClick={() => setAktifasiDialogOpen(true)}
+                                disabled={alreadyActivated || actionLoading}>
                                 Aktifkan Pelanggan
                               </Button>
                             </>
