@@ -100,11 +100,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           sx={{
             flexGrow: 1,
             p: { xs: 2, sm: 3 },
-            mt: '64px',
-            backgroundColor: '#f1f5f9',
+            mt: 8, // Account for AppBar height
+            backgroundColor: 'background.default',
             width: '100%',
             overflowX: 'auto',
-            minHeight: 'calc(100vh - 64px)',
           }}
         >
           {children}
