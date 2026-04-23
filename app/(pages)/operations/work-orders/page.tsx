@@ -199,6 +199,10 @@ function woActions(wo: any) {
     needsTim: wo.statusTim === 'diajukan',
     needsPenolakan: wo.statusRespon === 'penolakan_diajukan',
     needsHasil: wo.status === 'dikirim',
+    // Penolakan sudah diterima tapi belum ada teknisi pengganti
+    canBuatPengganti:
+      wo.statusRespon === 'penolakan_diterima' &&
+      !['dibatalkan', 'selesai'].includes(wo.status),
   };
 }
 
@@ -239,6 +243,9 @@ export default function WorkOrderManagement() {
   const [reassignTeknisiId, setReassignTeknisiId] = useState('');
   const [reassignTeknisiList, setReassignTeknisiList] = useState<any[]>([]);
   const [loadingReassignTeknisi, setLoadingReassignTeknisi] = useState(false);
+
+  // Dialog buat WO pengganti (untuk penolakan yang sudah diterima sebelumnya)
+  const [dlgBuatPengganti, setDlgBuatPengganti] = useState(false);
 
   // Detail dialog extra tabs
   const [detailTab, setDetailTab] = useState(0);
@@ -372,6 +379,7 @@ export default function WorkOrderManagement() {
       w =>
         w.statusTim === 'diajukan' ||
         w.statusRespon === 'penolakan_diajukan' ||
+        w.statusRespon === 'penolakan_diterima' ||
         w.status === 'dikirim'
     ).length,
   };
@@ -473,10 +481,13 @@ export default function WorkOrderManagement() {
       const r2 = (res2.data as any)?.buatWorkOrder;
       if (r2?.success === false) throw new Error(r2.message || 'Gagal membuat WO baru');
 
+      // Step 3: Batalkan WO lama agar list tidak kotor
+      await srvBatalkan(token, selectedWO.id, 'Penolakan diterima — ditugaskan ke teknisi pengganti').catch(() => {});
+
       setDlgPenolakan(false);
       setCatatan('');
       setReassignTeknisiId('');
-      toast('Penolakan diterima & WO baru berhasil dibuat untuk teknisi pengganti');
+      toast('Penolakan diterima, WO lama dibatalkan & WO baru dibuat untuk teknisi pengganti');
       fetchData();
     } catch (e: any) {
       toast(e.message || 'Gagal', false);
@@ -508,6 +519,56 @@ export default function WorkOrderManagement() {
       'Work order dibatalkan',
       () => setDlgCancel(false)
     );
+  };
+
+  // Buka dialog "Buat WO Pengganti" — untuk WO yg sudah penolakan_diterima tapi belum di-reassign
+  const openBuatPengganti = () => {
+    closeMenu();
+    setReassignTeknisiId('');
+    setDlgBuatPengganti(true);
+    setLoadingReassignTeknisi(true);
+    const tok = localStorage.getItem('admin_token') || '';
+    getTeknisiUsers(tok)
+      .then(res => {
+        const list: any[] = (res.data as any)?.users ?? [];
+        setReassignTeknisiList(list.filter((t: any) => t.isActive !== false));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingReassignTeknisi(false));
+  };
+
+  const handleBuatWOPengganti = async () => {
+    if (!reassignTeknisiId || !selectedWO) return;
+    const token = localStorage.getItem('admin_token') || '';
+    setMutating(true);
+    try {
+      const newInput: Parameters<typeof srvBuatWorkOrder>[1] = {
+        jenisPekerjaan: selectedWO.jenisPekerjaan,
+        teknisiPenanggungJawab: reassignTeknisiId,
+      };
+      if (selectedWO.jenisPekerjaan === 'penyelesaian_laporan') {
+        if (selectedWO.idLaporan) newInput.idLaporan = selectedWO.idLaporan;
+      } else {
+        newInput.idKoneksiData = selectedWO.idKoneksiData;
+      }
+
+      const res = await srvBuatWorkOrder(token, newInput);
+      if (res.errors?.length) throw new Error(res.errors[0].message);
+      const r = (res.data as any)?.buatWorkOrder;
+      if (r?.success === false) throw new Error(r.message || 'Gagal membuat WO pengganti');
+
+      // Batalkan WO lama yang sudah penolakan_diterima
+      await srvBatalkan(token, selectedWO.id, 'Digantikan oleh WO baru setelah penolakan diterima').catch(() => {});
+
+      setDlgBuatPengganti(false);
+      setReassignTeknisiId('');
+      toast('WO pengganti berhasil dibuat & WO lama dibatalkan');
+      fetchData();
+    } catch (e: any) {
+      toast(e.message || 'Gagal', false);
+    } finally {
+      setMutating(false);
+    }
   };
 
   // ─── Buat Work Order Handlers ────────────────────────────────────────────
@@ -603,7 +664,7 @@ export default function WorkOrderManagement() {
 
   const acts = selectedWO
     ? woActions(selectedWO)
-    : { needsTim: false, needsPenolakan: false, needsHasil: false };
+    : { needsTim: false, needsPenolakan: false, needsHasil: false, canBuatPengganti: false };
 
   if (authLoading || !isAuthenticated) return null;
 
@@ -842,10 +903,10 @@ export default function WorkOrderManagement() {
                       </TableRow>
                     ) : (
                       rows.map((wo, idx) => {
-                        const { needsTim, needsPenolakan, needsHasil } =
+                        const { needsTim, needsPenolakan, needsHasil, canBuatPengganti } =
                           woActions(wo);
                         const needsAction =
-                          needsTim || needsPenolakan || needsHasil;
+                          needsTim || needsPenolakan || needsHasil || canBuatPengganti;
                         const hasPenolakan =
                           wo.statusRespon === 'penolakan_diajukan' ||
                           wo.statusRespon === 'penolakan_diterima';
@@ -1186,6 +1247,24 @@ export default function WorkOrderManagement() {
           >
             <Cancel sx={{ mr: 1.5 }} fontSize='small' /> Tolak — Teknisi Tetap
             Kerjakan
+          </MenuItem>
+        )}
+
+        {acts.canBuatPengganti && <Divider sx={{ my: 0.5 }} />}
+        {acts.canBuatPengganti && (
+          <Box sx={{ px: 1, pb: 0.5 }}>
+            <Typography
+              variant='caption'
+              color='warning.dark'
+              sx={{ px: 1, fontWeight: 600 }}
+            >
+              Penolakan Diterima — Perlu Teknisi Baru
+            </Typography>
+          </Box>
+        )}
+        {acts.canBuatPengganti && (
+          <MenuItem onClick={openBuatPengganti} sx={{ color: 'warning.dark' }}>
+            <Add sx={{ mr: 1.5 }} fontSize='small' /> Buat WO Pengganti
           </MenuItem>
         )}
 
@@ -2152,6 +2231,103 @@ export default function WorkOrderManagement() {
             disabled={mutating}
           >
             {mutating ? <CircularProgress size={16} /> : 'Batalkan WO'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ─── Dialog: Buat WO Pengganti ───────────────────────────────────────────── */}
+      <Dialog
+        open={dlgBuatPengganti}
+        onClose={() => !mutating && setDlgBuatPengganti(false)}
+        maxWidth='sm'
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Buat Work Order Pengganti
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            {selectedWO && (
+              <Box sx={{ bgcolor: 'grey.50', p: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant='caption' color='text.secondary'>
+                  WO yang akan digantikan
+                </Typography>
+                <Typography variant='body2' fontWeight={600}>
+                  {selectedWO.jenisPekerjaan?.replace(/_/g, ' ')}
+                </Typography>
+                <Typography variant='caption' color='text.secondary'>
+                  Pelanggan: {selectedWO.koneksiData?.pelanggan?.namaLengkap || selectedWO.pelangganLaporan?.namaLengkap || '—'}
+                </Typography>
+                {selectedWO.alasanPenolakan && (
+                  <Alert severity='warning' sx={{ mt: 1, py: 0.5 }}>
+                    <strong>Alasan penolakan sebelumnya:</strong>{' '}
+                    {selectedWO.alasanPenolakan}
+                  </Alert>
+                )}
+              </Box>
+            )}
+
+            <Alert severity='info' sx={{ py: 0.5 }}>
+              WO baru akan dibuat dengan jenis pekerjaan yang sama. WO lama
+              (status penolakan diterima) akan otomatis dibatalkan.
+            </Alert>
+
+            {loadingReassignTeknisi ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} />
+                <Typography variant='body2' color='text.secondary'>
+                  Memuat daftar teknisi…
+                </Typography>
+              </Box>
+            ) : (
+              <Autocomplete
+                options={reassignTeknisiList}
+                getOptionLabel={(opt: any) =>
+                  `${opt.namaLengkap} — ${opt.divisi ?? ''}`
+                }
+                value={reassignTeknisiList.find(t => t.id === reassignTeknisiId) ?? null}
+                onChange={(_e, val) => setReassignTeknisiId(val?.id ?? '')}
+                isOptionEqualToValue={(opt: any, val: any) => opt.id === val?.id}
+                getOptionDisabled={(opt: any) =>
+                  opt.id === selectedWO?.teknisiPenanggungJawab?.id
+                }
+                renderOption={(props, opt: any) => (
+                  <Box component='li' {...props}>
+                    <Avatar sx={{ width: 28, height: 28, fontSize: 12, mr: 1.5, bgcolor: opt.id === selectedWO?.teknisiPenanggungJawab?.id ? 'grey.400' : 'success.main' }}>
+                      {opt.namaLengkap?.[0]}
+                    </Avatar>
+                    <Box>
+                      <Typography variant='body2' fontWeight={600}>
+                        {opt.namaLengkap}
+                        {opt.id === selectedWO?.teknisiPenanggungJawab?.id && ' (teknisi sebelumnya)'}
+                      </Typography>
+                      <Typography variant='caption' color='text.secondary'>
+                        {opt.divisi} · NIP {opt.nip}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                renderInput={params => (
+                  <TextField {...params} size='small' label='Teknisi Pengganti *' />
+                )}
+                noOptionsText='Tidak ada teknisi aktif'
+              />
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDlgBuatPengganti(false)} size='small' disabled={mutating}>
+            Batal
+          </Button>
+          <Button
+            variant='contained'
+            color='warning'
+            size='small'
+            onClick={handleBuatWOPengganti}
+            disabled={mutating || !reassignTeknisiId || loadingReassignTeknisi}
+            startIcon={mutating ? <CircularProgress size={14} color='inherit' /> : <Add />}
+          >
+            {mutating ? 'Membuat…' : 'Buat WO Pengganti'}
           </Button>
         </DialogActions>
       </Dialog>
