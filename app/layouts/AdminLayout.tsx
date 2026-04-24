@@ -92,6 +92,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           backgroundColor: 'background.default',
           minWidth: 0, // prevent flex overflow
           overflow: 'hidden',
+          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <AdminHeader onMenuToggle={handleSidebarToggle} title={title} />

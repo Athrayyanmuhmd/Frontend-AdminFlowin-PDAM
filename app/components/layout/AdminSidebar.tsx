@@ -541,18 +541,18 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       anchor='left'
       open={open}
       onClose={onToggle}
-      transitionDuration={0}
       ModalProps={{ keepMounted: true }}
       sx={{
         width: open ? 280 : 0,
         flexShrink: 0,
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '& .MuiDrawer-paper': {
           width: 280,
           boxSizing: 'border-box',
           borderRight: '1px solid',
           borderColor: 'divider',
           backgroundColor: 'background.paper',
-          transition: 'none !important',
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important',
         },
       }}
     >
