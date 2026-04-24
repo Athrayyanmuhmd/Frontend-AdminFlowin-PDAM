@@ -221,9 +221,9 @@ export default function AdminLogin() {
                   fontWeight: 600,
                   fontSize: '0.9rem',
                   textTransform: 'none',
-                  bgcolor: '#7c3aed',
+                  bgcolor: '#013494',
                   boxShadow: 'none',
-                  '&:hover': { bgcolor: '#6d28d9', boxShadow: 'none' },
+                  '&:hover': { bgcolor: '#012a7a', boxShadow: 'none' },
                   '&:disabled': { opacity: 0.7 },
                 }}
               >
