@@ -9,12 +9,14 @@ import {
   Divider, Dialog, DialogTitle, DialogContent, DialogActions,
   IconButton, Paper, TextField, List, ListItem, ListItemButton,
   ListItemIcon, ListItemText, Checkbox, Select, MenuItem, FormControl, InputLabel,
+  Stack,
 } from '@mui/material';
 import {
   ArrowBack, CheckCircle, HourglassEmpty, Cancel, Description,
   Close, ZoomIn, ZoomOut, RestartAlt, Visibility, RadioButtonUnchecked,
   VerifiedUser, Build, Payment, AccountBalance,
   GroupAdd, Assignment, ThumbUp, ThumbDown, Image as ImageIcon,
+  People, LocationOn, AccessTime,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
@@ -59,6 +61,42 @@ function StatusAdminChip({ status }: { status?: string }) {
   if (!status || status === 'menunggu_review') return <Chip size="small" label="Menunggu Review" color="warning" />;
   if (status === 'disetujui') return <Chip size="small" label="Disetujui" color="success" icon={<CheckCircle sx={{ fontSize: 14 }} />} />;
   return <Chip size="small" label="Ditolak" color="error" icon={<Cancel sx={{ fontSize: 14 }} />} />;
+}
+
+// ─── UI Helper Components ────────────────────────────────────────────────────
+
+function SectionTitle({ icon, title, color = 'primary.main' }: {
+  icon: React.ReactNode;
+  title: string;
+  color?: string;
+}) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+      <Box sx={{
+        width: 36, height: 36, borderRadius: 1.5,
+        bgcolor: color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, color: 'white', fontSize: 20,
+        '& .MuiSvgIcon-root': { fontSize: 20, color: 'white' },
+      }}>
+        {icon}
+      </Box>
+      <Typography variant="h6" fontWeight={700}>{title}</Typography>
+    </Box>
+  );
+}
+
+function InfoField({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary" fontWeight={500}
+        sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.25 }}>
+        {label}
+      </Typography>
+      <Typography variant="body1" fontWeight={500}>
+        {value || '—'}
+      </Typography>
+    </Box>
+  );
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -467,37 +505,49 @@ export default function ConnectionDataDetailPage() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
-          <IconButton onClick={() => router.push('/operations/connection-data')}>
-            <ArrowBack />
-          </IconButton>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h5" fontWeight={700}>Detail Sambungan</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {data.IdPelanggan?.namaLengkap || 'Pelanggan'} &middot; {data.Alamat || '—'}
-            </Typography>
-          </Box>
-          <Chip label={statusLabel} color={statusColor} />
-        </Box>
+      <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1100, mx: 'auto' }}>
+
+        {/* Header Card */}
+        <Card sx={{
+          mb: 3,
+          borderLeft: '5px solid',
+          borderColor: `${statusColor}.main`,
+          boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)',
+        }}>
+          <CardContent sx={{ py: 2.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+              <IconButton
+                onClick={() => router.push('/operations/connection-data')}
+                sx={{ mt: 0.25, bgcolor: 'action.hover', borderRadius: 1.5, flexShrink: 0 }}
+              >
+                <ArrowBack fontSize="small" />
+              </IconButton>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 0.5 }}>
+                  <Typography variant="h5" fontWeight={800}>Detail Sambungan</Typography>
+                  <Chip label={statusLabel} color={statusColor} size="small" sx={{ fontWeight: 700 }} />
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  {data.IdPelanggan?.namaLengkap || 'Pelanggan'} &middot; {data.Alamat || '—'}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Alerts */}
-        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
-        {errorMsg && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrorMsg(null)}>{errorMsg}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+        {errorMsg && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setErrorMsg(null)}>{errorMsg}</Alert>}
         {data.StatusPengajuan === 'REJECTED' && data.AlasanPenolakan && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
             <strong>Ditolak:</strong> {data.AlasanPenolakan}
           </Alert>
         )}
 
         {/* ─── PROGRESS STEPPER ─────────────────────────────────────────────── */}
-        <Card sx={{ mb: 3 }}>
+        <Card sx={{ mb: 3, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              <Assignment sx={{ verticalAlign: 'middle', mr: 1 }} />
-              Progres Sambungan Baru
-            </Typography>
+            <SectionTitle icon={<Assignment />} title="Progres Sambungan Baru" color="primary.main" />
 
             <Stepper orientation="vertical" activeStep={-1}>
 
@@ -1202,71 +1252,99 @@ export default function ConnectionDataDetailPage() {
           </DialogActions>
         </Dialog>
 
-        {/* Info Pelanggan */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>Informasi Pelanggan</Typography>
-            <Grid container spacing={2}>
-              {[
-                { label: 'Nama Lengkap', value: data.IdPelanggan?.namaLengkap },
-                { label: 'Email', value: data.IdPelanggan?.email },
-                { label: 'Nomor HP', value: data.IdPelanggan?.noHP },
-                { label: 'NIK', value: data.NIK },
-                { label: 'Nomor KK', value: data.NoKK },
-              ].map((item: { label: string; value: string }) => (
-                <Grid item xs={12} md={6} key={item.label}>
-                  <Typography variant="body2" color="text.secondary">{item.label}</Typography>
-                  <Typography variant="body1">{item.value || '—'}</Typography>
-                </Grid>
-              ))}
-            </Grid>
-          </CardContent>
-        </Card>
+        {/* Info Pelanggan + Info Properti — side by side */}
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} md={6}>
+            <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
+              <CardContent>
+                <SectionTitle icon={<People />} title="Informasi Pelanggan" color="info.main" />
+                <Stack spacing={2.5}>
+                  <InfoField label="Nama Lengkap" value={data.IdPelanggan?.namaLengkap} />
+                  <Divider />
+                  <InfoField label="Email" value={data.IdPelanggan?.email} />
+                  <Divider />
+                  <InfoField label="Nomor HP" value={data.IdPelanggan?.noHP} />
+                  <Divider />
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <InfoField label="NIK" value={data.NIK} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <InfoField label="Nomor KK" value={data.NoKK} />
+                    </Grid>
+                  </Grid>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        {/* Info Properti */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>Informasi Properti</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="body2" color="text.secondary">Alamat Lengkap</Typography>
-                <Typography variant="body1">{data.Alamat}</Typography>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography variant="body2" color="text.secondary">Kelurahan</Typography>
-                <Typography variant="body1">{data.Kelurahan}</Typography>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography variant="body2" color="text.secondary">Kecamatan</Typography>
-                <Typography variant="body1">{data.Kecamatan}</Typography>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography variant="body2" color="text.secondary">Luas Bangunan</Typography>
-                <Typography variant="body1">{data.LuasBangunan != null ? `${data.LuasBangunan} m²` : '—'}</Typography>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
+          <Grid item xs={12} md={6}>
+            <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
+              <CardContent>
+                <SectionTitle icon={<LocationOn />} title="Informasi Properti" color="warning.main" />
+                <Stack spacing={2.5}>
+                  <InfoField label="Alamat Lengkap" value={data.Alamat} />
+                  <Divider />
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <InfoField label="Kelurahan" value={data.Kelurahan} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <InfoField label="Kecamatan" value={data.Kecamatan} />
+                    </Grid>
+                  </Grid>
+                  <Divider />
+                  <InfoField
+                    label="Luas Bangunan"
+                    value={data.LuasBangunan != null ? `${data.LuasBangunan} m²` : undefined}
+                  />
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
 
-        {/* Dokumen */}
-        <Card sx={{ mb: 3 }}>
+        {/* Dokumen Pengajuan */}
+        <Card sx={{ mb: 3, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>Dokumen Pengajuan</Typography>
+            <SectionTitle icon={<Description />} title="Dokumen Pengajuan" color="success.main" />
             <Grid container spacing={2}>
               {[
                 { label: 'Foto KTP (NIK)', url: data.NIKUrl },
                 { label: 'Foto KK', url: data.KKUrl },
                 { label: 'Foto IMB', url: data.IMBUrl },
               ].map((doc: { label: string; url: string }) => (
-                <Grid item xs={12} md={4} key={doc.label}>
-                  <Paper sx={{ p: 2, textAlign: 'center' }}>
-                    <Description sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
-                    <Typography variant="body2" gutterBottom>{doc.label}</Typography>
-                    <Button size="small" variant="outlined" disabled={!doc.url}
-                      onClick={() => doc.url && openDocumentViewer(doc.url, doc.label)}>
-                      {doc.url ? 'Lihat Dokumen' : 'Belum Upload'}
-                    </Button>
-                  </Paper>
+                <Grid item xs={12} sm={4} key={doc.label}>
+                  <Box
+                    sx={{
+                      border: '1.5px solid',
+                      borderColor: doc.url ? 'success.light' : 'divider',
+                      borderRadius: 2,
+                      p: 2.5,
+                      textAlign: 'center',
+                      cursor: doc.url ? 'pointer' : 'default',
+                      transition: 'all 0.2s ease',
+                      '&:hover': doc.url
+                        ? { borderColor: 'primary.main', bgcolor: 'primary.50', transform: 'translateY(-2px)', boxShadow: 3 }
+                        : {},
+                    }}
+                    onClick={() => doc.url && openDocumentViewer(doc.url, doc.label)}
+                  >
+                    <Box sx={{
+                      width: 52, height: 52, borderRadius: '50%', mx: 'auto', mb: 1.5,
+                      bgcolor: doc.url ? 'success.50' : 'grey.100',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Description sx={{ fontSize: 26, color: doc.url ? 'success.main' : 'text.disabled' }} />
+                    </Box>
+                    <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{doc.label}</Typography>
+                    <Chip
+                      size="small"
+                      label={doc.url ? 'Tersedia — Klik untuk buka' : 'Belum Upload'}
+                      color={doc.url ? 'success' : 'default'}
+                      variant={doc.url ? 'filled' : 'outlined'}
+                    />
+                  </Box>
                 </Grid>
               ))}
             </Grid>
@@ -1274,18 +1352,16 @@ export default function ConnectionDataDetailPage() {
         </Card>
 
         {/* Timestamps */}
-        <Card>
+        <Card sx={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>Informasi Waktu</Typography>
-            <Grid container spacing={2}>
+            <SectionTitle icon={<AccessTime />} title="Informasi Waktu" color="secondary.main" />
+            <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
-                <Typography variant="body2" color="text.secondary">Tanggal Pengajuan</Typography>
-                <Typography variant="body1">{formatDate(data.createdAt)}</Typography>
+                <InfoField label="Tanggal Pengajuan" value={formatDate(data.createdAt)} />
               </Grid>
               {data.TanggalVerifikasi && (
                 <Grid item xs={12} md={6}>
-                  <Typography variant="body2" color="text.secondary">Tanggal Verifikasi Admin</Typography>
-                  <Typography variant="body1">{formatDate(data.TanggalVerifikasi)}</Typography>
+                  <InfoField label="Tanggal Verifikasi Admin" value={formatDate(data.TanggalVerifikasi)} />
                 </Grid>
               )}
             </Grid>
