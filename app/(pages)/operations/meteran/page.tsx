@@ -218,7 +218,7 @@ export default function MeteranListPage() {
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Manajemen Meteran
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Tooltip title="Refresh">
               <IconButton onClick={() => refetch()} size="small">
                 <Refresh />

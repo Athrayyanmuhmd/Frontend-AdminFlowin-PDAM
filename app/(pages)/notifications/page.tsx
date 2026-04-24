@@ -280,7 +280,7 @@ export default function NotifikasiPage() {
   return (
     <AdminLayout>
       <Box sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={1}>
           <Box>
             <Typography variant="h5" fontWeight={700} mb={0.5}>
               Manajemen Notifikasi
@@ -293,8 +293,7 @@ export default function NotifikasiPage() {
             variant="contained"
             startIcon={<Send />}
             onClick={() => setOpenSend(true)}
-            sx={{ minWidth: 160 }}
-          >
+            >
             Kirim Notifikasi
           </Button>
         </Box>
@@ -394,7 +393,7 @@ export default function NotifikasiPage() {
           ) : (
             <>
               <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small">
+                <Table size="small" sx={{ minWidth: 700 }}>
                   <TableHead>
                     <TableRow sx={{ backgroundColor: 'primary.50' }}>
                       <TableCell>No</TableCell>

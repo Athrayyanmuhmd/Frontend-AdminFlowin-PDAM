@@ -186,7 +186,7 @@ export default function SmartMetersListPage() {
               Pantau status dan konsumsi semua smart water meter terdaftar
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Tooltip title="Refresh data">
               <IconButton onClick={() => refetch()}>
                 <Refresh />

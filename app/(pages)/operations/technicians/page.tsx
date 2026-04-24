@@ -428,6 +428,7 @@ export default function TechnicianManagement() {
           <CardContent>
             <TextField
               fullWidth
+              size='small'
               placeholder='Cari nama, email, NIP, atau nomor telepon...'
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setPage(1); }}

@@ -207,7 +207,7 @@ export default function TariffsPage() {
               Kelompok pelanggan dan tarif berdasarkan ERD sistem Aqualink
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Tooltip title="Refresh">
               <IconButton onClick={() => refetch()}><Refresh /></IconButton>
             </Tooltip>

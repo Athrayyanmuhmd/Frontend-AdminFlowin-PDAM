@@ -183,7 +183,7 @@ export default function ConnectionDataManagement() {
             ) : (
               <>
                 <TableContainer component={Paper} variant='outlined' sx={{ overflowX: 'auto' }}>
-                  <Table sx={{ minWidth: 600 }}>
+                  <Table sx={{ minWidth: 700 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Pelanggan</TableCell>

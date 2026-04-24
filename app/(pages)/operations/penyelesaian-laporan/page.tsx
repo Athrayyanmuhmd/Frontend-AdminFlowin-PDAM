@@ -134,7 +134,7 @@ export default function PenyelesaianLaporanPage() {
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
               />
-              <FormControl size='small' sx={{ minWidth: 200 }}>
+              <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 200 } }}>
                 <InputLabel>Status WO</InputLabel>
                 <Select value={filterStatus} label='Status WO' onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
                   <MenuItem value=''>Semua</MenuItem>

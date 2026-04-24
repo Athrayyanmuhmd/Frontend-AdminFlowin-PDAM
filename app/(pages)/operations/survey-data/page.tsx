@@ -75,7 +75,7 @@ export default function SurveyDataPage() {
   return (
     <AdminLayout title='Data Survei'>
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
             <Typography variant='h5' fontWeight={700}>Data Survei</Typography>
             <Typography variant='body2' color='text.secondary'>

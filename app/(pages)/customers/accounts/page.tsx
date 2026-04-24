@@ -228,7 +228,7 @@ export default function CustomerAccounts() {
     return (
       <Card>
         <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: 600 }}>
+          <Table sx={{ minWidth: 750 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Akun &amp; Pelanggan</TableCell>
@@ -376,7 +376,7 @@ export default function CustomerAccounts() {
   return (
     <AdminLayout title="Akun Pelanggan">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
             Manajemen Akun Pelanggan
           </Typography>
@@ -464,7 +464,7 @@ export default function CustomerAccounts() {
 
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={tabValue} onChange={(_, v) => { setTabValue(v); setPage(1); }}>
+          <Tabs value={tabValue} onChange={(_, v) => { setTabValue(v); setPage(1); }} variant="scrollable" scrollButtons="auto">
             <Tab label="Semua Akun" />
             <Tab
               label={`Perlu Perhatian${stats.inactiveAccounts > 0 ? ` (${stats.inactiveAccounts})` : ''}`}

@@ -195,11 +195,11 @@ export default function SmartMeterManagement() {
   return (
     <AdminLayout title="Manajemen Meteran Pintar">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
             Manajemen Meteran Pintar
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               startIcon={<Refresh />}
@@ -277,7 +277,7 @@ export default function SmartMeterManagement() {
         </Grid>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+          <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} variant="scrollable" scrollButtons="auto">
             <Tab label="Daftar Meteran" icon={<Speed />} iconPosition="start" />
             <Tab label="Monitoring Pemakaian" icon={<MonitorHeart />} iconPosition="start" />
           </Tabs>
@@ -292,7 +292,7 @@ export default function SmartMeterManagement() {
                 <Alert severity="info">Belum ada meteran terdaftar.</Alert>
               ) : (
                 <TableContainer sx={{ overflowX: 'auto' }}>
-                  <Table size="small">
+                  <Table size="small" sx={{ minWidth: 900 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>No. Meteran</TableCell>
