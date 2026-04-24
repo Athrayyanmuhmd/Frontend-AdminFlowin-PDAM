@@ -505,7 +505,7 @@ export default function ConnectionDataDetailPage() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1100, mx: 'auto' }}>
+      <Box sx={{ p: { xs: 2, sm: 3 } }}>
 
         {/* Header Card */}
         <Card sx={{
@@ -1257,7 +1257,7 @@ export default function ConnectionDataDetailPage() {
           <Grid item xs={12} md={6}>
             <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
               <CardContent>
-                <SectionTitle icon={<People />} title="Informasi Pelanggan" color="info.main" />
+                <SectionTitle icon={<People />} title="Informasi Pelanggan" />
                 <Stack spacing={2.5}>
                   <InfoField label="Nama Lengkap" value={data.IdPelanggan?.namaLengkap} />
                   <Divider />
@@ -1281,7 +1281,7 @@ export default function ConnectionDataDetailPage() {
           <Grid item xs={12} md={6}>
             <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
               <CardContent>
-                <SectionTitle icon={<LocationOn />} title="Informasi Properti" color="warning.main" />
+                <SectionTitle icon={<LocationOn />} title="Informasi Properti" />
                 <Stack spacing={2.5}>
                   <InfoField label="Alamat Lengkap" value={data.Alamat} />
                   <Divider />
@@ -1307,7 +1307,7 @@ export default function ConnectionDataDetailPage() {
         {/* Dokumen Pengajuan */}
         <Card sx={{ mb: 3, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
           <CardContent>
-            <SectionTitle icon={<Description />} title="Dokumen Pengajuan" color="success.main" />
+            <SectionTitle icon={<Description />} title="Dokumen Pengajuan" />
             <Grid container spacing={2}>
               {[
                 { label: 'Foto KTP (NIK)', url: data.NIKUrl },
@@ -1318,31 +1318,31 @@ export default function ConnectionDataDetailPage() {
                   <Box
                     sx={{
                       border: '1.5px solid',
-                      borderColor: doc.url ? 'success.light' : 'divider',
+                      borderColor: 'divider',
                       borderRadius: 2,
                       p: 2.5,
                       textAlign: 'center',
                       cursor: doc.url ? 'pointer' : 'default',
                       transition: 'all 0.2s ease',
                       '&:hover': doc.url
-                        ? { borderColor: 'primary.main', bgcolor: 'primary.50', transform: 'translateY(-2px)', boxShadow: 3 }
+                        ? { borderColor: 'primary.main', bgcolor: 'action.hover', transform: 'translateY(-2px)', boxShadow: 2 }
                         : {},
                     }}
                     onClick={() => doc.url && openDocumentViewer(doc.url, doc.label)}
                   >
                     <Box sx={{
                       width: 52, height: 52, borderRadius: '50%', mx: 'auto', mb: 1.5,
-                      bgcolor: doc.url ? 'success.50' : 'grey.100',
+                      bgcolor: 'grey.100',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Description sx={{ fontSize: 26, color: doc.url ? 'success.main' : 'text.disabled' }} />
+                      <Description sx={{ fontSize: 26, color: doc.url ? 'primary.main' : 'text.disabled' }} />
                     </Box>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{doc.label}</Typography>
                     <Chip
                       size="small"
-                      label={doc.url ? 'Tersedia — Klik untuk buka' : 'Belum Upload'}
-                      color={doc.url ? 'success' : 'default'}
-                      variant={doc.url ? 'filled' : 'outlined'}
+                      label={doc.url ? 'Tersedia' : 'Belum Upload'}
+                      color={doc.url ? 'primary' : 'default'}
+                      variant="outlined"
                     />
                   </Box>
                 </Grid>
@@ -1354,7 +1354,7 @@ export default function ConnectionDataDetailPage() {
         {/* Timestamps */}
         <Card sx={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
           <CardContent>
-            <SectionTitle icon={<AccessTime />} title="Informasi Waktu" color="secondary.main" />
+            <SectionTitle icon={<AccessTime />} title="Informasi Waktu" />
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <InfoField label="Tanggal Pengajuan" value={formatDate(data.createdAt)} />
