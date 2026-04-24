@@ -356,8 +356,8 @@ export default function CustomerDetailPage() {
           <CardContent>
             <Grid container spacing={3}>
               <Grid item xs={12} md={8}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
-                  <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: '2rem' }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+                  <Avatar sx={{ width: { xs: 56, md: 72 }, height: { xs: 56, md: 72 }, bgcolor: 'primary.main', fontSize: { xs: '1.5rem', md: '2rem' }, flexShrink: 0 }}>
                     {customer.namaLengkap?.charAt(0) || '?'}
                   </Avatar>
                   <Box sx={{ flex: 1 }}>
@@ -557,7 +557,7 @@ export default function CustomerDetailPage() {
           <TabPanel value={tabValue} index={1}>
             <Box sx={{ mb: 2 }}>
               <Typography variant='h6' gutterBottom>Riwayat Pemakaian Air</Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                 {(['hari', 'minggu', 'bulan', 'tahun'] as const).map(f => (
                   <Chip
                     key={f}
@@ -573,7 +573,7 @@ export default function CustomerDetailPage() {
               <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
             ) : historyUsage.length > 0 ? (
               <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table>
+                <Table sx={{ minWidth: 500 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>
@@ -648,7 +648,7 @@ export default function CustomerDetailPage() {
               <Grid container spacing={3}>
                 {/* Status Pengajuan */}
                 <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
                     <Typography variant='h6' sx={{ fontWeight: 600 }}>Status Pengajuan Sambungan</Typography>
                     <Chip
                       label={
@@ -663,7 +663,7 @@ export default function CustomerDetailPage() {
                     />
                     {koneksiData.TanggalVerifikasi && (
                       <Typography variant='caption' color='text.secondary'>
-                        Diverifikasi: {new Date(koneksiData.TanggalVerifikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        Diverifikasi: {new Date(koneksiData.TanggalVerifikasi).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </Typography>
                     )}
                   </Box>
@@ -741,12 +741,12 @@ export default function CustomerDetailPage() {
                           <Typography variant='caption' color='text.secondary'>Alamat Lengkap</Typography>
                           <Typography variant='body2' sx={{ fontWeight: 500 }}>{koneksiData.Alamat || '-'}</Typography>
                         </Box>
-                        <Box sx={{ display: 'flex', gap: 3 }}>
-                          <Box>
+                        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                          <Box sx={{ minWidth: 100 }}>
                             <Typography variant='caption' color='text.secondary'>Kelurahan</Typography>
                             <Typography variant='body2' sx={{ fontWeight: 500 }}>{koneksiData.Kelurahan || '-'}</Typography>
                           </Box>
-                          <Box>
+                          <Box sx={{ minWidth: 100 }}>
                             <Typography variant='caption' color='text.secondary'>Kecamatan</Typography>
                             <Typography variant='body2' sx={{ fontWeight: 500 }}>{koneksiData.Kecamatan || '-'}</Typography>
                           </Box>
@@ -880,8 +880,8 @@ export default function CustomerDetailPage() {
                     </Typography>
                     <Divider sx={{ mb: 2 }} />
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, flexWrap: 'wrap' }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography variant='body2' sx={{ fontWeight: 500 }}>Status Verifikasi</Typography>
                           <Typography variant='caption' color='text.secondary'>
                             {customer.isVerified ? 'Data pelanggan sudah diverifikasi admin' : 'Belum diverifikasi oleh admin'}
@@ -892,6 +892,7 @@ export default function CustomerDetailPage() {
                           variant={customer.isVerified ? 'outlined' : 'contained'}
                           color={customer.isVerified ? 'warning' : 'info'}
                           disabled={updatingCustomer}
+                          sx={{ flexShrink: 0 }}
                           onClick={() => updateCustomer({ variables: { id: customerId, input: { isVerified: !customer.isVerified } } })}
                         >
                           {customer.isVerified ? 'Batalkan Verifikasi' : 'Verifikasi Sekarang'}
