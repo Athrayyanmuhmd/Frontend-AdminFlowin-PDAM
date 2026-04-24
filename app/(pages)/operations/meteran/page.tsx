@@ -215,7 +215,7 @@ export default function MeteranListPage() {
     <AdminLayout title="Manajemen Meteran">
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Manajemen Meteran
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -278,6 +278,7 @@ export default function MeteranListPage() {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  size="small"
                   placeholder="Cari nomor meteran, nomor akun, atau nama pelanggan..."
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
@@ -289,7 +290,7 @@ export default function MeteranListPage() {
                 />
               </Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
                     value={filterStatus}
@@ -400,6 +401,7 @@ export default function MeteranListPage() {
               page={page}
               onChange={(_, newPage) => setPage(newPage)}
               color="primary"
+              size="small"
             />
           </Box>
         </Card>

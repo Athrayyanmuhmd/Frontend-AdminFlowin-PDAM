@@ -100,11 +100,11 @@ export default function ConnectionDataManagement() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: { xs: 2, sm: 3 } }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
-            <Typography variant='h4' gutterBottom>
+            <Typography variant='h5' gutterBottom>
               Data Sambungan Air
             </Typography>
             <Typography variant='body2' color='text.secondary'>
@@ -123,6 +123,7 @@ export default function ConnectionDataManagement() {
               <Box sx={{ flex: '1 1 280px', minWidth: 200 }}>
                 <TextField
                   fullWidth
+                  size='small'
                   placeholder='Cari NIK, Nama, Email, Alamat...'
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
@@ -261,6 +262,7 @@ export default function ConnectionDataManagement() {
                     page={page}
                     onChange={(_, v) => setPage(v)}
                     color='primary'
+                    size='small'
                   />
                 </Box>
               </>

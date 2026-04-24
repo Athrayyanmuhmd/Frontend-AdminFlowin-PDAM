@@ -57,7 +57,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
         borderColor: 'divider',
       }}
     >
-      <Typography variant='body2' color='text.secondary' sx={{ minWidth: 180 }}>
+      <Typography variant='body2' color='text.secondary' sx={{ minWidth: { xs: 110, sm: 160 }, flexShrink: 0 }}>
         {label}
       </Typography>
       <Typography variant='body2' fontWeight={500}>

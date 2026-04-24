@@ -1,14 +1,20 @@
-import React from 'react';
-import { notFound } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { getWorkOrder, getProgresWorkOrder, getLaporan } from '@/lib/graphql/teknisiServer';
+'use client';
+export const dynamic = 'force-dynamic';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAdmin } from '../../../../layouts/AdminProvider';
+import { getWorkOrder, getProgresWorkOrder, getLaporan } from '@/lib/graphql/teknisiServer';
+import AdminLayout from '../../../../layouts/AdminLayout';
 import {
   Box, Card, CardContent, Typography, Chip, Grid, Divider, Button,
+  CircularProgress, Alert,
 } from '@mui/material';
 import { ArrowBack, OpenInNew, LocationOn } from '@mui/icons-material';
 
-const fmtDate = (v: string) => {
+const fmtDate = (v?: string) => {
+  if (!v) return '-';
   const d = /^\d+$/.test(v) ? new Date(Number(v)) : new Date(v);
   return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 };
@@ -49,231 +55,273 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export default async function PenyelesaianLaporanDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const cookieStore = await cookies();
-  const token = cookieStore.get('admin_token')?.value ?? '';
+export default function PenyelesaianLaporanDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+  const id = params.id as string;
 
-  const [woRes, progresRes] = await Promise.all([
-    getWorkOrder(token, id),
-    getProgresWorkOrder(token, id),
-  ]);
+  const [wo, setWo] = useState<any>(null);
+  const [progres, setProgres] = useState<any>(null);
+  const [laporan, setLaporan] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const wo = (woRes.data as any)?.workOrder;
-  if (!wo) notFound();
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
-  const progres = (progresRes.data as any)?.progresWorkOrder;
-  const st = STATUS_WO[wo.status];
+  const fetchData = useCallback(async () => {
+    const token = localStorage.getItem('admin_token') ?? '';
+    if (!id) return;
+    setLoading(true);
+    setError('');
+    try {
+      const [woRes, progresRes] = await Promise.all([
+        getWorkOrder(token, id),
+        getProgresWorkOrder(token, id),
+      ]);
+      if (woRes.errors?.length) {
+        setError(woRes.errors[0].message);
+        return;
+      }
+      const woData = (woRes.data as any)?.workOrder ?? null;
+      setWo(woData);
+      setProgres((progresRes.data as any)?.progresWorkOrder ?? null);
 
-  // Fetch laporan if idLaporan is available
-  let laporan: any = null;
-  if (wo.idLaporan) {
-    const lRes = await getLaporan(token, wo.idLaporan);
-    laporan = (lRes.data as any)?.laporan;
-  }
+      if (woData?.idLaporan) {
+        const lRes = await getLaporan(token, woData.idLaporan);
+        setLaporan((lRes.data as any)?.laporan ?? null);
+      }
+    } catch (err: any) {
+      setError(err.message ?? 'Gagal memuat data');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
-  const urlGambar: string[] = progres?.urlGambar ?? [];
+  useEffect(() => {
+    if (isAuthenticated) fetchData();
+  }, [isAuthenticated, fetchData]);
+
+  if (authLoading || !isAuthenticated) return null;
+
+  const st = wo ? STATUS_WO[wo.status] : null;
   const laporanStatus = laporan ? STATUS_LAPORAN[laporan.Status] : null;
+  const urlGambar: string[] = progres?.urlGambar ?? [];
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-        <Button component={Link} href='/operations/penyelesaian-laporan' startIcon={<ArrowBack />} variant='text' size='small'>
-          Kembali
-        </Button>
-        <Typography variant='h6' fontWeight={700}>Detail Work Order Penyelesaian Laporan</Typography>
-      </Box>
+    <AdminLayout title='Detail Penyelesaian Laporan'>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+          <Button component={Link} href='/operations/penyelesaian-laporan' startIcon={<ArrowBack />} variant='text' size='small'>
+            Kembali
+          </Button>
+          <Typography variant='h6' fontWeight={700}>
+            Detail Work Order Penyelesaian Laporan
+          </Typography>
+          {st && <Chip label={st.label} color={st.color as any} size='small' />}
+        </Box>
 
-      <Grid container spacing={3}>
-        {/* Left: WO Info */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant='subtitle1' fontWeight={700}>Informasi Work Order</Typography>
-                <Chip label={st?.label ?? wo.status} color={(st?.color ?? 'default') as any} size='small' />
-              </Box>
-              <Divider sx={{ mb: 2 }} />
-              <Row label='ID Work Order' value={<Typography variant='caption' sx={{ fontFamily: 'monospace' }}>{wo.id}</Typography>} />
-              <Row label='Jenis Pekerjaan' value='Penyelesaian Laporan' />
-              <Row label='Status Respon' value={wo.statusRespon} />
-              {wo.alasanPenolakan && <Row label='Alasan Penolakan' value={wo.alasanPenolakan} />}
-              <Divider sx={{ my: 2 }} />
-              <Row label='Teknisi PJ' value={wo.teknisiPenanggungJawab?.namaLengkap} />
-              <Row label='NIP' value={wo.teknisiPenanggungJawab?.nip} />
-              <Row label='Divisi' value={wo.teknisiPenanggungJawab?.divisi} />
-              {wo.tim?.length > 0 && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant='caption' color='text.secondary'>Tim</Typography>
-                  {wo.tim.map((t: any) => (
-                    <Typography key={t.id} variant='body2'>{t.namaLengkap} ({t.nip})</Typography>
-                  ))}
-                </>
-              )}
-              <Divider sx={{ my: 2 }} />
-              <Row label='Dibuat' value={fmtDate(wo.createdAt)} />
-              <Row label='Diperbarui' value={fmtDate(wo.updatedAt)} />
-              {wo.catatanReview && <Row label='Catatan Review Admin' value={wo.catatanReview} />}
-              {wo.riwayatRespon?.length > 0 && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 0.5 }}>Riwayat Respon</Typography>
-                  {wo.riwayatRespon.map((r: any, i: number) => (
-                    <Box key={i} sx={{ mb: 0.5, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-                      <Typography variant='caption' fontWeight={600}>{r.aksi}</Typography>
-                      {r.alasan && <Typography variant='caption' color='text.secondary' display='block'>{r.alasan}</Typography>}
-                      <Typography variant='caption' color='text.disabled'>{r.oleh} · {fmtDate(r.tanggal)}</Typography>
-                    </Box>
-                  ))}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+        {error && (
+          <Alert severity='error' sx={{ mb: 2 }}>{error}</Alert>
+        )}
 
-        {/* Middle: Laporan Info */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant='subtitle1' fontWeight={700}>Data Laporan</Typography>
-                {laporanStatus && (
-                  <Chip label={laporanStatus.label} color={laporanStatus.color} size='small' />
-                )}
-              </Box>
-              <Divider sx={{ mb: 2 }} />
-              {!laporan ? (
-                <Box>
-                  <Typography color='text.secondary' variant='body2'>Data laporan tidak ditemukan</Typography>
-                  {wo.idLaporan && (
-                    <Row label='ID Laporan' value={<Typography variant='caption' sx={{ fontFamily: 'monospace' }}>{wo.idLaporan}</Typography>} />
-                  )}
-                </Box>
-              ) : (
-                <>
-                  <Row label='Judul Laporan' value={laporan.NamaLaporan} />
-                  <Row label='Jenis Masalah' value={JENIS_LAPORAN[laporan.JenisLaporan] || laporan.JenisLaporan} />
-                  <Divider sx={{ my: 2 }} />
-                  <Row label='Nama Pelapor' value={laporan.pengguna?.namaLengkap} />
-                  <Row label='No HP' value={laporan.pengguna?.noHp} />
-                  <Row label='Email' value={laporan.pengguna?.email} />
-                  <Divider sx={{ my: 2 }} />
-                  <Row label='Alamat Kejadian' value={laporan.Alamat} />
-                  {laporan.Kordinat && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Typography variant='caption' color='text.secondary'>Koordinat</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                        <Typography variant='body2'>
-                          {laporan.Kordinat.latitude}, {laporan.Kordinat.longitude}
-                        </Typography>
-                        <Button
-                          size='small'
-                          variant='outlined'
-                          startIcon={<LocationOn fontSize='small' />}
-                          sx={{ py: 0, px: 1, fontSize: 11 }}
-                          onClick={() => {
-                            // @ts-ignore
-                            if (typeof window !== 'undefined') window.open(`https://maps.google.com/?q=${laporan.Kordinat.latitude},${laporan.Kordinat.longitude}`, '_blank');
-                          }}
-                        >
-                          Maps
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-                  <Divider sx={{ my: 2 }} />
-                  <Box sx={{ mb: 1.5 }}>
-                    <Typography variant='caption' color='text.secondary'>Deskripsi Masalah</Typography>
-                    <Typography variant='body2'>{laporan.Masalah || '-'}</Typography>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : !wo ? (
+          !error && <Alert severity='warning'>Data tidak ditemukan</Alert>
+        ) : (
+          <Grid container spacing={3}>
+            {/* Left: WO Info */}
+            <Grid item xs={12} md={4}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                    <Typography variant='subtitle1' fontWeight={700}>Informasi Work Order</Typography>
                   </Box>
-                  {laporan.Catatan && (
-                    <Row label='Catatan Pelanggan' value={laporan.Catatan} />
+                  <Divider sx={{ mb: 2 }} />
+                  <Row label='ID Work Order' value={<Typography variant='caption' sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{wo.id}</Typography>} />
+                  <Row label='Jenis Pekerjaan' value='Penyelesaian Laporan' />
+                  <Row label='Status Respon' value={wo.statusRespon} />
+                  {wo.alasanPenolakan && <Row label='Alasan Penolakan' value={wo.alasanPenolakan} />}
+                  <Divider sx={{ my: 2 }} />
+                  <Row label='Teknisi PJ' value={wo.teknisiPenanggungJawab?.namaLengkap} />
+                  <Row label='NIP' value={wo.teknisiPenanggungJawab?.nip} />
+                  <Row label='Divisi' value={wo.teknisiPenanggungJawab?.divisi} />
+                  {wo.tim?.length > 0 && (
+                    <>
+                      <Divider sx={{ my: 2 }} />
+                      <Typography variant='caption' color='text.secondary'>Tim</Typography>
+                      {wo.tim.map((t: any) => (
+                        <Typography key={t.id} variant='body2'>{t.namaLengkap} ({t.nip})</Typography>
+                      ))}
+                    </>
                   )}
-                  <Row label='Dilaporkan' value={fmtDate(laporan.createdAt)} />
-                  {laporan.imageUrl?.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1 }}>
-                        Foto dari Pelanggan ({laporan.imageUrl.length} foto)
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        {laporan.imageUrl.map((url: string, i: number) => (
-                          <Box
-                            key={i}
-                            component='a'
-                            href={url}
-                            target='_blank'
-                            rel='noopener noreferrer'
-                            sx={{ display: 'block' }}
-                          >
-                            <Box
-                              component='img'
-                              src={url}
-                              alt={`Foto ${i + 1}`}
-                              sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid #e0e0e0' }}
-                            />
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
+                  <Divider sx={{ my: 2 }} />
+                  <Row label='Dibuat' value={fmtDate(wo.createdAt)} />
+                  <Row label='Diperbarui' value={fmtDate(wo.updatedAt)} />
+                  {wo.catatanReview && <Row label='Catatan Review Admin' value={wo.catatanReview} />}
+                  {wo.riwayatRespon?.length > 0 && (
+                    <>
+                      <Divider sx={{ my: 2 }} />
+                      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 0.5 }}>Riwayat Respon</Typography>
+                      {wo.riwayatRespon.map((r: any, i: number) => (
+                        <Box key={i} sx={{ mb: 0.5, pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
+                          <Typography variant='caption' fontWeight={600}>{r.aksi}</Typography>
+                          {r.alasan && <Typography variant='caption' color='text.secondary' display='block'>{r.alasan}</Typography>}
+                          <Typography variant='caption' color='text.disabled'>{r.oleh} · {fmtDate(r.tanggal)}</Typography>
+                        </Box>
+                      ))}
+                    </>
                   )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
 
-        {/* Right: Progres Penyelesaian */}
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant='subtitle1' fontWeight={700} sx={{ mb: 2 }}>Progres Penyelesaian</Typography>
-              <Divider sx={{ mb: 2 }} />
-              {!progres ? (
-                <Typography color='text.secondary' variant='body2'>Teknisi belum mengisi data progres</Typography>
-              ) : (
-                <>
-                  {progres.catatan && <Row label='Catatan Teknisi' value={progres.catatan} />}
-                  {urlGambar.length > 0 ? (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1 }}>
-                        Foto Dokumentasi Pekerjaan ({urlGambar.length} foto)
-                      </Typography>
-                      <Grid container spacing={1.5}>
-                        {urlGambar.map((url, i) => (
-                          <Grid item xs={6} key={i}>
-                            <Box
-                              component='a'
-                              href={url}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              sx={{ display: 'block', textDecoration: 'none' }}
-                            >
-                              <Box
-                                component='img'
-                                src={url}
-                                alt={`Foto ${i + 1}`}
-                                sx={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 1, border: '1px solid #e0e0e0' }}
-                              />
-                              <Typography variant='caption' color='primary' sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                                Foto {i + 1} <OpenInNew sx={{ fontSize: 12 }} />
-                              </Typography>
-                            </Box>
-                          </Grid>
-                        ))}
-                      </Grid>
+            {/* Middle: Laporan Info */}
+            <Grid item xs={12} md={4}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                    <Typography variant='subtitle1' fontWeight={700}>Data Laporan</Typography>
+                    {laporanStatus && (
+                      <Chip label={laporanStatus.label} color={laporanStatus.color} size='small' />
+                    )}
+                  </Box>
+                  <Divider sx={{ mb: 2 }} />
+                  {!laporan ? (
+                    <Box>
+                      <Typography color='text.secondary' variant='body2'>Data laporan tidak ditemukan</Typography>
+                      {wo.idLaporan && (
+                        <Row label='ID Laporan' value={<Typography variant='caption' sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{wo.idLaporan}</Typography>} />
+                      )}
                     </Box>
                   ) : (
-                    !progres.catatan && (
-                      <Typography color='text.secondary' variant='body2'>Belum ada dokumentasi</Typography>
-                    )
+                    <>
+                      <Row label='Judul Laporan' value={laporan.NamaLaporan} />
+                      <Row label='Jenis Masalah' value={JENIS_LAPORAN[laporan.JenisLaporan] || laporan.JenisLaporan} />
+                      <Divider sx={{ my: 2 }} />
+                      <Row label='Nama Pelapor' value={laporan.pengguna?.namaLengkap} />
+                      <Row label='No HP' value={laporan.pengguna?.noHp} />
+                      <Row label='Email' value={laporan.pengguna?.email} />
+                      <Divider sx={{ my: 2 }} />
+                      <Row label='Alamat Kejadian' value={laporan.Alamat} />
+                      {laporan.Kordinat && (
+                        <Box sx={{ mb: 1.5 }}>
+                          <Typography variant='caption' color='text.secondary'>Koordinat</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
+                            <Typography variant='body2'>
+                              {laporan.Kordinat.latitude}, {laporan.Kordinat.longitude}
+                            </Typography>
+                            <Button
+                              size='small'
+                              variant='outlined'
+                              startIcon={<LocationOn fontSize='small' />}
+                              sx={{ py: 0, px: 1, fontSize: 11 }}
+                              onClick={() => window.open(`https://maps.google.com/?q=${laporan.Kordinat.latitude},${laporan.Kordinat.longitude}`, '_blank')}
+                            >
+                              Maps
+                            </Button>
+                          </Box>
+                        </Box>
+                      )}
+                      <Divider sx={{ my: 2 }} />
+                      <Box sx={{ mb: 1.5 }}>
+                        <Typography variant='caption' color='text.secondary'>Deskripsi Masalah</Typography>
+                        <Typography variant='body2'>{laporan.Masalah || '-'}</Typography>
+                      </Box>
+                      {laporan.Catatan && (
+                        <Row label='Catatan Pelanggan' value={laporan.Catatan} />
+                      )}
+                      <Row label='Dilaporkan' value={fmtDate(laporan.createdAt)} />
+                      {laporan.imageUrl?.length > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1 }}>
+                            Foto dari Pelanggan ({laporan.imageUrl.length} foto)
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {laporan.imageUrl.map((url: string, i: number) => (
+                              <Box
+                                key={i}
+                                component='a'
+                                href={url}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                sx={{ display: 'block' }}
+                              >
+                                <Box
+                                  component='img'
+                                  src={url}
+                                  alt={`Foto ${i + 1}`}
+                                  sx={{ width: { xs: 70, sm: 80 }, height: { xs: 70, sm: 80 }, objectFit: 'cover', borderRadius: 1, border: '1px solid #e0e0e0' }}
+                                />
+                              </Box>
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Right: Progres Penyelesaian */}
+            <Grid item xs={12} md={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant='subtitle1' fontWeight={700} sx={{ mb: 2 }}>Progres Penyelesaian</Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  {!progres ? (
+                    <Typography color='text.secondary' variant='body2'>Teknisi belum mengisi data progres</Typography>
+                  ) : (
+                    <>
+                      {progres.catatan && <Row label='Catatan Teknisi' value={progres.catatan} />}
+                      {urlGambar.length > 0 ? (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1 }}>
+                            Foto Dokumentasi Pekerjaan ({urlGambar.length} foto)
+                          </Typography>
+                          <Grid container spacing={1.5}>
+                            {urlGambar.map((url, i) => (
+                              <Grid item xs={6} key={i}>
+                                <Box
+                                  component='a'
+                                  href={url}
+                                  target='_blank'
+                                  rel='noopener noreferrer'
+                                  sx={{ display: 'block', textDecoration: 'none' }}
+                                >
+                                  <Box
+                                    component='img'
+                                    src={url}
+                                    alt={`Foto ${i + 1}`}
+                                    sx={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 1, border: '1px solid #e0e0e0' }}
+                                  />
+                                  <Typography variant='caption' color='primary' sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                    Foto {i + 1} <OpenInNew sx={{ fontSize: 12 }} />
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            ))}
+                          </Grid>
+                        </Box>
+                      ) : (
+                        !progres.catatan && (
+                          <Typography color='text.secondary' variant='body2'>Belum ada dokumentasi</Typography>
+                        )
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+      </Box>
+    </AdminLayout>
   );
 }

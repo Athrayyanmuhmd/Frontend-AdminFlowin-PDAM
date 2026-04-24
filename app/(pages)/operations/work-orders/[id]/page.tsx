@@ -144,7 +144,7 @@ const TIM_COLORS: Record<string, 'default' | 'warning' | 'success' | 'error'> =
 
 const CHAIN_COLORS: Record<string, string> = {
   selesai: '#2e7d32',
-  aktif: '#1976d2',
+  aktif: '#013494',
   belum_dibuat: '#9e9e9e',
   dibatalkan: '#d32f2f',
 };

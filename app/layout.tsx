@@ -27,7 +27,7 @@ export default function RootLayout({
     <html lang='id' suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
         <NextTopLoader
-          color='#1976d2'
+          color='#013494'
           initialPosition={0.08}
           crawlSpeed={200}
           height={3}
@@ -35,7 +35,7 @@ export default function RootLayout({
           showSpinner={false}
           easing='ease'
           speed={200}
-          shadow='0 0 10px #1976d2,0 0 5px #1976d2'
+          shadow='0 0 10px #013494,0 0 5px #013494'
         />
         <AdminProvider>{children}</AdminProvider>
       </body>

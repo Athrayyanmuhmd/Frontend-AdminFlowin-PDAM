@@ -5,7 +5,7 @@ import { AppProps } from "next/app";
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#1976d2",
+      main: "#013494",
     },
     secondary: {
       main: "#dc004e",

@@ -426,7 +426,7 @@ export default function TechnicianManagement() {
         {/* Stats */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total Teknisi', value: technicians.length, color: '#1976d2' },
+            { label: 'Total Teknisi', value: technicians.length, color: '#013494' },
             { label: 'Aktif', value: technicians.filter(t => t.isActive !== false).length, color: '#2e7d32' },
             { label: 'Nonaktif', value: technicians.filter(t => t.isActive === false).length, color: '#757575' },
           ].map(s => (
