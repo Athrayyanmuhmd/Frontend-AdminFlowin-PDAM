@@ -161,7 +161,7 @@ export default function ConnectionDataDetailPage() {
   const { data: koneksiResult, loading, error, refetch } = useQuery(GET_CONNECTION_DATA_BY_ID, {
     variables: { id },
     skip: !id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const data: any = (koneksiResult as any)?.getKoneksiData;
   const isApproved = data?.StatusPengajuan === 'APPROVED';
@@ -169,35 +169,35 @@ export default function ConnectionDataDetailPage() {
   const { data: surveiResult, refetch: refetchSurvei } = useQuery(GET_SURVEI_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
     skip: !id || !isApproved,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const survei: any = (surveiResult as any)?.getSurveiByKoneksiData;
 
   const { data: rabResult, refetch: refetchRab } = useQuery(GET_RAB_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
     skip: !id || !isApproved,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const rab: any = (rabResult as any)?.getRABByKoneksiData;
 
   const { data: meteranResult, refetch: refetchMeteran } = useQuery(GET_METERAN_BY_KONEKSI_DATA, {
     variables: { IdKoneksiData: id },
     skip: !id || !isApproved,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const meteran: any = (meteranResult as any)?.getMeteranByKoneksiData;
 
   const { data: pemasanganResult, refetch: refetchPemasangan } = useQuery(GET_PEMASANGAN_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
     skip: !id || !isApproved,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const pemasangan: any = (pemasanganResult as any)?.getPemasanganByKoneksiData;
 
   const { data: pengawasanResult, refetch: refetchPengawasan } = useQuery(GET_PENGAWASAN_BY_PEMASANGAN_ID, {
     variables: { idPemasangan: pemasangan?._id },
     skip: !pemasangan?._id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const pengawasanList: any[] = (pengawasanResult as any)?.getPengawasanPemasanganByPemasangan || [];
   const pengawasan: any = pengawasanList[0];
@@ -205,7 +205,7 @@ export default function ConnectionDataDetailPage() {
   const { data: pengawasanSetelahResult, refetch: refetchPengawasanSetelah } = useQuery(GET_PENGAWASAN_SETELAH_BY_PEMASANGAN_ID, {
     variables: { idPemasangan: pemasangan?._id },
     skip: !pemasangan?._id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const pengawasanSetelahList: any[] = (pengawasanSetelahResult as any)?.getPengawasanSetelahPemasanganByPemasangan || [];
   const pengawasanSetelah: any = pengawasanSetelahList[0];
@@ -213,20 +213,20 @@ export default function ConnectionDataDetailPage() {
   const { data: woResult, refetch: refetchWO } = useQuery(GET_WORK_ORDERS_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: id },
     skip: !id || !isApproved,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const workOrders: any[] = (woResult as any)?.workOrdersByKoneksiData || [];
 
   const { data: teknisiResult, loading: teknisiLoading } = useQuery(GET_ALL_TEKNISI, {
     skip: !woCreateDialogOpen,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const allTeknisi: any[] = (teknisiResult as any)?.getAllTeknisi || [];
 
   // Kelompok pelanggan untuk dropdown di dialog registrasi+aktivasi
   const { data: kelompokResult } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
     skip: !regAktivasiOpen,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const kelompokList: any[] = (kelompokResult as any)?.getAllKelompokPelanggan || [];
 
