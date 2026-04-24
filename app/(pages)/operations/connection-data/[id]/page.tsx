@@ -554,7 +554,14 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 1 — Pengajuan */}
               <Step active completed={step1Done}>
-                <StepLabel icon={<CheckCircle color="success" />}>
+                <StepLabel
+                  icon={<CheckCircle color="success" />}
+                  optional={
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDate(data.createdAt)}
+                    </Typography>
+                  }
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Description fontSize="small" color="action" />
                     <Typography fontWeight={600}>Pengajuan Sambungan Baru</Typography>
@@ -569,11 +576,20 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 2 — Verifikasi Admin */}
               <Step active={step1Done && !step2Done} completed={step2Done}>
-                <StepLabel icon={
-                  step2Done ? <CheckCircle color="success" /> :
-                  data.StatusPengajuan === 'REJECTED' ? <Cancel color="error" /> :
-                  <HourglassEmpty color="warning" />
-                }>
+                <StepLabel
+                  icon={
+                    step2Done ? <CheckCircle color="success" /> :
+                    data.StatusPengajuan === 'REJECTED' ? <Cancel color="error" /> :
+                    <HourglassEmpty color="warning" />
+                  }
+                  optional={
+                    step2Done && data.TanggalVerifikasi ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Diverifikasi pada {formatDate(data.TanggalVerifikasi)}
+                      </Typography>
+                    ) : undefined
+                  }
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <VerifiedUser fontSize="small" color="action" />
                     <Typography fontWeight={600} color={data.StatusPengajuan === 'REJECTED' ? 'error.main' : 'text.primary'}>
@@ -620,12 +636,22 @@ export default function ConnectionDataDetailPage() {
                     step3Done ? <CheckCircle color="success" /> :
                     <HourglassEmpty color={woSurvei ? 'info' : 'warning'} />
                   }
-                  optional={woSurvei?.id ? (
-                    <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
-                      onClick={() => router.push(`/operations/work-orders/${woSurvei.id}`)}
-                      sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
-                      Lihat Work Order
-                    </Button>
+                  optional={step2Done ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {[
+                          woSurvei?.teknisiPenanggungJawab?.namaLengkap && `Teknisi: ${woSurvei.teknisiPenanggungJawab.namaLengkap}`,
+                          survei?.createdAt && `Data survei: ${formatDate(survei.createdAt)}`,
+                        ].filter(Boolean).join(' · ')}
+                      </Typography>
+                      {woSurvei?.id && (
+                        <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                          onClick={() => router.push(`/operations/work-orders/${woSurvei.id}`)}
+                          sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, width: 'fit-content', '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                          Lihat Work Order
+                        </Button>
+                      )}
+                    </Box>
                   ) : undefined}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -725,12 +751,22 @@ export default function ConnectionDataDetailPage() {
                     step4Done ? <CheckCircle color="success" /> :
                     <HourglassEmpty color={woRab ? 'info' : 'warning'} />
                   }
-                  optional={woRab?.id ? (
-                    <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
-                      onClick={() => router.push(`/operations/work-orders/${woRab.id}`)}
-                      sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
-                      Lihat Work Order
-                    </Button>
+                  optional={step3Done ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {[
+                          woRab?.teknisiPenanggungJawab?.namaLengkap && `Teknisi: ${woRab.teknisiPenanggungJawab.namaLengkap}`,
+                          rab?.totalBiaya && `Total RAB: ${formatRupiah(rab.totalBiaya)}`,
+                        ].filter(Boolean).join(' · ')}
+                      </Typography>
+                      {woRab?.id && (
+                        <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                          onClick={() => router.push(`/operations/work-orders/${woRab.id}`)}
+                          sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, width: 'fit-content', '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                          Lihat Work Order
+                        </Button>
+                      )}
+                    </Box>
                   ) : undefined}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -824,11 +860,21 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 5 — Pembayaran RAB */}
               <Step active={step4Done && !step5Done} completed={step5Done}>
-                <StepLabel icon={
-                  !step4Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step5Done ? <CheckCircle color="success" /> :
-                  <HourglassEmpty color="warning" />
-                }>
+                <StepLabel
+                  icon={
+                    !step4Done ? <RadioButtonUnchecked color="disabled" /> :
+                    step5Done ? <CheckCircle color="success" /> :
+                    <HourglassEmpty color="warning" />
+                  }
+                  optional={step4Done && rab ? (
+                    <Typography variant="caption" color="text.secondary">
+                      {[
+                        `Total: ${formatRupiah(rab.totalBiaya)}`,
+                        rab.statusPembayaran && `Status: ${rabPaid ? 'Lunas (Settlement)' : rab.statusPembayaran}`,
+                      ].filter(Boolean).join(' · ')}
+                    </Typography>
+                  ) : undefined}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Payment fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step4Done ? 'text.disabled' : 'text.primary'}>
@@ -898,12 +944,23 @@ export default function ConnectionDataDetailPage() {
                     pemasangan ? <HourglassEmpty color="info" /> :
                     <HourglassEmpty color="warning" />
                   }
-                  optional={woPemasangan?.id ? (
-                    <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
-                      onClick={() => router.push(`/operations/work-orders/${woPemasangan.id}`)}
-                      sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
-                      Lihat Work Order
-                    </Button>
+                  optional={step5Done ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {[
+                          woPemasangan?.teknisiPenanggungJawab?.namaLengkap && `Teknisi: ${woPemasangan.teknisiPenanggungJawab.namaLengkap}`,
+                          woPemasangan?.teknisiPenanggungJawab?.divisi && woPemasangan.teknisiPenanggungJawab.divisi,
+                          pemasangan?.seriMeteran && `Meteran: ${pemasangan.seriMeteran}`,
+                        ].filter(Boolean).join(' · ')}
+                      </Typography>
+                      {woPemasangan?.id && (
+                        <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                          onClick={() => router.push(`/operations/work-orders/${woPemasangan.id}`)}
+                          sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, width: 'fit-content', '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                          Lihat Work Order
+                        </Button>
+                      )}
+                    </Box>
                   ) : undefined}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -990,12 +1047,31 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 7 — Pengawasan Pemasangan */}
               <Step active={step6Done && !step7Done} completed={step7Done}>
-                <StepLabel icon={
-                  !step5Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step7Done ? <CheckCircle color="success" /> :
-                  pengawasan ? <HourglassEmpty color="info" /> :
-                  <HourglassEmpty color={step6Done ? 'warning' : 'disabled'} />
-                }>
+                <StepLabel
+                  icon={
+                    !step5Done ? <RadioButtonUnchecked color="disabled" /> :
+                    step7Done ? <CheckCircle color="success" /> :
+                    pengawasan ? <HourglassEmpty color="info" /> :
+                    <HourglassEmpty color={step6Done ? 'warning' : 'disabled'} />
+                  }
+                  optional={step5Done ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {[
+                          woPemasangan?.teknisiPenanggungJawab?.namaLengkap && `Teknisi: ${woPemasangan.teknisiPenanggungJawab.namaLengkap}`,
+                          pengawasan?.createdAt && `Diisi: ${formatDate(pengawasan.createdAt)}`,
+                        ].filter(Boolean).join(' · ')}
+                      </Typography>
+                      {woPemasangan?.id && (
+                        <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                          onClick={() => router.push(`/operations/work-orders/${woPemasangan.id}`)}
+                          sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, width: 'fit-content', '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                          Lihat Work Order
+                        </Button>
+                      )}
+                    </Box>
+                  ) : undefined}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Visibility fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
@@ -1058,12 +1134,31 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 8 — Pengawasan Setelah Pemasangan */}
               <Step active={step7Done && !step8Done} completed={step8Done}>
-                <StepLabel icon={
-                  !step5Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step8Done ? <CheckCircle color="success" /> :
-                  pengawasanSetelah ? <HourglassEmpty color="info" /> :
-                  <HourglassEmpty color={step7Done ? 'warning' : 'disabled'} />
-                }>
+                <StepLabel
+                  icon={
+                    !step5Done ? <RadioButtonUnchecked color="disabled" /> :
+                    step8Done ? <CheckCircle color="success" /> :
+                    pengawasanSetelah ? <HourglassEmpty color="info" /> :
+                    <HourglassEmpty color={step7Done ? 'warning' : 'disabled'} />
+                  }
+                  optional={step5Done ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {[
+                          woPemasangan?.teknisiPenanggungJawab?.namaLengkap && `Teknisi: ${woPemasangan.teknisiPenanggungJawab.namaLengkap}`,
+                          pengawasanSetelah?.createdAt && `Diisi: ${formatDate(pengawasanSetelah.createdAt)}`,
+                        ].filter(Boolean).join(' · ')}
+                      </Typography>
+                      {woPemasangan?.id && (
+                        <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                          onClick={() => router.push(`/operations/work-orders/${woPemasangan.id}`)}
+                          sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, width: 'fit-content', '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                          Lihat Work Order
+                        </Button>
+                      )}
+                    </Box>
+                  ) : undefined}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CheckCircle fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
@@ -1126,11 +1221,21 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 9 — Aktivasi Pelanggan */}
               <Step active={step8Done && !step9Done} completed={step9Done}>
-                <StepLabel icon={
-                  !step8Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step9Done ? <CheckCircle color="success" /> :
-                  <HourglassEmpty color="warning" />
-                }>
+                <StepLabel
+                  icon={
+                    !step8Done ? <RadioButtonUnchecked color="disabled" /> :
+                    step9Done ? <CheckCircle color="success" /> :
+                    <HourglassEmpty color="warning" />
+                  }
+                  optional={step9Done ? (
+                    <Typography variant="caption" color="text.secondary">
+                      {[
+                        (pemasangan?.seriMeteran || meteran?.NomorMeteran) && `Meteran: ${pemasangan?.seriMeteran || meteran?.NomorMeteran}`,
+                        meteran?.nomorAkun && `No. Akun: ${meteran.nomorAkun}`,
+                      ].filter(Boolean).join(' · ')}
+                    </Typography>
+                  ) : undefined}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <VerifiedUser fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step8Done ? 'text.disabled' : 'text.primary'}>
