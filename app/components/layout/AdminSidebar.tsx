@@ -16,6 +16,7 @@ import {
   IconButton,
   Tooltip,
   Chip,
+  Toolbar,
 } from '@mui/material';
 import {
   Dashboard,
@@ -555,6 +556,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         },
       }}
     >
+      <Toolbar />
       <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box
           sx={{

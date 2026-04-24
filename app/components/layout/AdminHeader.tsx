@@ -25,7 +25,55 @@ import {
   Brightness7,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/customers': 'Daftar Pelanggan',
+  '/customers/accounts': 'Akun Pelanggan',
+  '/customers/registration': 'Registrasi Pelanggan',
+  '/billing': 'Tagihan',
+  '/billing/tariffs': 'Struktur Tarif',
+  '/billing/payments': 'Pembayaran',
+  '/billing/generate': 'Generate Tagihan',
+  '/operations/connection-data': 'Data Sambungan Air',
+  '/operations/survey-data': 'Data Survei',
+  '/operations/rab-connection': 'RAB Sambungan',
+  '/operations/work-orders': 'Work Order',
+  '/operations/technicians': 'Manajemen Teknisi',
+  '/operations/meteran': 'Manajemen Meteran',
+  '/operations/materials': 'Manajemen Material',
+  '/operations/pemasangan': 'Pemasangan Meteran',
+  '/operations/pengawasan-pemasangan': 'Pengawasan Pemasangan',
+  '/operations/pengawasan-setelah-pemasangan': 'Pengawasan Setelah Pemasangan',
+  '/operations/laporan': 'Laporan Pelanggan',
+  '/operations/penyelesaian-laporan': 'Penyelesaian Laporan',
+  '/monitoring/smart-meter': 'Smart Meter',
+  '/monitoring/smart-meters': 'Manajemen Smart Meter',
+  '/monitoring/smart-meters/register': 'Registrasi Smart Meter',
+  '/master-data/kelompok-pelanggan': 'Kelompok Pelanggan',
+  '/reports/operational': 'Laporan Operasional',
+  '/reports/financial': 'Laporan Keuangan',
+  '/reports/compliance': 'Laporan Kepatuhan',
+  '/reports/custom': 'Laporan Kustom',
+  '/system/config': 'Konfigurasi Sistem',
+  '/system/permissions': 'Manajemen Izin',
+  '/system/users': 'Akun Pengguna',
+  '/system/audit-logs': 'Audit Log',
+  '/notifications': 'Notifikasi',
+  '/mobile/technician': 'Portal Teknisi',
+};
+
+function resolvePageTitle(pathname: string, fallback?: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  // Match dynamic routes like /customers/detail/[id] or /operations/work-orders/[id]
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length >= 3) {
+    const parentPath = '/' + segments.slice(0, -1).join('/');
+    if (PAGE_TITLES[parentPath]) return PAGE_TITLES[parentPath] + ' — Detail';
+  }
+  return fallback || 'Dashboard Admin';
+}
 
 interface AdminHeaderProps {
   onMenuToggle: () => void;
@@ -35,6 +83,8 @@ interface AdminHeaderProps {
 export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
   const { user, notifications, logout, markNotificationAsRead } = useAdmin();
   const router = useRouter();
+  const pathname = usePathname();
+  const pageTitle = resolvePageTitle(pathname, title);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
 
@@ -88,7 +138,7 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
         </IconButton>
 
         <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-          {title || 'Dashboard Admin'}
+          {pageTitle}
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
