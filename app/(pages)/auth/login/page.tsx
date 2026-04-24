@@ -165,7 +165,7 @@ export default function AdminLogin() {
                 }}
               />
 
-              {/* Password label row */
+              {/* Password label row */}
               <Box sx={{ mb: 0.75 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
                   Kata Sandi
@@ -204,7 +204,7 @@ export default function AdminLogin() {
 
 
 
-              {/* Submit */
+              {/* Submit */}
               <Button
                 type="submit"
                 fullWidth
