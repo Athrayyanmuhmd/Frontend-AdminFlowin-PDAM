@@ -107,14 +107,14 @@ export default function PenyelesaianLaporanPage() {
         </Box>
 
         {/* Stats */}
-        <Stack direction='row' spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }}>
+        <Stack direction='row' spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }} useFlexGap>
           {[
             { label: 'Sedang Diproses', value: totalProses, color: '#3b82f6' },
             { label: 'Selesai', value: totalSelesai, color: '#22c55e' },
             { label: 'Ditolak', value: totalDitolak, color: '#ef4444' },
           ].map(s => (
-            <Card key={s.label} sx={{ flex: '1 1 160px', borderLeft: `4px solid ${s.color}` }}>
-              <CardContent sx={{ py: 1.5 }}>
+            <Card key={s.label} sx={{ flex: '1 1 140px', minWidth: 0, borderLeft: `4px solid ${s.color}` }}>
+              <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
                 <Typography variant='body2' color='text.secondary'>{s.label}</Typography>
                 <Typography variant='h5' fontWeight={700} sx={{ color: s.color }}>{s.value}</Typography>
               </CardContent>
@@ -126,9 +126,10 @@ export default function PenyelesaianLaporanPage() {
 
         <Card sx={{ mb: 2 }}>
           <CardContent sx={{ pb: '12px !important' }}>
-            <Stack direction='row' spacing={2} alignItems='center' flexWrap='wrap' useFlexGap>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
               <TextField
-                fullWidth size='small'
+                size='small'
+                sx={{ flex: 1, minWidth: { xs: '100%', sm: 220 } }}
                 placeholder='Cari teknisi, pelanggan, ID laporan...'
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
@@ -143,7 +144,7 @@ export default function PenyelesaianLaporanPage() {
                   ))}
                 </Select>
               </FormControl>
-            </Stack>
+            </Box>
           </CardContent>
         </Card>
 
@@ -158,7 +159,7 @@ export default function PenyelesaianLaporanPage() {
             ) : (
               <>
                 <TableContainer sx={{ overflowX: 'auto' }}>
-                  <Table size='small' sx={{ minWidth: 600 }}>
+                  <Table size='small' sx={{ minWidth: 800 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>No</TableCell>
@@ -180,10 +181,7 @@ export default function PenyelesaianLaporanPage() {
                             <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                             <TableCell>
                               <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: 11 }}>
-                                {wo.idLaporan ? wo.idLaporan.slice(-8) : '-'}
-                              </Typography>
-                              <Typography variant='caption' color='text.secondary'>
-                                {wo.idLaporan ? `...${wo.idLaporan.slice(-8)}` : 'Tidak ada'}
+                                {wo.idLaporan ? `…${wo.idLaporan.slice(-10)}` : '-'}
                               </Typography>
                             </TableCell>
                             <TableCell>
