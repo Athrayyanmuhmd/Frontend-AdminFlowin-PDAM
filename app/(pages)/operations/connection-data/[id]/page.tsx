@@ -85,25 +85,6 @@ function SectionTitle({ icon, title, color = 'primary.main' }: {
   );
 }
 
-function StepLink({ label, href, onClick }: { label: string; href?: string; onClick?: () => void }) {
-  if (!href && !onClick) return null;
-  return (
-    <Button
-      size="small"
-      variant="outlined"
-      endIcon={<OpenInNew sx={{ fontSize: '12px !important' }} />}
-      onClick={onClick}
-      sx={{
-        fontSize: '0.7rem', py: 0.25, px: 1, minHeight: 0,
-        borderRadius: 1, lineHeight: 1.5, ml: 0.5,
-        borderColor: 'divider', color: 'text.secondary',
-        '&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'transparent' },
-      }}
-    >
-      {label}
-    </Button>
-  );
-}
 
 function InfoField({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -575,9 +556,8 @@ export default function ConnectionDataDetailPage() {
               <Step active completed={step1Done}>
                 <StepLabel icon={<CheckCircle color="success" />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Description fontSize="small" />
+                    <Description fontSize="small" color="action" />
                     <Typography fontWeight={600}>Pengajuan Sambungan Baru</Typography>
-                    <Chip size="small" label="Selesai" color="success" />
                   </Box>
                 </StepLabel>
                 <StepContent>
@@ -595,14 +575,16 @@ export default function ConnectionDataDetailPage() {
                   <HourglassEmpty color="warning" />
                 }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <VerifiedUser fontSize="small" />
+                    <VerifiedUser fontSize="small" color="action" />
                     <Typography fontWeight={600} color={data.StatusPengajuan === 'REJECTED' ? 'error.main' : 'text.primary'}>
                       Verifikasi Admin
                     </Typography>
-                    <Chip size="small"
-                      label={step2Done ? 'Disetujui' : data.StatusPengajuan === 'REJECTED' ? 'Ditolak' : 'Menunggu'}
-                      color={step2Done ? 'success' : data.StatusPengajuan === 'REJECTED' ? 'error' : 'warning'}
-                    />
+                    {!step2Done && (
+                      <Chip size="small" variant="outlined"
+                        label={data.StatusPengajuan === 'REJECTED' ? 'Ditolak' : 'Menunggu Verifikasi'}
+                        color={data.StatusPengajuan === 'REJECTED' ? 'error' : 'warning'}
+                      />
+                    )}
                   </Box>
                 </StepLabel>
                 <StepContent>
@@ -632,35 +614,30 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 3 — Survei Lapangan */}
               <Step active={step2Done && !step3Done} completed={step3Done}>
-                <StepLabel icon={
-                  !step2Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step3Done ? <CheckCircle color="success" /> :
-                  <HourglassEmpty color={woSurvei ? 'info' : 'warning'} />
-                }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Visibility fontSize="small" />
+                <StepLabel
+                  icon={
+                    !step2Done ? <RadioButtonUnchecked color="disabled" /> :
+                    step3Done ? <CheckCircle color="success" /> :
+                    <HourglassEmpty color={woSurvei ? 'info' : 'warning'} />
+                  }
+                  optional={woSurvei?.id ? (
+                    <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                      onClick={() => router.push(`/operations/work-orders/${woSurvei.id}`)}
+                      sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                      Lihat Work Order
+                    </Button>
+                  ) : undefined}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Visibility fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step2Done ? 'text.disabled' : 'text.primary'}>
                       Survei Lapangan
                     </Typography>
-                    {step2Done && (
-                      <Chip size="small"
-                        label={
-                          step3Done ? 'Disetujui' :
-                          woSurvei?.status === 'dikirim' ? 'Menunggu Review' :
-                          woSurvei ? `WO: ${woSurvei.status?.replace(/_/g, ' ')}` : 'Belum Ada'
-                        }
-                        color={
-                          step3Done ? 'success' :
-                          woSurvei?.status === 'dikirim' ? 'warning' :
-                          woSurvei ? 'info' : 'default'
-                        }
+                    {step2Done && !step3Done && (
+                      <Chip size="small" variant="outlined"
+                        label={woSurvei?.status === 'dikirim' ? 'Menunggu Review' : woSurvei ? woSurvei.status?.replace(/_/g, ' ') : 'Belum Ada'}
+                        color={woSurvei?.status === 'dikirim' ? 'warning' : woSurvei ? 'info' : 'default'}
                       />
-                    )}
-                    {survei?._id && (
-                      <StepLink label="Data Survei" onClick={() => router.push(`/operations/survey-data/${survei._id}`)} />
-                    )}
-                    {woSurvei?.id && (
-                      <StepLink label="Work Order" onClick={() => router.push(`/operations/work-orders/${woSurvei.id}`)} />
                     )}
                   </Box>
                 </StepLabel>
@@ -742,35 +719,30 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 4 — Dokumen DED / RAB */}
               <Step active={step3Done && !step4Done} completed={step4Done}>
-                <StepLabel icon={
-                  !step3Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step4Done ? <CheckCircle color="success" /> :
-                  <HourglassEmpty color={woRab ? 'info' : 'warning'} />
-                }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <AccountBalance fontSize="small" />
+                <StepLabel
+                  icon={
+                    !step3Done ? <RadioButtonUnchecked color="disabled" /> :
+                    step4Done ? <CheckCircle color="success" /> :
+                    <HourglassEmpty color={woRab ? 'info' : 'warning'} />
+                  }
+                  optional={woRab?.id ? (
+                    <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                      onClick={() => router.push(`/operations/work-orders/${woRab.id}`)}
+                      sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                      Lihat Work Order
+                    </Button>
+                  ) : undefined}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AccountBalance fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step3Done ? 'text.disabled' : 'text.primary'}>
                       Dokumen DED / RAB
                     </Typography>
-                    {step3Done && (
-                      <Chip size="small"
-                        label={
-                          step4Done ? 'Disetujui' :
-                          woRab?.status === 'dikirim' ? 'Menunggu Review' :
-                          woRab ? `WO: ${woRab.status?.replace(/_/g, ' ')}` : 'Belum Ada'
-                        }
-                        color={
-                          step4Done ? 'success' :
-                          woRab?.status === 'dikirim' ? 'warning' :
-                          woRab ? 'info' : 'default'
-                        }
+                    {step3Done && !step4Done && (
+                      <Chip size="small" variant="outlined"
+                        label={woRab?.status === 'dikirim' ? 'Menunggu Review' : woRab ? woRab.status?.replace(/_/g, ' ') : 'Belum Ada'}
+                        color={woRab?.status === 'dikirim' ? 'warning' : woRab ? 'info' : 'default'}
                       />
-                    )}
-                    {rab?._id && (
-                      <StepLink label="Detail RAB" onClick={() => router.push(`/operations/rab-connection/${rab._id}`)} />
-                    )}
-                    {woRab?.id && (
-                      <StepLink label="Work Order" onClick={() => router.push(`/operations/work-orders/${woRab.id}`)} />
                     )}
                   </Box>
                 </StepLabel>
@@ -857,23 +829,16 @@ export default function ConnectionDataDetailPage() {
                   step5Done ? <CheckCircle color="success" /> :
                   <HourglassEmpty color="warning" />
                 }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Payment fontSize="small" />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Payment fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step4Done ? 'text.disabled' : 'text.primary'}>
                       Pembayaran RAB oleh Pelanggan
                     </Typography>
-                    {step4Done && rab && (
-                      <Chip size="small"
-                        label={
-                          step5Done ? 'Dikonfirmasi' :
-                          rabPaid ? 'Menunggu Konfirmasi Admin' :
-                          rab.statusPembayaran || 'Pending'
-                        }
-                        color={step5Done ? 'success' : rabPaid ? 'warning' : 'default'}
+                    {step4Done && rab && !step5Done && (
+                      <Chip size="small" variant="outlined"
+                        label={rabPaid ? 'Menunggu Konfirmasi Admin' : rab.statusPembayaran || 'Pending'}
+                        color={rabPaid ? 'warning' : 'default'}
                       />
-                    )}
-                    {rab?._id && (
-                      <StepLink label="Detail RAB" onClick={() => router.push(`/operations/rab-connection/${rab._id}`)} />
                     )}
                   </Box>
                 </StepLabel>
@@ -926,29 +891,33 @@ export default function ConnectionDataDetailPage() {
 
               {/* Step 6 — Pemasangan Meteran */}
               <Step active={step5Done && !step6Done} completed={step6Done}>
-                <StepLabel icon={
-                  !step5Done ? <RadioButtonUnchecked color="disabled" /> :
-                  step6Done ? <CheckCircle color="success" /> :
-                  pemasangan ? <HourglassEmpty color="info" /> :
-                  <HourglassEmpty color="warning" />
-                }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Build fontSize="small" />
+                <StepLabel
+                  icon={
+                    !step5Done ? <RadioButtonUnchecked color="disabled" /> :
+                    step6Done ? <CheckCircle color="success" /> :
+                    pemasangan ? <HourglassEmpty color="info" /> :
+                    <HourglassEmpty color="warning" />
+                  }
+                  optional={woPemasangan?.id ? (
+                    <Button size="small" variant="text" endIcon={<OpenInNew sx={{ fontSize: 11 }} />}
+                      onClick={() => router.push(`/operations/work-orders/${woPemasangan.id}`)}
+                      sx={{ p: 0, fontSize: '0.7rem', color: 'text.secondary', minHeight: 0, height: 18, '&:hover': { color: 'primary.main', bgcolor: 'transparent' } }}>
+                      Lihat Work Order
+                    </Button>
+                  ) : undefined}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Build fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
                       Pemasangan Meteran
                     </Typography>
-                    {step5Done && pemasangan && <StatusAdminChip status={pemasangan.statusAdmin} />}
-                    {step5Done && !pemasangan && (
-                      <Chip size="small"
-                        label={woPemasangan ? `WO: ${woPemasangan.status?.replace(/_/g, ' ')}` : 'Menunggu Data'}
-                        color={woPemasangan ? 'info' : 'warning'}
-                      />
-                    )}
-                    {pemasangan?._id && (
-                      <StepLink label="Detail Pemasangan" onClick={() => router.push(`/operations/pemasangan/${pemasangan._id}`)} />
-                    )}
-                    {woPemasangan?.id && (
-                      <StepLink label="Work Order" onClick={() => router.push(`/operations/work-orders/${woPemasangan.id}`)} />
+                    {step5Done && !step6Done && (
+                      pemasangan
+                        ? <StatusAdminChip status={pemasangan.statusAdmin} />
+                        : <Chip size="small" variant="outlined"
+                            label={woPemasangan ? woPemasangan.status?.replace(/_/g, ' ') : 'Menunggu Data'}
+                            color={woPemasangan ? 'info' : 'warning'}
+                          />
                     )}
                   </Box>
                 </StepLabel>
@@ -1027,17 +996,15 @@ export default function ConnectionDataDetailPage() {
                   pengawasan ? <HourglassEmpty color="info" /> :
                   <HourglassEmpty color={step6Done ? 'warning' : 'disabled'} />
                 }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Visibility fontSize="small" />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Visibility fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
                       Pengawasan Pemasangan
                     </Typography>
-                    {step5Done && pengawasan && <StatusAdminChip status={pengawasan.statusAdmin} />}
-                    {step5Done && !pengawasan && (
-                      <Chip size="small" label="Menunggu Data" color="warning" />
-                    )}
-                    {pengawasan?._id && (
-                      <StepLink label="Detail Pengawasan" onClick={() => router.push(`/operations/pengawasan-pemasangan/${pengawasan._id}`)} />
+                    {step5Done && !step7Done && (
+                      pengawasan
+                        ? <StatusAdminChip status={pengawasan.statusAdmin} />
+                        : <Chip size="small" variant="outlined" label="Menunggu Data" color="warning" />
                     )}
                   </Box>
                 </StepLabel>
@@ -1097,17 +1064,15 @@ export default function ConnectionDataDetailPage() {
                   pengawasanSetelah ? <HourglassEmpty color="info" /> :
                   <HourglassEmpty color={step7Done ? 'warning' : 'disabled'} />
                 }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <CheckCircle fontSize="small" />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CheckCircle fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step5Done ? 'text.disabled' : 'text.primary'}>
                       Pengawasan Setelah Pemasangan
                     </Typography>
-                    {step5Done && pengawasanSetelah && <StatusAdminChip status={pengawasanSetelah.statusAdmin} />}
-                    {step5Done && !pengawasanSetelah && (
-                      <Chip size="small" label="Menunggu Data" color="warning" />
-                    )}
-                    {pengawasanSetelah?._id && (
-                      <StepLink label="Detail Pengawasan" onClick={() => router.push(`/operations/pengawasan-setelah-pemasangan/${pengawasanSetelah._id}`)} />
+                    {step5Done && !step8Done && (
+                      pengawasanSetelah
+                        ? <StatusAdminChip status={pengawasanSetelah.statusAdmin} />
+                        : <Chip size="small" variant="outlined" label="Menunggu Data" color="warning" />
                     )}
                   </Box>
                 </StepLabel>
@@ -1167,11 +1132,13 @@ export default function ConnectionDataDetailPage() {
                   <HourglassEmpty color="warning" />
                 }>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <VerifiedUser fontSize="small" />
+                    <VerifiedUser fontSize="small" color="action" />
                     <Typography fontWeight={600} color={!step8Done ? 'text.disabled' : 'text.primary'}>
                       Aktivasi Pelanggan
                     </Typography>
-                    {step9Done && <Chip size="small" label="Aktif" color="success" />}
+                    {step8Done && !step9Done && (
+                      <Chip size="small" variant="outlined" label="Menunggu Aktivasi" color="warning" />
+                    )}
                   </Box>
                 </StepLabel>
                 <StepContent>
