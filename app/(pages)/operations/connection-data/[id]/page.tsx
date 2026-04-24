@@ -16,7 +16,7 @@ import {
   Close, ZoomIn, ZoomOut, RestartAlt, Visibility, RadioButtonUnchecked,
   VerifiedUser, Build, Payment, AccountBalance,
   GroupAdd, Assignment, ThumbUp, ThumbDown, Image as ImageIcon,
-  People, LocationOn, AccessTime,
+  People, LocationOn, AccessTime, OpenInNew,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
@@ -82,6 +82,26 @@ function SectionTitle({ icon, title, color = 'primary.main' }: {
       </Box>
       <Typography variant="h6" fontWeight={700}>{title}</Typography>
     </Box>
+  );
+}
+
+function StepLink({ label, href, onClick }: { label: string; href?: string; onClick?: () => void }) {
+  if (!href && !onClick) return null;
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      endIcon={<OpenInNew sx={{ fontSize: '12px !important' }} />}
+      onClick={onClick}
+      sx={{
+        fontSize: '0.7rem', py: 0.25, px: 1, minHeight: 0,
+        borderRadius: 1, lineHeight: 1.5, ml: 0.5,
+        borderColor: 'divider', color: 'text.secondary',
+        '&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'transparent' },
+      }}
+    >
+      {label}
+    </Button>
   );
 }
 
@@ -617,7 +637,7 @@ export default function ConnectionDataDetailPage() {
                   step3Done ? <CheckCircle color="success" /> :
                   <HourglassEmpty color={woSurvei ? 'info' : 'warning'} />
                 }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     <Visibility fontSize="small" />
                     <Typography fontWeight={600} color={!step2Done ? 'text.disabled' : 'text.primary'}>
                       Survei Lapangan
@@ -635,6 +655,12 @@ export default function ConnectionDataDetailPage() {
                           woSurvei ? 'info' : 'default'
                         }
                       />
+                    )}
+                    {survei?._id && (
+                      <StepLink label="Data Survei" onClick={() => router.push(`/operations/survey-data/${survei._id}`)} />
+                    )}
+                    {woSurvei?.id && (
+                      <StepLink label="Work Order" onClick={() => router.push(`/operations/work-orders/${woSurvei.id}`)} />
                     )}
                   </Box>
                 </StepLabel>
@@ -721,7 +747,7 @@ export default function ConnectionDataDetailPage() {
                   step4Done ? <CheckCircle color="success" /> :
                   <HourglassEmpty color={woRab ? 'info' : 'warning'} />
                 }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     <AccountBalance fontSize="small" />
                     <Typography fontWeight={600} color={!step3Done ? 'text.disabled' : 'text.primary'}>
                       Dokumen DED / RAB
@@ -739,6 +765,12 @@ export default function ConnectionDataDetailPage() {
                           woRab ? 'info' : 'default'
                         }
                       />
+                    )}
+                    {rab?._id && (
+                      <StepLink label="Detail RAB" onClick={() => router.push(`/operations/rab-connection/${rab._id}`)} />
+                    )}
+                    {woRab?.id && (
+                      <StepLink label="Work Order" onClick={() => router.push(`/operations/work-orders/${woRab.id}`)} />
                     )}
                   </Box>
                 </StepLabel>
@@ -825,7 +857,7 @@ export default function ConnectionDataDetailPage() {
                   step5Done ? <CheckCircle color="success" /> :
                   <HourglassEmpty color="warning" />
                 }>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     <Payment fontSize="small" />
                     <Typography fontWeight={600} color={!step4Done ? 'text.disabled' : 'text.primary'}>
                       Pembayaran RAB oleh Pelanggan
@@ -839,6 +871,9 @@ export default function ConnectionDataDetailPage() {
                         }
                         color={step5Done ? 'success' : rabPaid ? 'warning' : 'default'}
                       />
+                    )}
+                    {rab?._id && (
+                      <StepLink label="Detail RAB" onClick={() => router.push(`/operations/rab-connection/${rab._id}`)} />
                     )}
                   </Box>
                 </StepLabel>
@@ -908,6 +943,12 @@ export default function ConnectionDataDetailPage() {
                         label={woPemasangan ? `WO: ${woPemasangan.status?.replace(/_/g, ' ')}` : 'Menunggu Data'}
                         color={woPemasangan ? 'info' : 'warning'}
                       />
+                    )}
+                    {pemasangan?._id && (
+                      <StepLink label="Detail Pemasangan" onClick={() => router.push(`/operations/pemasangan/${pemasangan._id}`)} />
+                    )}
+                    {woPemasangan?.id && (
+                      <StepLink label="Work Order" onClick={() => router.push(`/operations/work-orders/${woPemasangan.id}`)} />
                     )}
                   </Box>
                 </StepLabel>
@@ -995,6 +1036,9 @@ export default function ConnectionDataDetailPage() {
                     {step5Done && !pengawasan && (
                       <Chip size="small" label="Menunggu Data" color="warning" />
                     )}
+                    {pengawasan?._id && (
+                      <StepLink label="Detail Pengawasan" onClick={() => router.push(`/operations/pengawasan-pemasangan/${pengawasan._id}`)} />
+                    )}
                   </Box>
                 </StepLabel>
                 <StepContent>
@@ -1061,6 +1105,9 @@ export default function ConnectionDataDetailPage() {
                     {step5Done && pengawasanSetelah && <StatusAdminChip status={pengawasanSetelah.statusAdmin} />}
                     {step5Done && !pengawasanSetelah && (
                       <Chip size="small" label="Menunggu Data" color="warning" />
+                    )}
+                    {pengawasanSetelah?._id && (
+                      <StepLink label="Detail Pengawasan" onClick={() => router.push(`/operations/pengawasan-setelah-pemasangan/${pengawasanSetelah._id}`)} />
                     )}
                   </Box>
                 </StepLabel>
