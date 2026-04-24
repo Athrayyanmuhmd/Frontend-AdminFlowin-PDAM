@@ -13,8 +13,6 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
-  Checkbox,
-  FormControlLabel,
   Paper,
 } from '@mui/material';
 import {
@@ -85,7 +83,8 @@ export default function AdminLogin() {
         {/* ── LEFT: Form ── */}
         <Box
           sx={{
-            flex: 1,
+            flex: { xs: 1, md: 'none' },
+            width: { xs: '100%', md: '55%' },
             bgcolor: 'white',
             display: 'flex',
             flexDirection: 'column',
@@ -167,12 +166,9 @@ export default function AdminLogin() {
               />
 
               {/* Password label row */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+              <Box sx={{ mb: 0.75 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
                   Kata Sandi
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#9ca3af' }}>
-                  Lupa kata sandi?
                 </Typography>
               </Box>
               <TextField
@@ -196,7 +192,7 @@ export default function AdminLogin() {
                   ),
                 }}
                 sx={{
-                  mb: 1.5,
+                  mb: 2.5,
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 1.5,
                     '& fieldset': { borderColor: '#e5e7eb' },
@@ -206,21 +202,7 @@ export default function AdminLogin() {
                 }}
               />
 
-              {/* Remember me */}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    size="small"
-                    sx={{ color: '#d1d5db', p: 0.5, '&.Mui-checked': { color: '#4b9cf5' } }}
-                  />
-                }
-                label={
-                  <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.82rem' }}>
-                    Ingat saya
-                  </Typography>
-                }
-                sx={{ mb: 2.5 }}
-              />
+
 
               {/* Submit */}
               <Button
@@ -254,7 +236,7 @@ export default function AdminLogin() {
         {/* ── RIGHT: Image Panel ── */}
         <Box
           sx={{
-            width: '50%',
+            width: '45%',
             display: { xs: 'none', md: 'block' },
             position: 'relative',
             overflow: 'hidden',
@@ -270,13 +252,7 @@ export default function AdminLogin() {
         </Box>
       </Paper>
 
-      {/* Below card — like reference */}
-      <Typography variant="body2" sx={{ mt: 3, color: '#6b7280', fontWeight: 400 }}>
-        Panel administrasi —{' '}
-        <Box component="span" sx={{ color: '#1a1a2e', fontWeight: 600 }}>
-          PERUMDAM Tirta Daroy Kota Banda Aceh
-        </Box>
-      </Typography>
+
     </Box>
   );
 }
