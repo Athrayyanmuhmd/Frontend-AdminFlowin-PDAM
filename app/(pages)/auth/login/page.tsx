@@ -95,7 +95,9 @@ export default function AdminLogin() {
           <Box
             sx={{
               p: 2.5,
-              textAlign: 'center',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               borderBottom: '1px solid #f1f3f4',
             }}
           >
@@ -124,13 +126,13 @@ export default function AdminLogin() {
               variant="h5"
               sx={{ fontWeight: 700, color: '#1a1a2e', textAlign: 'center', mb: 0.75 }}
             >
-              Sign In
+              Masuk
             </Typography>
             <Typography
               variant="body2"
               sx={{ color: '#9ca3af', textAlign: 'center', mb: 3.5, lineHeight: 1.7 }}
             >
-              Enter your email address and password to<br />access account.
+              Masukkan alamat email dan kata sandi Anda<br />untuk mengakses akun.
             </Typography>
 
             {error && (
@@ -142,7 +144,7 @@ export default function AdminLogin() {
             <form onSubmit={handleSubmit}>
               {/* Email */}
               <Typography variant="body2" sx={{ fontWeight: 600, color: '#1a1a2e', mb: 0.75 }}>
-                Email address
+                Alamat Email
               </Typography>
               <TextField
                 fullWidth
@@ -167,10 +169,10 @@ export default function AdminLogin() {
               {/* Password label row */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
-                  Password
+                  Kata Sandi
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#9ca3af' }}>
-                  Forgot your password?
+                  Lupa kata sandi?
                 </Typography>
               </Box>
               <TextField
@@ -214,7 +216,7 @@ export default function AdminLogin() {
                 }
                 label={
                   <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.82rem' }}>
-                    Remember me
+                    Ingat saya
                   </Typography>
                 }
                 sx={{ mb: 2.5 }}
@@ -243,7 +245,7 @@ export default function AdminLogin() {
                   '&:disabled': { opacity: 0.7 },
                 }}
               >
-                {isLoading ? 'Memproses...' : 'Log In'}
+                {isLoading ? 'Memproses...' : 'Masuk'}
               </Button>
             </form>
           </Box>
