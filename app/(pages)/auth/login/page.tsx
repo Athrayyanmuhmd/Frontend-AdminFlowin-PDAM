@@ -84,7 +84,7 @@ export default function AdminLogin() {
         <Box
           sx={{
             flex: { xs: 1, md: 'none' },
-            width: { xs: '100%', md: '55%' },
+            width: { xs: '100%', md: '50%' },
             bgcolor: 'white',
             display: 'flex',
             flexDirection: 'column',
@@ -159,13 +159,13 @@ export default function AdminLogin() {
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 1.5,
                     '& fieldset': { borderColor: '#e5e7eb' },
-                    '&:hover fieldset': { borderColor: '#4b9cf5' },
-                    '&.Mui-focused fieldset': { borderColor: '#4b9cf5', borderWidth: 1.5 },
+                    '&:hover fieldset': { borderColor: '#7c3aed' },
+                    '&.Mui-focused fieldset': { borderColor: '#7c3aed', borderWidth: 1.5 },
                   },
                 }}
               />
 
-              {/* Password label row */}
+              {/* Password label row */
               <Box sx={{ mb: 0.75 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#1a1a2e' }}>
                   Kata Sandi
@@ -196,15 +196,15 @@ export default function AdminLogin() {
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 1.5,
                     '& fieldset': { borderColor: '#e5e7eb' },
-                    '&:hover fieldset': { borderColor: '#4b9cf5' },
-                    '&.Mui-focused fieldset': { borderColor: '#4b9cf5', borderWidth: 1.5 },
+                    '&:hover fieldset': { borderColor: '#7c3aed' },
+                    '&.Mui-focused fieldset': { borderColor: '#7c3aed', borderWidth: 1.5 },
                   },
                 }}
               />
 
 
 
-              {/* Submit */}
+              {/* Submit */
               <Button
                 type="submit"
                 fullWidth
@@ -221,9 +221,9 @@ export default function AdminLogin() {
                   fontWeight: 600,
                   fontSize: '0.9rem',
                   textTransform: 'none',
-                  bgcolor: '#4b9cf5',
+                  bgcolor: '#7c3aed',
                   boxShadow: 'none',
-                  '&:hover': { bgcolor: '#2b7de9', boxShadow: 'none' },
+                  '&:hover': { bgcolor: '#6d28d9', boxShadow: 'none' },
                   '&:disabled': { opacity: 0.7 },
                 }}
               >
@@ -236,7 +236,7 @@ export default function AdminLogin() {
         {/* ── RIGHT: Image Panel ── */}
         <Box
           sx={{
-            width: '45%',
+            width: '50%',
             display: { xs: 'none', md: 'block' },
             position: 'relative',
             overflow: 'hidden',
