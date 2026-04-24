@@ -1198,7 +1198,7 @@ export default function ConnectionDataDetailPage() {
                     <Typography variant="caption" color="text.secondary">
                       {[
                         (pemasangan?.seriMeteran || meteran?.NomorMeteran) && `Meteran: ${pemasangan?.seriMeteran || meteran?.NomorMeteran}`,
-                        meteran?.nomorAkun && `No. Akun: ${meteran.nomorAkun}`,
+                        meteran?.NomorAkun && `No. Akun: ${meteran.NomorAkun}`,
                       ].filter(Boolean).join(' · ')}
                     </Typography>
                   ) : undefined}

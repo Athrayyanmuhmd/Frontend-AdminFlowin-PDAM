@@ -170,8 +170,8 @@ export const GET_DETAIL_SAMBUNGAN = gql`
       }
       meteran {
         _id
-        nomorMeteran
-        nomorAkun
+        NomorMeteran
+        NomorAkun
         statusAktif
       }
       pemasangan {
