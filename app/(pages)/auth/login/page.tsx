@@ -79,7 +79,7 @@ export default function AdminLogin() {
           overflow: 'hidden',
           display: 'flex',
           minHeight: 520,
-          boxShadow: '0 2px 18px rgba(0,0,0,0.1)','
+          boxShadow: '0 2px 18px rgba(0,0,0,0.1)',
         }}
       >
         {/* ── LEFT: Form ── */}
