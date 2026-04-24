@@ -198,7 +198,7 @@ export default function TariffsPage() {
   return (
     <AdminLayout title="Struktur Tarif">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
               Struktur Tarif Air
@@ -274,8 +274,8 @@ export default function TariffsPage() {
 
         {/* Tariff Table */}
         <Card>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Nama Kelompok</TableCell>

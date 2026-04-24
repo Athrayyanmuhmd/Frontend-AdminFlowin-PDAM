@@ -291,7 +291,7 @@ export default function SmartMeterManagement() {
               {meters.length === 0 ? (
                 <Alert severity="info">Belum ada meteran terdaftar.</Alert>
               ) : (
-                <TableContainer>
+                <TableContainer sx={{ overflowX: 'auto' }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -400,7 +400,7 @@ export default function SmartMeterManagement() {
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    <FormControl sx={{ minWidth: 320 }}>
+                    <FormControl sx={{ minWidth: { xs: '100%', sm: 320 } }}>
                       <InputLabel>Pilih Meteran</InputLabel>
                       <Select
                         value={selectedMeteranId}
@@ -675,7 +675,7 @@ export default function SmartMeterManagement() {
                   ) : (riwayatData?.getRiwayatPenggunaan?.length ?? 0) === 0 ? (
                     <Alert severity="info">Belum ada data pencatatan IoT untuk meteran ini.</Alert>
                   ) : (
-                    <TableContainer sx={{ maxHeight: 320 }}>
+                    <TableContainer sx={{ maxHeight: 320, overflowX: 'auto' }}>
                       <Table size="small" stickyHeader>
                         <TableHead>
                           <TableRow>

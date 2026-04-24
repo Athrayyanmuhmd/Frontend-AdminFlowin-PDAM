@@ -363,7 +363,7 @@ export default function ComplianceReports() {
                   <Alert severity="info" sx={{ mb: 2 }}>
                     Data parameter kualitas air berdasarkan standar baku mutu air minum yang berlaku. Pengukuran dilakukan secara berkala oleh lab PDAM.
                   </Alert>
-                  <TableContainer>
+                  <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -440,7 +440,7 @@ export default function ComplianceReports() {
                   ) : slaMetrics.length === 0 ? (
                     <Alert severity="info">Belum ada data KPI operasional.</Alert>
                   ) : (
-                    <TableContainer>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table>
                         <TableHead>
                           <TableRow>
@@ -505,7 +505,7 @@ export default function ComplianceReports() {
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                     Status Kepatuhan Regulasi PDAM
                   </Typography>
-                  <TableContainer>
+                  <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table>
                       <TableHead>
                         <TableRow>

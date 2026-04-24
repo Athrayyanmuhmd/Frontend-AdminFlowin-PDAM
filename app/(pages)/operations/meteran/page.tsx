@@ -214,7 +214,7 @@ export default function MeteranListPage() {
   return (
     <AdminLayout title="Manajemen Meteran">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Typography variant="h4" sx={{ fontWeight: 600 }}>
             Manajemen Meteran
           </Typography>
@@ -313,8 +313,8 @@ export default function MeteranListPage() {
 
         {/* Table */}
         <Card>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Nomor Meteran / Akun</TableCell>

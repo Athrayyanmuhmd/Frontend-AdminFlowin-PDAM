@@ -308,7 +308,7 @@ export default function GenerateBills() {
                 </Box>
               ) : (
                 <Card>
-                  <TableContainer>
+                  <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table>
                       <TableHead>
                         <TableRow>
@@ -414,7 +414,7 @@ export default function GenerateBills() {
                     Daftar Meteran yang Akan Digenerate ({selectedIds.size})
                   </Typography>
                 </Box>
-                <TableContainer sx={{ maxHeight: 280 }}>
+                <TableContainer sx={{ maxHeight: 280, overflowX: 'auto' }}>
                   <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
@@ -530,7 +530,7 @@ export default function GenerateBills() {
                     </Box>
                   </AccordionSummary>
                   <AccordionDetails sx={{ p: 0 }}>
-                    <TableContainer>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table size="small">
                         <TableHead>
                           <TableRow sx={{ bgcolor: 'grey.100' }}>

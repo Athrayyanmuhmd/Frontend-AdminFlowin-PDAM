@@ -847,45 +847,42 @@ export default function WorkOrderManagement() {
             </Box>
           ) : (
             <>
-              <TableContainer>
-                <Table size='small' sx={{ tableLayout: 'fixed' }}>
+              <TableContainer sx={{ overflowX: 'auto' }}>
+                <Table size='small' sx={{ minWidth: 900 }}>
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell width={44} sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ fontWeight: 600, width: 44 }}>
                         No
                       </TableCell>
-                      <TableCell width={180} sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ fontWeight: 600 }}>
                         Pelanggan
                       </TableCell>
-                      <TableCell width={120} sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ fontWeight: 600, width: 120 }}>
                         Jenis
                       </TableCell>
-                      <TableCell width={150} sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ fontWeight: 600, width: 150 }}>
                         Penanggung Jawab
                       </TableCell>
-                      <TableCell width={180} sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ fontWeight: 600, width: 150 }}>
                         Tim Teknisi
                       </TableCell>
                       <TableCell
-                        width={130}
-                        sx={{ fontWeight: 600 }}
+                        sx={{ fontWeight: 600, width: 120 }}
                         align='center'
                       >
                         Status WO
                       </TableCell>
                       <TableCell
-                        width={150}
-                        sx={{ fontWeight: 600 }}
+                        sx={{ fontWeight: 600, width: 130 }}
                         align='center'
                       >
                         Respon Teknisi
                       </TableCell>
-                      <TableCell width={90} sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ fontWeight: 600, width: 90 }}>
                         Dibuat
                       </TableCell>
                       <TableCell
-                        width={56}
-                        sx={{ fontWeight: 600 }}
+                        sx={{ fontWeight: 600, width: 56 }}
                         align='center'
                       >
                         Aksi

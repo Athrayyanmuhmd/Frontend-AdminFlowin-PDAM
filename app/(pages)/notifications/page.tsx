@@ -393,7 +393,7 @@ export default function NotifikasiPage() {
             </Alert>
           ) : (
             <>
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ backgroundColor: 'primary.50' }}>

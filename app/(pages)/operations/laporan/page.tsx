@@ -510,8 +510,8 @@ export default function LaporanPage() {
           <Alert severity='error'>Gagal memuat laporan: {error.message}</Alert>
         ) : (
           <Card>
-            <TableContainer>
-              <Table size='small'>
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table size='small' sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'grey.50' }}>
                     <TableCell sx={{ fontWeight: 700 }}>Tanggal</TableCell>

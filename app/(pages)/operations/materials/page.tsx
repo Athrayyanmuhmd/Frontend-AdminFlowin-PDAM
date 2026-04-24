@@ -226,7 +226,7 @@ export default function MaterialsPage() {
   return (
     <AdminLayout title="Material & Inventaris">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
             Material & Inventaris
           </Typography>
@@ -405,7 +405,7 @@ export default function MaterialsPage() {
         {/* Materials Table */}
         <Card>
           {loading && <LinearProgress />}
-          <TableContainer>
+          <TableContainer sx={{ overflowX: 'auto' }}>
             <Table>
               <TableHead>
                 <TableRow>

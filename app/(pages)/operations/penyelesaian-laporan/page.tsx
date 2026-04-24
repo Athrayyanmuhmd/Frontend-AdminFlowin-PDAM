@@ -94,7 +94,7 @@ export default function PenyelesaianLaporanPage() {
   return (
     <AdminLayout title='Penyelesaian Laporan'>
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
             <Typography variant='h5' fontWeight={700}>Work Order Penyelesaian Laporan</Typography>
             <Typography variant='body2' color='text.secondary'>
@@ -157,8 +157,8 @@ export default function PenyelesaianLaporanPage() {
               </Box>
             ) : (
               <>
-                <TableContainer>
-                  <Table size='small'>
+                <TableContainer sx={{ overflowX: 'auto' }}>
+                  <Table size='small' sx={{ minWidth: 600 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>No</TableCell>

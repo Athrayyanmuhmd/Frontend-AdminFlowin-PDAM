@@ -426,8 +426,8 @@ export default function PermissionsPage() {
                     </Alert>
                   )}
 
-                  <TableContainer>
-                    <Table>
+                  <TableContainer sx={{ overflowX: 'auto' }}>
+                    <Table sx={{ minWidth: 600 }}>
                       <TableHead>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 600 }}>Resource</TableCell>

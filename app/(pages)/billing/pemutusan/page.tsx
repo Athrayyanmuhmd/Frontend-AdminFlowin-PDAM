@@ -177,7 +177,7 @@ export default function PemutusanPage() {
               <WarningAmberIcon color="warning" />
               <Typography variant="h6" fontWeight={600}>Menunggu Pemutusan</Typography>
             </Stack>
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'grey.50' }}>
@@ -234,7 +234,7 @@ export default function PemutusanPage() {
               <ReceiptLongIcon color="error" />
               <Typography variant="h6" fontWeight={600}>Sudah Non-aktif — Menunggu Pembayaran</Typography>
             </Stack>
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'grey.50' }}>

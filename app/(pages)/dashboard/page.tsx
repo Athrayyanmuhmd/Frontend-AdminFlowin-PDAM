@@ -190,7 +190,7 @@ export default function Dashboard() {
   return (
     <AdminLayout title="Dashboard Eksekutif">
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
           Dashboard Eksekutif
         </Typography>
         <Tooltip title="Refresh Data">

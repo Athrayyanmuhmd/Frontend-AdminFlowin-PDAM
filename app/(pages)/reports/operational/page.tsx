@@ -278,7 +278,7 @@ export default function OperationalReports() {
                   ) : ringkasanWO.length === 0 ? (
                     <Alert severity="info">Belum ada data.</Alert>
                   ) : (
-                    <TableContainer>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table size="small">
                         <TableHead>
                           <TableRow>

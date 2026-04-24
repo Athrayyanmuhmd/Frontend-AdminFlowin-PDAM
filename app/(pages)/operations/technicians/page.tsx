@@ -452,8 +452,8 @@ export default function TechnicianManagement() {
               </Box>
             ) : (
               <>
-                <TableContainer>
-                  <Table>
+                <TableContainer sx={{ overflowX: 'auto' }}>
+                  <Table sx={{ minWidth: 650 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Nama Lengkap</TableCell>

@@ -359,8 +359,8 @@ export default function PaymentsPage() {
         {/* Payments Table */}
         <Card>
           {loading && <LinearProgress />}
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 750 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>ID Transaksi</TableCell>

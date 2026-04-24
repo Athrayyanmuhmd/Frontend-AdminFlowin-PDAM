@@ -102,7 +102,7 @@ export default function ConnectionDataManagement() {
     <AdminLayout>
       <Box sx={{ p: 3 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
             <Typography variant='h4' gutterBottom>
               Data Sambungan Air
@@ -182,8 +182,8 @@ export default function ConnectionDataManagement() {
               </Box>
             ) : (
               <>
-                <TableContainer component={Paper} variant='outlined'>
-                  <Table>
+                <TableContainer component={Paper} variant='outlined' sx={{ overflowX: 'auto' }}>
+                  <Table sx={{ minWidth: 600 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Pelanggan</TableCell>

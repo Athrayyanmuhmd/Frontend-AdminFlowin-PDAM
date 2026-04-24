@@ -643,8 +643,8 @@ export default function CustomerManagement() {
 
         {/* Customer Table */}
         <Card>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
                   <TableCell padding='checkbox'>

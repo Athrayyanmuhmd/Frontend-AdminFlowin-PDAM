@@ -491,7 +491,7 @@ export default function CustomerDetailPage() {
             {loadingBillings ? (
               <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
             ) : billings.length > 0 ? (
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table>
                   <TableHead>
                     <TableRow>
@@ -572,7 +572,7 @@ export default function CustomerDetailPage() {
             {loadingHistory ? (
               <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
             ) : historyUsage.length > 0 ? (
-              <TableContainer>
+              <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table>
                   <TableHead>
                     <TableRow>

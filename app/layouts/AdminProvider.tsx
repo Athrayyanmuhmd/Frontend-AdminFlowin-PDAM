@@ -17,6 +17,34 @@ import CssBaseline from '@mui/material/CssBaseline';
 const muiTheme = createTheme({
   typography: {
     fontFamily: "'Poppins', sans-serif",
+    h4: {
+      fontSize: '2.125rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.4rem',
+      },
+    },
+    h5: {
+      fontSize: '1.5rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.15rem',
+      },
+    },
+    h6: {
+      fontSize: '1.25rem',
+      '@media (max-width:600px)': {
+        fontSize: '1rem',
+      },
+    },
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          // Prevent card overflow on very small screens
+          minWidth: 0,
+        },
+      },
+    },
   },
 });
 

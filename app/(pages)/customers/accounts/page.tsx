@@ -227,8 +227,8 @@ export default function CustomerAccounts() {
 
     return (
       <Card>
-        <TableContainer>
-          <Table>
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: 600 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Akun &amp; Pelanggan</TableCell>

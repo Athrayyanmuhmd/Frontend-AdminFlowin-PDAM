@@ -111,8 +111,8 @@ export default function SurveyDataPage() {
               </Box>
             ) : (
               <>
-                <TableContainer>
-                  <Table size='small'>
+                <TableContainer sx={{ overflowX: 'auto' }}>
+                  <Table size='small' sx={{ minWidth: 600 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>No</TableCell>

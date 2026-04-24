@@ -522,7 +522,7 @@ export default function CustomReports() {
                       <Alert severity="success" sx={{ mb: 2 }}>
                         Data berhasil dimuat — {new Date().toLocaleString('id-ID')}
                       </Alert>
-                      <TableContainer>
+                      <TableContainer sx={{ overflowX: 'auto' }}>
                         {renderReportTable(generatedReport, data)}
                       </TableContainer>
                     </>

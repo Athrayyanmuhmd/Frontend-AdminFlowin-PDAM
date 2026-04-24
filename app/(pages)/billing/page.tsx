@@ -654,8 +654,8 @@ export default function BillingManagement() {
 
         {/* Billing Table */}
         <Card>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 750 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Pelanggan</TableCell>

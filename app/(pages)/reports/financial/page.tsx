@@ -335,7 +335,7 @@ export default function FinancialReports() {
                   ) : tunggakan.length === 0 ? (
                     <Alert severity="success">Tidak ada tunggakan saat ini.</Alert>
                   ) : (
-                    <TableContainer>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table>
                         <TableHead>
                           <TableRow>
@@ -416,7 +416,7 @@ export default function FinancialReports() {
                   ) : tertinggi.length === 0 ? (
                     <Alert severity="info">Belum ada data tagihan.</Alert>
                   ) : (
-                    <TableContainer>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table>
                         <TableHead>
                           <TableRow>

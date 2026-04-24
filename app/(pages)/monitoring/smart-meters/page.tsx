@@ -177,7 +177,7 @@ export default function SmartMetersListPage() {
     <AdminLayout title="Smart Meter">
       <Box sx={{ mb: 3 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
               Monitoring Smart Meter
@@ -319,8 +319,8 @@ export default function SmartMetersListPage() {
 
         {/* Meteran Table */}
         <Card>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Nomor Meteran</TableCell>

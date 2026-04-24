@@ -266,8 +266,8 @@ export default function AuditLogsPage() {
             <Chip label={`Halaman ${page + 1}`} color="primary" variant="outlined" />
           </Box>
 
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 750 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Waktu</TableCell>
