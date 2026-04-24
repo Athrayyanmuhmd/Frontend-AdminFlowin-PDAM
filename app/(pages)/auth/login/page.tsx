@@ -74,12 +74,12 @@ export default function AdminLogin() {
         elevation={0}
         sx={{
           width: '100%',
-          maxWidth: 920,
-          borderRadius: 2.5,
+          maxWidth: 840,
+          borderRadius: 2,
           overflow: 'hidden',
           display: 'flex',
-          minHeight: 540,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.09)',
+          minHeight: 520,
+          boxShadow: '0 2px 18px rgba(0,0,0,0.1)','
         }}
       >
         {/* ── LEFT: Form ── */}
@@ -89,25 +89,47 @@ export default function AdminLogin() {
             bgcolor: 'white',
             display: 'flex',
             flexDirection: 'column',
-            p: { xs: 3, sm: 5 },
           }}
         >
-          {/* Logo top-left */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Image
-              src="/assets/logo/Aqualink.png"
-              alt="Aqualink"
-              width={26}
-              height={26}
-              style={{ objectFit: 'contain' }}
-            />
-            <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#1a1a2e' }}>
-              Aqualink
-            </Typography>
+          {/* AuthLogo area — centered at top, with bottom border */}
+          <Box
+            sx={{
+              p: 2.5,
+              textAlign: 'center',
+              borderBottom: '1px solid #f1f3f4',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              <Image
+                src="/assets/logo/Aqualink.png"
+                alt="Aqualink"
+                width={28}
+                height={28}
+                style={{ objectFit: 'contain' }}
+              />
+              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1a1a2e', letterSpacing: 0.3 }}>
+                Aqualink
+              </Typography>
+            </Box>
           </Box>
 
-          {/* Form area */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 4 }}>
+          {/* Form area — vertically centered */}
+          <Box
+            sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              px: { xs: 3, sm: 5 },
+              py: 4,
+            }}
+          >
             <Typography
               variant="h5"
               sx={{ fontWeight: 700, color: '#1a1a2e', textAlign: 'center', mb: 0.75 }}
@@ -303,9 +325,12 @@ export default function AdminLogin() {
         </Box>
       </Paper>
 
-      {/* Below card */}
-      <Typography variant="body2" sx={{ mt: 3, color: '#9ca3af' }}>
-        Hanya untuk staf resmi PERUMDAM Tirta Daroy
+      {/* Below card — like reference */}
+      <Typography variant="body2" sx={{ mt: 3, color: '#6b7280', fontWeight: 400 }}>
+        Panel administrasi —{' '}
+        <Box component="span" sx={{ color: '#1a1a2e', fontWeight: 600 }}>
+          PERUMDAM Tirta Daroy Kota Banda Aceh
+        </Box>
       </Typography>
     </Box>
   );
