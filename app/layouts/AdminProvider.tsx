@@ -15,6 +15,11 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 const muiTheme = createTheme({
+  palette: {
+    primary: {
+      main: '#013494',
+    },
+  },
   typography: {
     fontFamily: "'Poppins', sans-serif",
     h4: {

@@ -621,7 +621,7 @@ export default function SmartMeterManagement() {
                                   'Pemakaian',
                                 ]}
                               />
-                              <Bar dataKey="liter" fill="#2196f3" name="Pemakaian (L)" radius={[3, 3, 0, 0]} />
+                              <Bar dataKey="liter" fill="#013494" name="Pemakaian (L)" radius={[3, 3, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
                         </Box>

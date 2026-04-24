@@ -49,7 +49,7 @@ import AdminLayout from '../../layouts/AdminLayout';
 import { DashboardKPI } from '../../types/admin.types';
 import { GET_DASHBOARD_STATS, GET_CHART_KONSUMSI_PER_BULAN, GET_DISTRIBUSI_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/dashboard';
 
-const CHART_COLORS = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+const CHART_COLORS = ['#013494', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
 
 export default function Dashboard() {
   const router = useRouter();

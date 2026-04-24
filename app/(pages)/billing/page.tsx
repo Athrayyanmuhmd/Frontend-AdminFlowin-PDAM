@@ -208,15 +208,15 @@ export default function BillingManagement() {
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: Arial, sans-serif; padding: 40px; color: #222; }
-  .header { text-align:center; border-bottom: 2px solid #1565c0; padding-bottom:16px; margin-bottom:24px; }
-  .header h1 { font-size:20px; color:#1565c0; }
+  .header { text-align:center; border-bottom: 2px solid #013494; padding-bottom:16px; margin-bottom:24px; }
+  .header h1 { font-size:20px; color:#013494; }
   .header p { font-size:13px; color:#555; margin-top:4px; }
-  .badge { display:inline-block; background:#1565c0; color:#fff; padding:2px 10px; border-radius:12px; font-size:11px; margin-top:6px; }
+  .badge { display:inline-block; background:#013494; color:#fff; padding:2px 10px; border-radius:12px; font-size:11px; margin-top:6px; }
   table { width:100%; border-collapse:collapse; margin-top:16px; }
   td { padding: 8px 12px; font-size:13px; border-bottom:1px solid #eee; }
   td:first-child { color:#555; width:45%; }
   td:last-child { font-weight:600; }
-  .total-row td { font-size:16px; color:#1565c0; border-top:2px solid #1565c0; padding-top:12px; }
+  .total-row td { font-size:16px; color:#013494; border-top:2px solid #013494; padding-top:12px; }
   .footer { margin-top:32px; font-size:11px; color:#999; text-align:center; border-top:1px solid #eee; padding-top:12px; }
   .status { font-size:13px; font-weight:bold; color:${b.StatusPembayaran === 'SETTLEMENT' ? '#2e7d32' : '#c62828'}; }
   @media print { body { padding:20px; } }

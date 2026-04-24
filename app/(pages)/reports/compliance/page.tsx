@@ -571,7 +571,7 @@ export default function ComplianceReports() {
                         <YAxis domain={[85, 100]} tickFormatter={(v) => `${v}%`} />
                         <RechartsTooltip formatter={(v: any) => `${v}%`} />
                         <Legend />
-                        <Line type="monotone" dataKey="kualitasAir" stroke="#2196F3" strokeWidth={2} name="Kualitas Air" dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="kualitasAir" stroke="#013494" strokeWidth={2} name="Kualitas Air" dot={{ r: 4 }} />
                         <Line type="monotone" dataKey="sla" stroke="#4CAF50" strokeWidth={2} name="SLA Layanan" dot={{ r: 4 }} />
                         <Line type="monotone" dataKey="regulasi" stroke="#FF9800" strokeWidth={2} name="Regulasi" dot={{ r: 4 }} />
                       </LineChart>
@@ -596,8 +596,8 @@ export default function ComplianceReports() {
                         <Radar
                           name="Kepatuhan"
                           dataKey="nilai"
-                          stroke="#2196F3"
-                          fill="#2196F3"
+                          stroke="#013494"
+                          fill="#013494"
                           fillOpacity={0.5}
                         />
                         <RechartsTooltip formatter={(v: any) => `${Number(v).toFixed(1)}%`} />

@@ -722,13 +722,13 @@ export default function WorkOrderManagement() {
               label: 'Total WO',
               value: counts.total,
               icon: <Build />,
-              color: '#1976d2',
+              color: '#013494',
             },
             {
               label: 'Ditugaskan',
               value: counts.ditugaskan,
               icon: <Schedule />,
-              color: '#0288d1',
+              color: '#013494',
             },
             {
               label: 'Dikerjakan',

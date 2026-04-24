@@ -282,7 +282,7 @@ export default function FinancialReports() {
                             ]}
                           />
                           <Legend formatter={(v) => v === 'totalTagihan' ? 'Total Tagihan' : 'Tagihan Lunas'} />
-                          <Line type="monotone" dataKey="totalTagihan" stroke="#2196F3" strokeWidth={3} dot={{ r: 4 }} name="totalTagihan" />
+                          <Line type="monotone" dataKey="totalTagihan" stroke="#013494" strokeWidth={3} dot={{ r: 4 }} name="totalTagihan" />
                           <Line type="monotone" dataKey="totalLunas" stroke="#4CAF50" strokeWidth={3} dot={{ r: 4 }} name="totalLunas" />
                         </LineChart>
                       </ResponsiveContainer>
@@ -309,7 +309,7 @@ export default function FinancialReports() {
                           <YAxis allowDecimals={false} />
                           <RechartsTooltip formatter={(v: any, name: string) => [v, name === 'jumlahTagihan' ? 'Total' : 'Lunas']} />
                           <Legend formatter={(v) => v === 'jumlahTagihan' ? 'Total Tagihan' : 'Tagihan Lunas'} />
-                          <Bar dataKey="jumlahTagihan" fill="#2196F3" name="jumlahTagihan" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="jumlahTagihan" fill="#013494" name="jumlahTagihan" radius={[4, 4, 0, 0]} />
                           <Bar dataKey="jumlahLunas" fill="#4CAF50" name="jumlahLunas" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>

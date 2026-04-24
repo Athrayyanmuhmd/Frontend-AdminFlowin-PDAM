@@ -55,7 +55,7 @@ import {
 } from '@/lib/graphql/queries/reports';
 
 const WORK_ORDER_COLORS: Record<string, string> = {
-  Ditugaskan: '#2196F3',
+  Ditugaskan: '#013494',
   SedangDikerjakan: '#FF9800',
   Selesai: '#4CAF50',
   Dibatalkan: '#F44336',
@@ -64,7 +64,7 @@ const WORK_ORDER_COLORS: Record<string, string> = {
 };
 
 const LAPORAN_COLORS: Record<string, string> = {
-  Diajukan: '#2196F3',
+  Diajukan: '#013494',
   ProsesPerbaikan: '#FF9800',
   Selesai: '#4CAF50',
 };
@@ -357,7 +357,7 @@ export default function OperationalReports() {
                   ) : (
                     <Box sx={{ mt: 1 }}>
                       {[
-                        { label: 'Total Laporan Masuk', value: kpi?.totalLaporanMasuk || 0, color: '#2196F3' },
+                        { label: 'Total Laporan Masuk', value: kpi?.totalLaporanMasuk || 0, color: '#013494' },
                         { label: 'Laporan Selesai', value: kpi?.totalLaporanSelesai || 0, color: '#4CAF50' },
                         { label: 'Laporan Belum Selesai', value: (kpi?.totalLaporanMasuk || 0) - (kpi?.totalLaporanSelesai || 0), color: '#FF9800' },
                       ].map((item) => (

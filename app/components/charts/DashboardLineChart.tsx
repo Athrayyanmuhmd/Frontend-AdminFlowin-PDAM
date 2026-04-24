@@ -33,7 +33,7 @@ export default function DashboardLineChart({ data }: DashboardLineChartProps) {
         <Line
           type="monotone"
           dataKey="totalTagihan"
-          stroke="#2196F3"
+          stroke="#013494"
           strokeWidth={3}
           dot={{ r: 4 }}
           name="totalTagihan"

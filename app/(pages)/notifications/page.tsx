@@ -307,8 +307,8 @@ export default function NotifikasiPage() {
         {/* Stats */}
         <Grid container spacing={2} mb={3}>
           {[
-            { label: 'Total Terkirim', value: statsTotal, color: '#1976d2', icon: <Notifications /> },
-            { label: 'Pembayaran', value: statsTransaksi, color: '#0288d1', icon: <Receipt /> },
+            { label: 'Total Terkirim', value: statsTotal, color: '#013494', icon: <Notifications /> },
+            { label: 'Pembayaran', value: statsTransaksi, color: '#013494', icon: <Receipt /> },
             { label: 'Informasi', value: statsInformasi, color: '#2e7d32', icon: <Info /> },
             { label: 'Peringatan', value: statsPeringatan, color: '#ed6c02', icon: <Warning /> },
           ].map((s) => (
