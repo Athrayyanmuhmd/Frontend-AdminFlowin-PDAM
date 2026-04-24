@@ -333,8 +333,8 @@ export default function CustomerDetailPage() {
         )}
 
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Button startIcon={<ArrowBack />} onClick={() => router.push('/customers')}>
               Kembali
             </Button>
@@ -479,7 +479,7 @@ export default function CustomerDetailPage() {
         {/* Tabs */}
         <Card>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+            <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} variant='scrollable' scrollButtons='auto'>
               <Tab icon={<Receipt />} label='Riwayat Tagihan' iconPosition='start' />
               <Tab icon={<History />} label='Riwayat Pembacaan' iconPosition='start' />
               <Tab icon={<Assignment />} label='Data Verifikasi' iconPosition='start' />
@@ -492,7 +492,7 @@ export default function CustomerDetailPage() {
               <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
             ) : billings.length > 0 ? (
               <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table>
+                <Table sx={{ minWidth: 850 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Periode</TableCell>

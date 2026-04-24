@@ -681,12 +681,14 @@ export default function WorkOrderManagement() {
             alignItems: 'center',
             justifyContent: 'space-between',
             mb: 3,
+            flexWrap: 'wrap',
+            gap: 1,
           }}
         >
           <Typography variant='h5' fontWeight={700}>
             Manajemen Work Order
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant='contained'
               startIcon={<Add />}

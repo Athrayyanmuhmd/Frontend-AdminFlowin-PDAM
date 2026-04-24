@@ -309,7 +309,7 @@ export default function GenerateBills() {
               ) : (
                 <Card>
                   <TableContainer sx={{ overflowX: 'auto' }}>
-                    <Table>
+                    <Table sx={{ minWidth: 500 }}>
                       <TableHead>
                         <TableRow>
                           <TableCell padding="checkbox">
@@ -612,7 +612,7 @@ export default function GenerateBills() {
 
         <Card>
           <CardContent>
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+            <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4, overflowX: 'auto' }}>
               {steps.map((label) => (
                 <Step key={label}>
                   <StepLabel>{label}</StepLabel>
@@ -626,7 +626,7 @@ export default function GenerateBills() {
 
             <Divider sx={{ my: 3 }} />
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
               <Button
                 disabled={activeStep === 0}
                 onClick={handleBack}

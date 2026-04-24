@@ -169,7 +169,7 @@ function CustomerRegistrationInner() {
   return (
     <AdminLayout title={isEditMode ? 'Edit Data Pelanggan' : 'Registrasi Pelanggan'}>
       {/* ─── Top bar ─── */}
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={1}>
         <Box display="flex" alignItems="center" gap={2}>
           <Button
             startIcon={<ArrowBack />}

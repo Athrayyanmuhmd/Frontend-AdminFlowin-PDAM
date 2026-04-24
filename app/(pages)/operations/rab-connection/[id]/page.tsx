@@ -25,8 +25,8 @@ const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'wa
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', py: 0.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-      <Typography variant='body2' color='text.secondary' sx={{ minWidth: 180 }}>{label}</Typography>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', py: 0.75, borderBottom: '1px solid', borderColor: 'divider', gap: 0.5 }}>
+      <Typography variant='body2' color='text.secondary' sx={{ minWidth: { xs: 120, sm: 180 }, flexShrink: 0 }}>{label}</Typography>
       <Typography variant='body2' fontWeight={500}>{value || '-'}</Typography>
     </Box>
   );
@@ -75,7 +75,7 @@ export default function RabDetailPage() {
   return (
     <AdminLayout title='Detail RAB'>
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
           <Button startIcon={<ArrowBack />} onClick={() => router.back()} size='small'>Kembali</Button>
           <Typography variant='h5' fontWeight={700}>Detail Data RAB</Typography>
           {s && <Chip label={s.label} color={s.color} size='small' />}

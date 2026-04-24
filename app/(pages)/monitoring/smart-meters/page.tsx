@@ -320,7 +320,7 @@ export default function SmartMetersListPage() {
         {/* Meteran Table */}
         <Card>
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table sx={{ minWidth: 600 }}>
+            <Table sx={{ minWidth: 900 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Nomor Meteran</TableCell>

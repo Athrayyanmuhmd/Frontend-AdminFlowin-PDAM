@@ -126,7 +126,7 @@ export default function PenyelesaianLaporanPage() {
 
         <Card sx={{ mb: 2 }}>
           <CardContent sx={{ pb: '12px !important' }}>
-            <Stack direction='row' spacing={2} alignItems='center'>
+            <Stack direction='row' spacing={2} alignItems='center' flexWrap='wrap' useFlexGap>
               <TextField
                 fullWidth size='small'
                 placeholder='Cari teknisi, pelanggan, ID laporan...'

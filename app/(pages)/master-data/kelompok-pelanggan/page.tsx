@@ -287,7 +287,7 @@ export default function KelompokPelangganPage() {
     <AdminLayout>
       <Box sx={{ p: 3 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Group sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant='h4'>Kelompok Pelanggan</Typography>

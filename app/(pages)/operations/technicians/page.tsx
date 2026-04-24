@@ -394,12 +394,12 @@ export default function TechnicianManagement() {
     <AdminLayout>
       <Box sx={{ p: 3 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
             <Typography variant='h4' gutterBottom>Manajemen Teknisi</Typography>
             <Typography variant='body2' color='text.secondary'>Kelola data teknisi lapangan</Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button variant='outlined' startIcon={<Refresh />} onClick={() => fetchTechnicians()} disabled={loading}>
               Refresh
             </Button>
