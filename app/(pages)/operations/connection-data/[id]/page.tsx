@@ -21,19 +21,11 @@ import {
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { GET_CONNECTION_DATA_BY_ID } from '../../../../../lib/graphql/queries/connectionData';
+import { GET_DETAIL_SAMBUNGAN } from '../../../../../lib/graphql/queries/connectionData';
 import { VERIFY_CONNECTION_DATA } from '../../../../../lib/graphql/mutations/connectionData';
-import { GET_SURVEI_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/surveyData';
-import { GET_RAB_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/rabConnection';
 import { GET_METERAN_BY_KONEKSI_DATA, CREATE_METERAN } from '../../../../../lib/graphql/queries/meteran';
 import { AKTIVASI_PELANGGAN } from '../../../../../lib/graphql/queries/customers';
-import { GET_PEMASANGAN_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/pemasangan';
 import { GET_ALL_KELOMPOK_PELANGGAN } from '../../../../../lib/graphql/queries/kelompokPelanggan';
-import {
-  GET_PENGAWASAN_BY_PEMASANGAN_ID,
-  GET_PENGAWASAN_SETELAH_BY_PEMASANGAN_ID,
-} from '../../../../../lib/graphql/queries/pengawasan';
-import { GET_WORK_ORDERS_BY_KONEKSI_DATA } from '../../../../../lib/graphql/queries/workOrder';
 import { BUAT_WORK_ORDER, REVIEW_HASIL } from '../../../../../lib/graphql/mutations/workOrder';
 import { GET_ALL_TEKNISI } from '../../../../../lib/graphql/queries/technicians';
 import {
@@ -158,64 +150,39 @@ export default function ConnectionDataDetailPage() {
   const [zoom, setZoom] = useState(100);
 
   // ─── Queries ─────────────────────────────────────────────────────────────
-  const { data: koneksiResult, loading, error, refetch } = useQuery(GET_CONNECTION_DATA_BY_ID, {
+  // Single combined query — eliminates waterfall: all sub-documents fetched in
+  // parallel server-side, reducing 3+ client→server round trips to 1.
+  const { data: detailResult, loading, error, refetch } = useQuery(GET_DETAIL_SAMBUNGAN, {
     variables: { id },
     skip: !id,
     fetchPolicy: 'cache-and-network',
   });
-  const data: any = (koneksiResult as any)?.getKoneksiData;
+  const detail = (detailResult as any)?.getDetailSambungan;
+  const data: any = detail?.koneksiData;
   const isApproved = data?.StatusPengajuan === 'APPROVED';
+  const survei: any = detail?.survei;
+  const rab: any = detail?.rab;
+  const pemasangan: any = detail?.pemasangan;
+  const pengawasan: any = detail?.pengawasan;
+  const pengawasanSetelah: any = detail?.pengawasanSetelah;
+  const workOrders: any[] = detail?.workOrders || [];
 
-  const { data: surveiResult, refetch: refetchSurvei } = useQuery(GET_SURVEI_BY_KONEKSI_DATA, {
-    variables: { idKoneksiData: id },
-    skip: !id || !isApproved,
-    fetchPolicy: 'cache-and-network',
-  });
-  const survei: any = (surveiResult as any)?.getSurveiByKoneksiData;
-
-  const { data: rabResult, refetch: refetchRab } = useQuery(GET_RAB_BY_KONEKSI_DATA, {
-    variables: { idKoneksiData: id },
-    skip: !id || !isApproved,
-    fetchPolicy: 'cache-and-network',
-  });
-  const rab: any = (rabResult as any)?.getRABByKoneksiData;
-
+  // Meteran still uses its own query (needs IdKoneksiData uppercase, separate cache key)
   const { data: meteranResult, refetch: refetchMeteran } = useQuery(GET_METERAN_BY_KONEKSI_DATA, {
     variables: { IdKoneksiData: id },
     skip: !id || !isApproved,
     fetchPolicy: 'cache-and-network',
   });
-  const meteran: any = (meteranResult as any)?.getMeteranByKoneksiData;
+  const meteran: any = (meteranResult as any)?.getMeteranByKoneksiData ?? detail?.meteran;
 
-  const { data: pemasanganResult, refetch: refetchPemasangan } = useQuery(GET_PEMASANGAN_BY_KONEKSI_DATA, {
-    variables: { idKoneksiData: id },
-    skip: !id || !isApproved,
-    fetchPolicy: 'cache-and-network',
-  });
-  const pemasangan: any = (pemasanganResult as any)?.getPemasanganByKoneksiData;
-
-  const { data: pengawasanResult, refetch: refetchPengawasan } = useQuery(GET_PENGAWASAN_BY_PEMASANGAN_ID, {
-    variables: { idPemasangan: pemasangan?._id },
-    skip: !pemasangan?._id,
-    fetchPolicy: 'cache-and-network',
-  });
-  const pengawasanList: any[] = (pengawasanResult as any)?.getPengawasanPemasanganByPemasangan || [];
-  const pengawasan: any = pengawasanList[0];
-
-  const { data: pengawasanSetelahResult, refetch: refetchPengawasanSetelah } = useQuery(GET_PENGAWASAN_SETELAH_BY_PEMASANGAN_ID, {
-    variables: { idPemasangan: pemasangan?._id },
-    skip: !pemasangan?._id,
-    fetchPolicy: 'cache-and-network',
-  });
-  const pengawasanSetelahList: any[] = (pengawasanSetelahResult as any)?.getPengawasanSetelahPemasanganByPemasangan || [];
-  const pengawasanSetelah: any = pengawasanSetelahList[0];
-
-  const { data: woResult, refetch: refetchWO } = useQuery(GET_WORK_ORDERS_BY_KONEKSI_DATA, {
-    variables: { idKoneksiData: id },
-    skip: !id || !isApproved,
-    fetchPolicy: 'cache-and-network',
-  });
-  const workOrders: any[] = (woResult as any)?.workOrdersByKoneksiData || [];
+  // Unified refetch — all sub-docs refresh in one call
+  const refetchAll = () => refetch();
+  const refetchSurvei = refetchAll;
+  const refetchRab = refetchAll;
+  const refetchPemasangan = refetchAll;
+  const refetchPengawasan = refetchAll;
+  const refetchPengawasanSetelah = refetchAll;
+  const refetchWO = refetchAll;
 
   const { data: teknisiResult, loading: teknisiLoading } = useQuery(GET_ALL_TEKNISI, {
     skip: !woCreateDialogOpen,

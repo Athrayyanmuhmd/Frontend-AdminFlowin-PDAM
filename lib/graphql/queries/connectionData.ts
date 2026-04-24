@@ -117,6 +117,108 @@ export const GET_REJECTED_CONNECTION_DATA = gql`
   }
 `;
 
+export const GET_DETAIL_SAMBUNGAN = gql`
+  query GetDetailSambungan($id: ID!) {
+    getDetailSambungan(id: $id) {
+      koneksiData {
+        _id
+        IdPelanggan {
+          _id
+          namaLengkap
+          email
+          noHP
+          accountStatus
+        }
+        NIK
+        NIKUrl
+        NoKK
+        KKUrl
+        IMB
+        IMBUrl
+        Alamat
+        Kelurahan
+        Kecamatan
+        LuasBangunan
+        StatusPengajuan
+        AlasanPenolakan
+        TanggalVerifikasi
+        catatan
+        createdAt
+        updatedAt
+      }
+      survei {
+        _id
+        standar
+        catatan
+        statusAdmin
+        catatanAdmin
+        urlJaringan
+        urlPosisiBak
+        posisiMeteran
+        jumlahPenghuni
+        createdAt
+      }
+      rab {
+        _id
+        totalBiaya
+        statusPembayaran
+        statusKonfirmasiPembayaran
+        paymentUrl
+        catatan
+        urlRab
+        createdAt
+      }
+      meteran {
+        _id
+        nomorMeteran
+        nomorAkun
+        statusAktif
+      }
+      pemasangan {
+        _id
+        seriMeteran
+        fotoRumah
+        fotoMeteran
+        fotoMeteranDanRumah
+        statusAdmin
+        catatanAdmin
+        catatan
+        createdAt
+      }
+      pengawasan {
+        _id
+        urlGambar
+        catatan
+        statusAdmin
+        catatanAdmin
+        createdAt
+      }
+      pengawasanSetelah {
+        _id
+        urlGambar
+        catatan
+        statusAdmin
+        catatanAdmin
+        createdAt
+      }
+      workOrders {
+        id
+        idKoneksiData
+        jenisPekerjaan
+        status
+        statusRespon
+        statusTim
+        createdAt
+        updatedAt
+        teknisiPenanggungJawab {
+          id
+          namaLengkap
+        }
+      }
+    }
+  }
+`;
+
 // Stub mutations — assign teknisi sekarang via Rafli WorkOrder
 // Diekspor dari sini (bukan dari mutations/) karena AssignTechnicianDialog masih import dari sini
 export const ASSIGN_TEKNISI_TO_KONEKSI = gql`
