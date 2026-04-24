@@ -417,7 +417,17 @@ export default function NotifikasiPage() {
                       paginated.map((item, idx) => {
                         const penerima = getPenerima(item);
                         return (
-                          <TableRow key={item._id} hover>
+                          <TableRow
+                            key={item._id}
+                            hover
+                            onMouseEnter={() => {
+                              if (!item.isRead) {
+                                markAsRead({ variables: { id: item._id } })
+                                  .then(() => refetch())
+                                  .catch(() => {});
+                              }
+                            }}
+                          >
                             <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
                             <TableCell>
                               <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 220 }}>
@@ -457,11 +467,6 @@ export default function NotifikasiPage() {
                                   onClick={() => {
                                     setSelectedNotif(item);
                                     setOpenDetail(true);
-                                    if (!item.isRead) {
-                                      markAsRead({ variables: { id: item._id } })
-                                        .then(() => refetch())
-                                        .catch(() => {});
-                                    }
                                   }}
                                 >
                                   <Visibility fontSize="small" />
@@ -531,7 +536,7 @@ export default function NotifikasiPage() {
                     {formatDate(selectedNotif.createdAt)}
                   </Typography>
                 </Grid>
-                {selectedNotif.link && (
+                {selectedNotif.link?.trim() && (
                   <Grid item xs={12}>
                     <Typography variant="caption" color="text.secondary">Link</Typography>
                     <Typography variant="body2" color="primary.main">

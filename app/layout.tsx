@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import AdminProvider from './layouts/AdminProvider';
 import NextTopLoader from 'nextjs-toploader';
@@ -27,10 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='id' suppressHydrationWarning>
-      <body
-        className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
-        suppressHydrationWarning
-      >
+      <body className="antialiased" suppressHydrationWarning>
         <NextTopLoader
           color='#1976d2'
           initialPosition={0.08}

@@ -11,6 +11,14 @@ import {
   LOGOUT_ADMIN,
   LOGOUT_TECHNICIAN,
 } from '../../lib/graphql/mutations/auth';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+
+const muiTheme = createTheme({
+  typography: {
+    fontFamily: "'Poppins', sans-serif",
+  },
+});
 
 const GET_ALL_NOTIFIKASI_ADMIN = gql`
   query GetAllNotifikasiAdmin {
@@ -323,8 +331,11 @@ function AdminProviderInner({ children }: AdminProviderProps) {
 
 export default function AdminProvider({ children }: AdminProviderProps) {
   return (
-    <ApolloWrapper>
-      <AdminProviderInner>{children}</AdminProviderInner>
-    </ApolloWrapper>
+    <ThemeProvider theme={muiTheme}>
+      <CssBaseline />
+      <ApolloWrapper>
+        <AdminProviderInner>{children}</AdminProviderInner>
+      </ApolloWrapper>
+    </ThemeProvider>
   );
 }
