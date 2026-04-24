@@ -91,7 +91,7 @@ export default function AdminLogin() {
             flexDirection: 'column',
           }}
         >
-          {/* AuthLogo area — centered at top, with bottom border */}
+          {/* AuthLogo area — logo centered at top, with bottom border */}
           <Box
             sx={{
               p: 2.5,
@@ -99,24 +99,14 @@ export default function AdminLogin() {
               borderBottom: '1px solid #f1f3f4',
             }}
           >
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
-              }}
-            >
-              <Image
-                src="/assets/logo/Aqualink.png"
-                alt="Aqualink"
-                width={28}
-                height={28}
-                style={{ objectFit: 'contain' }}
-              />
-              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1a1a2e', letterSpacing: 0.3 }}>
-                Aqualink
-              </Typography>
-            </Box>
+            <Image
+              src="/assets/logo/logo-tirta-daroy.png"
+              alt="PERUMDAM Tirta Daroy"
+              width={160}
+              height={48}
+              style={{ objectFit: 'contain', maxHeight: 48 }}
+              priority
+            />
           </Box>
 
           {/* Form area — vertically centered */}
@@ -259,69 +249,22 @@ export default function AdminLogin() {
           </Box>
         </Box>
 
-        {/* ── RIGHT: Visual Panel ── */}
+        {/* ── RIGHT: Image Panel ── */}
         <Box
           sx={{
-            width: '45%',
+            width: '50%',
             display: { xs: 'none', md: 'block' },
             position: 'relative',
-            background: 'linear-gradient(160deg, #0a2458 0%, #1356b4 40%, #1a8fd1 75%, #28c4e6 100%)',
             overflow: 'hidden',
           }}
         >
-          {/* Decorative blobs */}
-          <Box sx={{ position: 'absolute', top: -80, right: -80, width: 280, height: 280, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)' }} />
-          <Box sx={{ position: 'absolute', bottom: -100, left: -60, width: 360, height: 360, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.04)' }} />
-
-          {/* Ripple rings */}
-          {[100, 190, 280, 370].map((size, i) => (
-            <Box
-              key={i}
-              sx={{
-                position: 'absolute',
-                top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: size, height: size,
-                borderRadius: '50%',
-                border: `1px solid rgba(255,255,255,${0.14 - i * 0.025})`,
-              }}
-            />
-          ))}
-
-          {/* Center content */}
-          <Box
-            sx={{
-              position: 'absolute', inset: 0,
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              p: 4, zIndex: 1,
-            }}
-          >
-            <Box
-              sx={{
-                width: 76, height: 76,
-                borderRadius: '50%',
-                bgcolor: 'rgba(255,255,255,0.15)',
-                border: '1.5px solid rgba(255,255,255,0.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                mb: 3,
-              }}
-            >
-              <Image
-                src="/assets/logo/Aqualink.png"
-                alt="Aqualink"
-                width={42}
-                height={42}
-                style={{ objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
-              />
-            </Box>
-            <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, textAlign: 'center', mb: 1 }}>
-              PERUMDAM Tirta Daroy
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.72)', textAlign: 'center', lineHeight: 1.8 }}>
-              Sistem Administrasi Terintegrasi<br />Smart Water Meter<br />Kota Banda Aceh
-            </Typography>
-          </Box>
+          <Image
+            src="/assets/gambar-sebelah-kanan-login.png"
+            alt=""
+            fill
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
+            priority
+          />
         </Box>
       </Paper>
 
