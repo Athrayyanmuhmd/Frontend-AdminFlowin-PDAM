@@ -503,15 +503,13 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 ? 'rgba(1, 52, 148, 0.08)'
                 : 'transparent',
               color: isActive ? 'primary.contrastText' : 'inherit',
-              transition: 'background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease',
+              transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
               '&:hover': {
                 backgroundColor: isActive
                   ? 'primary.dark'
                   : isChildActive
                   ? 'rgba(1, 52, 148, 0.12)'
                   : 'action.hover',
-                transform: 'translateX(3px)',
-                boxShadow: isActive ? '0 2px 8px rgba(1,52,148,0.3)' : 'none',
               },
               ...(isActive && {
                 boxShadow: '0 2px 8px rgba(1,52,148,0.25)',
@@ -560,7 +558,6 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           <Collapse
             in={isExpanded}
             timeout={{ enter: 280, exit: 200 }}
-            easing={{ enter: 'cubic-bezier(0.4, 0, 0.2, 1)', exit: 'cubic-bezier(0.4, 0, 0.6, 1)' }}
             unmountOnExit
           >
             <Box
