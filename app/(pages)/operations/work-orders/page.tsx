@@ -47,6 +47,7 @@ import {
   InputLabel,
   Select,
   Avatar,
+  AvatarGroup,
   Pagination,
   CircularProgress,
   Alert,
@@ -254,6 +255,8 @@ export default function WorkOrderManagement() {
   const [laporan, setLaporan] = useState<any[]>([]);
   const [workflow, setWorkflow] = useState<any[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const [dlgAlasan, setDlgAlasan] = useState('');
 
   const [snackbar, setSnackbar] = useState({ open: false, msg: '', ok: true });
   const toast = (msg: string, ok = true) =>
@@ -1000,61 +1003,45 @@ export default function WorkOrderManagement() {
                               )}
                             </TableCell>
 
+                            {/* Tim Teknisi */}
                             <TableCell>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                }}
-                              >
-                                {wo.tim && wo.tim.length > 0 ? (
-                                  <Stack
-                                    direction='row'
-                                    flexWrap='wrap'
-                                    gap={0.5}
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                {wo.tim?.length > 0 ? (
+                                  <Tooltip
+                                    title={wo.tim.map((t: any) => `${t.namaLengkap}${t.divisi ? ` (${t.divisi})` : ''}`).join(' • ')}
+                                    arrow
                                   >
-                                    {wo.tim.map((t: any) => (
-                                      <Chip
-                                        key={t.id}
-                                        label={t.namaLengkap}
-                                        size='small'
-                                        sx={{ fontSize: 11, height: 22 }}
-                                      />
-                                    ))}
-                                  </Stack>
-                                ) : null}
-                                {wo.statusTim &&
-                                wo.statusTim !== 'belum_diajukan' ? (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'default', width: 'fit-content' }}>
+                                      <AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width: 22, height: 22, fontSize: 10, borderWidth: 1 } }}>
+                                        {wo.tim.map((t: any) => (
+                                          <Avatar key={t.id} sx={{ bgcolor: 'primary.main', width: 22, height: 22, fontSize: 10 }}>
+                                            {t.namaLengkap?.[0]?.toUpperCase()}
+                                          </Avatar>
+                                        ))}
+                                      </AvatarGroup>
+                                      <Typography variant='caption' color='text.secondary'>
+                                        {wo.tim.length} org
+                                      </Typography>
+                                    </Box>
+                                  </Tooltip>
+                                ) : (
+                                  <Typography variant='caption' color='text.disabled' fontStyle='italic'>
+                                    Belum ada tim
+                                  </Typography>
+                                )}
+                                {wo.statusTim && wo.statusTim !== 'belum_diajukan' && (
                                   <Chip
                                     size='small'
                                     label={TIM_LABELS[wo.statusTim]}
                                     color={TIM_COLORS[wo.statusTim]}
-                                    icon={
-                                      wo.statusTim === 'diajukan' ? (
-                                        <HourglassEmpty
-                                          sx={{ fontSize: '14px !important' }}
-                                        />
-                                      ) : undefined
-                                    }
-                                    sx={{
-                                      fontSize: 11,
-                                      height: 22,
-                                      alignSelf: 'flex-start',
-                                    }}
+                                    icon={wo.statusTim === 'diajukan' ? <HourglassEmpty sx={{ fontSize: '12px !important' }} /> : undefined}
+                                    sx={{ fontSize: 10, height: 20, alignSelf: 'flex-start' }}
                                   />
-                                ) : !wo.tim?.length ? (
-                                  <Typography
-                                    variant='caption'
-                                    color='text.disabled'
-                                    fontStyle='italic'
-                                  >
-                                    Belum ada tim
-                                  </Typography>
-                                ) : null}
+                                )}
                               </Box>
                             </TableCell>
 
+                            {/* Status WO */}
                             <TableCell align='center'>
                               <Chip
                                 icon={getStatusIcon(wo.status)}
@@ -1065,79 +1052,65 @@ export default function WorkOrderManagement() {
                               />
                             </TableCell>
 
+                            {/* Respon Teknisi */}
                             <TableCell align='center'>
-                              {wo.statusRespon ? (
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: 0.5,
-                                  }}
-                                >
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                                {wo.statusRespon ? (
                                   <Chip
                                     size='small'
-                                    label={
-                                      RESPON_LABELS[wo.statusRespon] ||
-                                      wo.statusRespon
-                                    }
-                                    color={
-                                      RESPON_COLORS[wo.statusRespon] ||
-                                      'default'
-                                    }
+                                    label={RESPON_LABELS[wo.statusRespon] || wo.statusRespon}
+                                    color={RESPON_COLORS[wo.statusRespon] || 'default'}
                                     sx={{ fontSize: 11 }}
                                   />
-                                  {hasPenolakan && wo.alasanPenolakan && (
-                                    <Tooltip
-                                      title={
-                                        <Box>
-                                          <strong>Alasan penolakan:</strong>
-                                          <br />
-                                          {wo.alasanPenolakan}
-                                        </Box>
-                                      }
-                                      arrow
-                                      placement='left'
-                                    >
-                                      <Box
-                                        sx={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 0.3,
-                                          cursor: 'help',
-                                          color: 'warning.dark',
-                                        }}
-                                      >
-                                        <InfoOutlined sx={{ fontSize: 13 }} />
-                                        <Typography
-                                          variant='caption'
-                                          sx={{ fontSize: 11 }}
-                                        >
-                                          Lihat alasan
-                                        </Typography>
-                                      </Box>
-                                    </Tooltip>
-                                  )}
-                                </Box>
-                              ) : (
-                                <Typography
-                                  variant='caption'
-                                  color='text.disabled'
-                                >
-                                  —
-                                </Typography>
-                              )}
+                                ) : (
+                                  <Typography variant='caption' color='text.disabled'>—</Typography>
+                                )}
+                                {hasPenolakan && wo.alasanPenolakan && (
+                                  <Button
+                                    size='small'
+                                    variant='outlined'
+                                    color='warning'
+                                    startIcon={<InfoOutlined sx={{ fontSize: '12px !important' }} />}
+                                    sx={{ fontSize: 10, py: 0.25, px: 0.75, minHeight: 0, lineHeight: 1.4 }}
+                                    onClick={() => { setSelectedWO(wo); setDlgAlasan(wo.alasanPenolakan); }}
+                                  >
+                                    Lihat Alasan
+                                  </Button>
+                                )}
+                                {needsPenolakan && (
+                                  <Button
+                                    size='small'
+                                    variant='contained'
+                                    color='warning'
+                                    sx={{ fontSize: 10, py: 0.25, px: 0.75, minHeight: 0, lineHeight: 1.4 }}
+                                    onClick={() => { setSelectedWO(wo); openAction('penolakan', true); }}
+                                  >
+                                    Review Penolakan
+                                  </Button>
+                                )}
+                                {canBuatPengganti && (
+                                  <Button
+                                    size='small'
+                                    variant='contained'
+                                    color='info'
+                                    startIcon={<Person sx={{ fontSize: '12px !important' }} />}
+                                    sx={{ fontSize: 10, py: 0.25, px: 0.75, minHeight: 0, lineHeight: 1.4 }}
+                                    onClick={() => { setSelectedWO(wo); openBuatPengganti(); }}
+                                  >
+                                    Re-assign
+                                  </Button>
+                                )}
+                              </Box>
                             </TableCell>
 
+                            {/* Dibuat */}
                             <TableCell>
-                              <Typography
-                                variant='caption'
-                                color='text.secondary'
-                              >
+                              <Typography variant='caption' color='text.secondary'>
                                 {fmtDate(wo.createdAt)}
                               </Typography>
                             </TableCell>
 
+                            {/* Aksi */}
                             <TableCell align='center'>
                               <IconButton
                                 size='small'
@@ -2328,6 +2301,41 @@ export default function WorkOrderManagement() {
           >
             {mutating ? 'Membuat…' : 'Buat WO Pengganti'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ─── Dialog: Alasan Penolakan ────────────────────────────────────────────── */}
+      <Dialog open={Boolean(dlgAlasan)} onClose={() => setDlgAlasan('')} maxWidth='xs' fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Warning color='warning' fontSize='small' />
+          Alasan Penolakan Teknisi
+        </DialogTitle>
+        <DialogContent>
+          {selectedWO && (
+            <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant='caption' color='text.secondary'>Work Order</Typography>
+              <Typography variant='body2' fontWeight={600}>
+                {selectedWO.jenisPekerjaan?.replace(/_/g, ' ')} —{' '}
+                {selectedWO.teknisiPenanggungJawab?.namaLengkap || '—'}
+              </Typography>
+            </Box>
+          )}
+          <Alert severity='warning' sx={{ py: 1 }}>
+            <Typography variant='body2'>{dlgAlasan}</Typography>
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ gap: 1 }}>
+          <Button size='small' onClick={() => setDlgAlasan('')}>Tutup</Button>
+          {selectedWO && woActions(selectedWO).needsPenolakan && (
+            <Button
+              size='small'
+              variant='contained'
+              color='warning'
+              onClick={() => { setDlgAlasan(''); openAction('penolakan', true); }}
+            >
+              Review Penolakan
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
