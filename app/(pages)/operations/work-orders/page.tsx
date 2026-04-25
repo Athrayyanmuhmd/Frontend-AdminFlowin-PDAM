@@ -1113,19 +1113,6 @@ export default function WorkOrderManagement() {
                             {/* Aksi */}
                             <TableCell align='center'>
                               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                                {canBuatPengganti && (
-                                  <Tooltip title='Penolakan diterima — tugaskan teknisi pengganti' arrow>
-                                    <Button
-                                      size='small'
-                                      variant='contained'
-                                      color='info'
-                                      sx={{ fontSize: 10, py: 0.25, px: 0.75, minHeight: 0, lineHeight: 1.4, whiteSpace: 'nowrap' }}
-                                      onClick={() => { setSelectedWO(wo); openBuatPengganti(); }}
-                                    >
-                                      Re-assign
-                                    </Button>
-                                  </Tooltip>
-                                )}
                                 <IconButton
                                   size='small'
                                   onClick={e => {
