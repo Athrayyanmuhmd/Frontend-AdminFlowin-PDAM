@@ -26,7 +26,6 @@ import {
   Assessment,
   Settings,
   Notifications,
-  ExpandLess,
   ExpandMore,
   Menu as MenuIcon,
   ChevronLeft,
@@ -489,46 +488,95 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
 
     return (
       <React.Fragment key={item.id}>
-        <ListItem disablePadding>
+        <ListItem disablePadding sx={{ px: level === 0 ? 1 : 0 }}>
           <ListItemButton
             onClick={() => handleItemClick(item)}
             sx={{
-              pl: 2 + level * 2,
+              pl: level === 0 ? 1.5 : 1.5,
+              pr: 1.5,
+              py: 0.75,
+              borderRadius: 2,
+              mb: 0.25,
               backgroundColor: isActive
                 ? 'primary.main'
                 : isChildActive
-                ? 'primary.50'
+                ? 'rgba(1, 52, 148, 0.08)'
                 : 'transparent',
               color: isActive ? 'primary.contrastText' : 'inherit',
-              borderLeft: isChildActive && !isActive ? '3px solid' : 'none',
-              borderColor: 'primary.main',
+              transition: 'background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease',
               '&:hover': {
-                backgroundColor: isActive ? 'primary.dark' : 'action.hover',
+                backgroundColor: isActive
+                  ? 'primary.dark'
+                  : isChildActive
+                  ? 'rgba(1, 52, 148, 0.12)'
+                  : 'action.hover',
+                transform: 'translateX(3px)',
+                boxShadow: isActive ? '0 2px 8px rgba(1,52,148,0.3)' : 'none',
               },
+              ...(isActive && {
+                boxShadow: '0 2px 8px rgba(1,52,148,0.25)',
+              }),
             }}
           >
             <ListItemIcon
-              sx={{ color: isActive ? 'primary.contrastText' : isChildActive ? 'primary.main' : 'inherit' }}
+              sx={{
+                color: isActive
+                  ? 'primary.contrastText'
+                  : isChildActive
+                  ? 'primary.main'
+                  : 'text.secondary',
+                minWidth: 36,
+                transition: 'color 0.2s ease',
+              }}
             >
               {item.icon}
             </ListItemIcon>
             <ListItemText
               primary={item.title}
               primaryTypographyProps={{
-                fontSize: level > 0 ? '0.875rem' : '1rem',
+                fontSize: level > 0 ? '0.8125rem' : '0.9375rem',
                 fontWeight: isHighlighted ? 600 : 400,
                 color: isChildActive && !isActive ? 'primary.main' : 'inherit',
               }}
             />
-            {item.children && (isExpanded ? <ExpandLess /> : <ExpandMore />)}
+            {item.children && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  color: isActive ? 'primary.contrastText' : 'text.secondary',
+                  ml: 0.5,
+                }}
+              >
+                <ExpandMore fontSize='small' />
+              </Box>
+            )}
           </ListItemButton>
         </ListItem>
 
         {item.children && (
-          <Collapse in={isExpanded} timeout={0} unmountOnExit>
-            <List component='div' disablePadding>
-              {item.children.map(child => renderMenuItem(child, level + 1))}
-            </List>
+          <Collapse
+            in={isExpanded}
+            timeout={{ enter: 280, exit: 200 }}
+            easing={{ enter: 'cubic-bezier(0.4, 0, 0.2, 1)', exit: 'cubic-bezier(0.4, 0, 0.6, 1)' }}
+            unmountOnExit
+          >
+            <Box
+              sx={{
+                ml: 3,
+                pl: 1,
+                borderLeft: '2px solid',
+                borderColor: isChildActive ? 'primary.main' : 'divider',
+                transition: 'border-color 0.3s ease',
+                my: 0.5,
+              }}
+            >
+              <List component='div' disablePadding>
+                {item.children.map(child => renderMenuItem(child, level + 1))}
+              </List>
+            </Box>
           </Collapse>
         )}
       </React.Fragment>
