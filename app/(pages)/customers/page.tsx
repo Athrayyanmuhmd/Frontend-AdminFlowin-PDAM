@@ -339,11 +339,14 @@ export default function CustomerManagement() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredCustomers = customers.filter((customer: any) => {
-    const matchesSearch =
-      customer.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      customer.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      customer.phone.includes(debouncedSearch) ||
-      customer.nik.includes(debouncedSearch);
+    const q = debouncedSearch.toLowerCase();
+    const matchesSearch = !debouncedSearch || (
+      (customer.name ?? '').toLowerCase().includes(q) ||
+      (customer.email ?? '').toLowerCase().includes(q) ||
+      (customer.phone ?? '').includes(debouncedSearch) ||
+      (customer.nik ?? '').includes(debouncedSearch) ||
+      (customer.address ?? '').toLowerCase().includes(q)
+    );
 
     const matchesType =
       filterType === 'all' || customer.customerType === filterType;
@@ -534,13 +537,14 @@ export default function CustomerManagement() {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  placeholder='Cari NIK, Nama, Email, atau Telepon...'
+                  size='small'
+                  placeholder='Cari NIK, Nama, Email, Telepon, atau Alamat...'
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position='start'>
-                        <Search />
+                        <Search fontSize='small' />
                       </InputAdornment>
                     ),
                   }}
@@ -548,7 +552,7 @@ export default function CustomerManagement() {
               </Grid>
 
               <Grid item xs={12} md={2}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size='small'>
                   <InputLabel>Jenis Pelanggan</InputLabel>
                   <Select
                     value={filterType}
@@ -565,12 +569,12 @@ export default function CustomerManagement() {
               </Grid>
 
               <Grid item xs={12} md={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
+                <FormControl fullWidth size='small'>
+                  <InputLabel>Status Akun</InputLabel>
                   <Select
                     value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value)}
-                    label='Status'
+                    label='Status Akun'
                   >
                     <MenuItem value='all'>Semua</MenuItem>
                     <MenuItem value='active'>Aktif</MenuItem>

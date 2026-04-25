@@ -224,6 +224,9 @@ export default function WorkOrderManagement() {
 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterJenis, setFilterJenis] = useState('all');
+  const [filterRespon, setFilterRespon] = useState('all');
+  const [filterTeknisi, setFilterTeknisi] = useState('');
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
 
@@ -364,11 +367,18 @@ export default function WorkOrderManagement() {
 
   // ─── Filter ──────────────────────────────────────────────────────────────
   const filtered = allWO.filter(wo => {
-    const name = wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || '';
-    return (
-      (filterStatus === 'all' || wo.status === filterStatus) &&
-      (!search || name.toLowerCase().includes(search.toLowerCase()))
-    );
+    const pelangganName = (wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || '').toLowerCase();
+    const teknisiName = (wo.teknisiPenanggungJawab?.namaLengkap || '').toLowerCase();
+    const woId = (wo.id || '').toLowerCase();
+    const q = search.toLowerCase();
+
+    const matchSearch = !search || pelangganName.includes(q) || teknisiName.includes(q) || woId.includes(q);
+    const matchStatus = filterStatus === 'all' || wo.status === filterStatus;
+    const matchJenis = filterJenis === 'all' || wo.jenisPekerjaan === filterJenis;
+    const matchRespon = filterRespon === 'all' || wo.statusRespon === filterRespon;
+    const matchTeknisi = !filterTeknisi || teknisiName.includes(filterTeknisi.toLowerCase());
+
+    return matchSearch && matchStatus && matchJenis && matchRespon && matchTeknisi;
   });
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const rows = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -799,17 +809,15 @@ export default function WorkOrderManagement() {
         {/* ─── Filter ────────────────────────────────────────────────────── */}
         <Card variant='outlined' sx={{ mb: 2, borderRadius: 2 }}>
           <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <Grid container spacing={2} alignItems='center'>
-              <Grid item xs={12} md={7}>
+            <Grid container spacing={1.5} alignItems='center'>
+              {/* Search */}
+              <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
                   size='small'
-                  placeholder='Cari nama pelanggan...'
+                  placeholder='Cari pelanggan, teknisi, atau ID WO...'
                   value={search}
-                  onChange={e => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position='start'>
@@ -819,28 +827,103 @@ export default function WorkOrderManagement() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={5}>
+
+              {/* Filter Jenis */}
+              <Grid item xs={6} sm={3} md={2}>
                 <FormControl fullWidth size='small'>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterStatus}
-                    onChange={e => {
-                      setFilterStatus(e.target.value);
-                      setPage(1);
-                    }}
-                    label='Status'
-                  >
+                  <InputLabel>Jenis WO</InputLabel>
+                  <Select value={filterJenis} onChange={e => { setFilterJenis(e.target.value); setPage(1); }} label='Jenis WO'>
+                    <MenuItem value='all'>Semua Jenis</MenuItem>
+                    <Divider />
+                    <MenuItem value='survei'>Survei</MenuItem>
+                    <MenuItem value='rab'>RAB</MenuItem>
+                    <MenuItem value='pemasangan'>Pemasangan</MenuItem>
+                    <MenuItem value='pengawasan_pemasangan'>Pengawasan Pasang</MenuItem>
+                    <MenuItem value='pengawasan_setelah_pemasangan'>Pengawasan Setelah</MenuItem>
+                    <MenuItem value='penyelesaian_laporan'>Penyelesaian Laporan</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Filter Status WO */}
+              <Grid item xs={6} sm={3} md={2}>
+                <FormControl fullWidth size='small'>
+                  <InputLabel>Status WO</InputLabel>
+                  <Select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }} label='Status WO'>
                     <MenuItem value='all'>Semua Status</MenuItem>
                     <Divider />
                     {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                      <MenuItem key={k} value={k}>
-                        {v}
-                      </MenuItem>
+                      <MenuItem key={k} value={k}>{v}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               </Grid>
+
+              {/* Filter Respon Teknisi */}
+              <Grid item xs={6} sm={3} md={2}>
+                <FormControl fullWidth size='small'>
+                  <InputLabel>Respon</InputLabel>
+                  <Select value={filterRespon} onChange={e => { setFilterRespon(e.target.value); setPage(1); }} label='Respon'>
+                    <MenuItem value='all'>Semua Respon</MenuItem>
+                    <Divider />
+                    <MenuItem value='menunggu'>Menunggu</MenuItem>
+                    <MenuItem value='diterima'>Diterima</MenuItem>
+                    <MenuItem value='penolakan_diajukan'>Penolakan Diajukan</MenuItem>
+                    <MenuItem value='penolakan_diterima'>Penolakan Diterima</MenuItem>
+                    <MenuItem value='penolakan_ditolak'>Penolakan Ditolak</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Filter Penanggung Jawab */}
+              <Grid item xs={6} sm={3} md={2}>
+                <TextField
+                  fullWidth
+                  size='small'
+                  placeholder='Cari teknisi...'
+                  value={filterTeknisi}
+                  onChange={e => { setFilterTeknisi(e.target.value); setPage(1); }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position='start'>
+                        <Person fontSize='small' />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* Reset */}
+              <Grid item xs={12} sm={12} md='auto'>
+                <Tooltip title='Reset semua filter'>
+                  <IconButton
+                    size='small'
+                    onClick={() => { setSearch(''); setFilterStatus('all'); setFilterJenis('all'); setFilterRespon('all'); setFilterTeknisi(''); setPage(1); }}
+                    disabled={!search && filterStatus === 'all' && filterJenis === 'all' && filterRespon === 'all' && !filterTeknisi}
+                  >
+                    <Refresh fontSize='small' />
+                  </IconButton>
+                </Tooltip>
+              </Grid>
             </Grid>
+
+            {/* Active filter chips */}
+            {(filterStatus !== 'all' || filterJenis !== 'all' || filterRespon !== 'all' || filterTeknisi) && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+                {filterJenis !== 'all' && (
+                  <Chip size='small' label={`Jenis: ${filterJenis.replace(/_/g, ' ')}`} onDelete={() => setFilterJenis('all')} />
+                )}
+                {filterStatus !== 'all' && (
+                  <Chip size='small' label={`Status: ${STATUS_LABELS[filterStatus] ?? filterStatus}`} onDelete={() => setFilterStatus('all')} />
+                )}
+                {filterRespon !== 'all' && (
+                  <Chip size='small' label={`Respon: ${filterRespon.replace(/_/g, ' ')}`} onDelete={() => setFilterRespon('all')} />
+                )}
+                {filterTeknisi && (
+                  <Chip size='small' label={`Teknisi: ${filterTeknisi}`} onDelete={() => setFilterTeknisi('')} />
+                )}
+              </Box>
+            )}
           </CardContent>
         </Card>
 
