@@ -436,11 +436,27 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
   const router = useRouter();
   const pathname = usePathname();
   const { hasPermission, userRole } = useAdmin();
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
+    // Persist expanded state so sidebar re-mount (per-page layout) doesn't re-animate
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = sessionStorage.getItem('sidebar_expanded');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Select menu based on user role
   const menuItems =
     userRole === 'technician' ? technicianMenuItems : adminMenuItems;
+
+  // Keep sessionStorage in sync
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('sidebar_expanded', JSON.stringify(expandedItems));
+    } catch {}
+  }, [expandedItems]);
 
   // Auto-expand the parent group whose child matches the current route
   useEffect(() => {
