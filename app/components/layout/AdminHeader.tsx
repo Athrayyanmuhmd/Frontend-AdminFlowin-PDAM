@@ -87,6 +87,12 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
   const pageTitle = resolvePageTitle(pathname, title);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
+  // Jumlah unread yang sudah "dilihat" saat klik bell — badge shows delta dari sini
+  const [clearedCount, setClearedCount] = useState(0);
+
+  const unreadNotifications = notifications.filter(n => !n.isRead);
+  const criticalNotifications = unreadNotifications.filter(n => n.priority === 'critical');
+  const badgeCount = Math.max(0, unreadNotifications.length - clearedCount);
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -94,6 +100,8 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
 
   const handleNotificationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setNotificationAnchor(event.currentTarget);
+    // Reset badge saat bell diklik
+    setClearedCount(unreadNotifications.length);
   };
 
   const handleMenuClose = () => {
@@ -111,9 +119,6 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
     markNotificationAsRead(notificationId);
     handleMenuClose();
   };
-
-  const unreadNotifications = notifications.filter(n => !n.isRead);
-  const criticalNotifications = unreadNotifications.filter(n => n.priority === 'critical');
 
   return (
     <AppBar 
@@ -149,8 +154,8 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
               onClick={handleNotificationMenuOpen}
               sx={{ position: 'relative' }}
             >
-              <Badge 
-                badgeContent={unreadNotifications.length} 
+              <Badge
+                badgeContent={badgeCount}
                 color="error"
                 max={99}
               >
@@ -259,7 +264,7 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
         >
           <MenuItem disabled>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              Notifikasi ({unreadNotifications.length})
+              Notifikasi {badgeCount > 0 ? `(${badgeCount} belum dibaca)` : ''}
             </Typography>
           </MenuItem>
           {notifications.length === 0 ? (

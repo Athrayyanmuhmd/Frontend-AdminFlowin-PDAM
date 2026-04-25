@@ -157,6 +157,9 @@ export default function NotifikasiPage() {
     skip: !isAuthenticated,
   });
 
+  // Track IDs yang sudah di-mark read secara optimistic (tanpa refetch)
+  const [localReadIds, setLocalReadIds] = useState<Set<string>>(new Set());
+
   const { data: penggunaData } = useQuery(GET_ALL_PENGGUNA_FOR_NOTIF, {
     fetchPolicy: 'network-only',
     skip: !isAuthenticated,
@@ -415,15 +418,15 @@ export default function NotifikasiPage() {
                     ) : (
                       paginated.map((item, idx) => {
                         const penerima = getPenerima(item);
+                        const isActuallyRead = item.isRead || localReadIds.has(item._id);
                         return (
                           <TableRow
                             key={item._id}
                             hover
                             onMouseEnter={() => {
-                              if (!item.isRead) {
-                                markAsRead({ variables: { id: item._id } })
-                                  .then(() => refetch())
-                                  .catch(() => {});
+                              if (!isActuallyRead) {
+                                setLocalReadIds(prev => new Set([...prev, item._id]));
+                                markAsRead({ variables: { id: item._id } }).catch(() => {});
                               }
                             }}
                           >
@@ -450,10 +453,10 @@ export default function NotifikasiPage() {
                             </TableCell>
                             <TableCell>
                               <Chip
-                                label={item.isRead ? 'Dibaca' : 'Belum Dibaca'}
-                                color={item.isRead ? 'default' : 'primary'}
+                                label={isActuallyRead ? 'Dibaca' : 'Belum Dibaca'}
+                                color={isActuallyRead ? 'default' : 'primary'}
                                 size="small"
-                                variant={item.isRead ? 'outlined' : 'filled'}
+                                variant={isActuallyRead ? 'outlined' : 'filled'}
                               />
                             </TableCell>
                             <TableCell>
