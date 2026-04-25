@@ -203,7 +203,7 @@ function woActions(wo: any) {
     // Penolakan sudah diterima tapi belum ada teknisi pengganti
     canBuatPengganti:
       wo.statusRespon === 'penolakan_diterima' &&
-      !['dibatalkan', 'selesai'].includes(wo.status),
+      wo.status !== 'selesai',
   };
 }
 
