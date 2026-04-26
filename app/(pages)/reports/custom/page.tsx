@@ -386,7 +386,7 @@ export default function CustomReports() {
         <Grid container spacing={3}>
           {/* Panel kiri: Pilih laporan */}
           <Grid item xs={12} md={4}>
-            <Card sx={{ position: 'sticky', top: 24 }}>
+            <Card sx={{ position: { xs: 'static', md: 'sticky' }, top: 24 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   Jenis Laporan Tersedia
@@ -472,7 +472,7 @@ export default function CustomReports() {
             ) : (
               <Card>
                 <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 1.5, mb: 2 }}>
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {selectedMeta?.nama}
@@ -481,7 +481,7 @@ export default function CustomReports() {
                         {selectedMeta?.deskripsi}
                       </Typography>
                     </Box>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                       <Chip
                         label={`Kategori: ${kategoriLabel[selectedMeta?.kategori || '']}`}
                         color="primary"

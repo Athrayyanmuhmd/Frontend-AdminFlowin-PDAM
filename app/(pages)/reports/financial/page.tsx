@@ -162,11 +162,11 @@ export default function FinancialReports() {
   return (
     <AdminLayout title="Laporan Keuangan">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 1.5, mb: 3 }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
             Laporan Keuangan
           </Typography>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
             <Button
               variant="outlined"
               size="small"
@@ -264,7 +264,7 @@ export default function FinancialReports() {
 
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={currentTab} onChange={(_, v) => setCurrentTab(v)}>
+          <Tabs value={currentTab} onChange={(_, v) => setCurrentTab(v)} variant="scrollable" scrollButtons="auto">
             <Tab label="Tren Pendapatan" />
             <Tab label="Tunggakan per Kelompok" />
             <Tab label="Tagihan Tertinggi" />

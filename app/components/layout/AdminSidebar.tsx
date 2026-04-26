@@ -333,6 +333,7 @@ const adminMenuItems: MenuItem[] = [
         icon: <Report />,
         path: '/reports/compliance',
         permission: 'reports:read',
+        hidden: true,
       },
       {
         id: 'custom-reports',
