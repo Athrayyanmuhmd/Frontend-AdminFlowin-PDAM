@@ -53,7 +53,8 @@ interface MenuItem {
   path?: string;
   children?: MenuItem[];
   permission?: string;
-  roles?: ('admin' | 'technician')[]; // Roles yang dapat mengakses menu ini
+  roles?: ('admin' | 'technician')[];
+  hidden?: boolean; // Sembunyikan sementara tanpa menghapus kode
 }
 
 // Menu untuk Admin
@@ -364,6 +365,7 @@ const adminMenuItems: MenuItem[] = [
         path: '/system/permissions',
         permission: 'users:update',
         roles: ['admin'],
+        hidden: true,
       },
       {
         id: 'audit-logs',
@@ -372,6 +374,7 @@ const adminMenuItems: MenuItem[] = [
         path: '/system/audit-logs',
         permission: 'system:execute',
         roles: ['admin'],
+        hidden: true,
       },
       {
         id: 'system-config',
@@ -380,6 +383,7 @@ const adminMenuItems: MenuItem[] = [
         path: '/system/config',
         permission: 'system:execute',
         roles: ['admin'],
+        hidden: true,
       },
     ],
   },
@@ -486,6 +490,8 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
   };
 
   const renderMenuItem = (item: MenuItem, level = 0) => {
+    if (item.hidden) return null;
+
     const hasAccess =
       !item.permission ||
       hasPermission(
