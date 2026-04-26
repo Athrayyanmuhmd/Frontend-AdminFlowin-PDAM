@@ -145,7 +145,8 @@ export default function ComplianceReports() {
 
   // --- Hitung SLA dari data real ---
   const totalWO = ringkasanWO.reduce((s: number, r: any) => s + r.jumlah, 0);
-  const woSelesai = ringkasanWO.find((r: any) => r.status === 'Selesai')?.jumlah || 0;
+  // PekerjaanTeknisi.status menggunakan lowercase ('selesai', bukan 'Selesai')
+  const woSelesai = ringkasanWO.find((r: any) => r.status === 'selesai')?.jumlah || 0;
   const completionWO = totalWO > 0 ? ((woSelesai / totalWO) * 100) : 0;
 
   const totalLaporan = ringkasanLaporan.reduce((s: number, r: any) => s + r.jumlah, 0);

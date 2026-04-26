@@ -54,11 +54,25 @@ import {
   GET_RINGKASAN_STATUS_TAGIHAN,
 } from '@/lib/graphql/queries/reports';
 
+// Backend melakukan $toUpper pada StatusPembayaran → nilai selalu uppercase
 const STATUS_COLOR: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
-  Settlement: 'success',
-  Pending: 'warning',
-  Expire: 'error',
-  Cancel: 'error',
+  SETTLEMENT: 'success',
+  PENDING: 'warning',
+  EXPIRE: 'error',
+  CANCEL: 'error',
+  REFUND: 'default',
+  FRAUD: 'error',
+  MERGED: 'default',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  SETTLEMENT: 'Lunas',
+  PENDING: 'Menunggu',
+  EXPIRE: 'Kadaluarsa',
+  CANCEL: 'Dibatalkan',
+  REFUND: 'Dikembalikan',
+  FRAUD: 'Penipuan',
+  MERGED: 'Digabung',
 };
 
 function exportCSV(filename: string, headers: string[], rows: (string | number)[][]) {
@@ -444,7 +458,7 @@ export default function FinancialReports() {
                               </TableCell>
                               <TableCell align="center">
                                 <Chip
-                                  label={row.statusPembayaran}
+                                  label={STATUS_LABEL[row.statusPembayaran] || row.statusPembayaran}
                                   size="small"
                                   color={STATUS_COLOR[row.statusPembayaran] || 'default'}
                                 />

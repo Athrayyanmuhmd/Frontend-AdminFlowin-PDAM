@@ -54,19 +54,51 @@ import {
   GET_RINGKASAN_LAPORAN,
 } from '@/lib/graphql/queries/reports';
 
+// Keys harus lowercase sesuai nilai field status di PekerjaanTeknisi
 const WORK_ORDER_COLORS: Record<string, string> = {
-  Ditugaskan: '#013494',
-  SedangDikerjakan: '#FF9800',
-  Selesai: '#4CAF50',
-  Dibatalkan: '#F44336',
-  Ditunda: '#9E9E9E',
-  DitinjauAdmin: '#9C27B0',
+  ditugaskan: '#013494',
+  sedang_dikerjakan: '#FF9800',
+  dikirim: '#2196F3',
+  selesai: '#4CAF50',
+  dibatalkan: '#F44336',
+  revisi: '#9E9E9E',
+  menunggu_respon: '#9C27B0',
+  menunggu_tim: '#795548',
+  tim_diajukan: '#00BCD4',
 };
 
+// Label tampil untuk status WO (lowercase → bahasa Indonesia)
+const WO_STATUS_LABEL: Record<string, string> = {
+  menunggu_respon: 'Menunggu Respon',
+  menunggu_tim: 'Menunggu Tim',
+  tim_diajukan: 'Tim Diajukan',
+  ditugaskan: 'Ditugaskan',
+  sedang_dikerjakan: 'Sedang Dikerjakan',
+  dikirim: 'Dikirim',
+  revisi: 'Revisi',
+  selesai: 'Selesai',
+  dibatalkan: 'Dibatalkan',
+};
+
+// Keys sesuai nilai Report.Status (PascalCase enum)
 const LAPORAN_COLORS: Record<string, string> = {
   Diajukan: '#013494',
-  ProsesPerbaikan: '#FF9800',
+  Ditugaskan: '#2196F3',
+  DitinjauAdmin: '#9C27B0',
+  SedangDikerjakan: '#FF9800',
+  Ditunda: '#9E9E9E',
   Selesai: '#4CAF50',
+  Dibatalkan: '#F44336',
+};
+
+const LAPORAN_STATUS_LABEL: Record<string, string> = {
+  Diajukan: 'Diajukan',
+  Ditugaskan: 'Ditugaskan',
+  DitinjauAdmin: 'Ditinjau Admin',
+  SedangDikerjakan: 'Sedang Dikerjakan',
+  Ditunda: 'Ditunda',
+  Selesai: 'Selesai',
+  Dibatalkan: 'Dibatalkan',
 };
 
 const FALLBACK_COLOR = '#607D8B';
@@ -255,12 +287,12 @@ export default function OperationalReports() {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={ringkasanWO} cx="50%" cy="50%" outerRadius={100} dataKey="jumlah" nameKey="status"
-                            label={({ status, percent }: any) => `${status} ${(percent * 100).toFixed(0)}%`}>
+                            label={({ status, percent }: any) => `${WO_STATUS_LABEL[status] || status} ${(percent * 100).toFixed(0)}%`}>
                             {ringkasanWO.map((entry, index) => (
                               <Cell key={index} fill={WORK_ORDER_COLORS[entry.status] || FALLBACK_COLOR} />
                             ))}
                           </Pie>
-                          <RechartsTooltip formatter={(v: any) => [`${v} work order`]} />
+                          <RechartsTooltip formatter={(v: any, _: any, props: any) => [`${v} work order`, WO_STATUS_LABEL[props?.payload?.status] || props?.payload?.status]} />
                         </PieChart>
                       </ResponsiveContainer>
                     </Box>
@@ -294,7 +326,7 @@ export default function OperationalReports() {
                             return (
                               <TableRow key={row.status}>
                                 <TableCell>
-                                  <Chip label={row.status} size="small"
+                                  <Chip label={WO_STATUS_LABEL[row.status] || row.status} size="small"
                                     sx={{ backgroundColor: WORK_ORDER_COLORS[row.status] || FALLBACK_COLOR, color: '#fff' }} />
                                 </TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 600 }}>{row.jumlah}</TableCell>
@@ -330,11 +362,11 @@ export default function OperationalReports() {
                   ) : (
                     <Box sx={{ height: 300 }}>
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={ringkasanLaporan} layout="vertical">
+                        <BarChart data={ringkasanLaporan.map(r => ({ ...r, label: LAPORAN_STATUS_LABEL[r.status] || r.status }))} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis type="number" allowDecimals={false} />
-                          <YAxis type="category" dataKey="status" width={130} />
-                          <RechartsTooltip formatter={(v: any) => [`${v} laporan`]} />
+                          <YAxis type="category" dataKey="label" width={145} tick={{ fontSize: 12 }} />
+                          <RechartsTooltip formatter={(v: any, _: any, props: any) => [`${v} laporan`, props?.payload?.label || '']} />
                           <Bar dataKey="jumlah" radius={[0, 4, 4, 0]}>
                             {ringkasanLaporan.map((entry, index) => (
                               <Cell key={index} fill={LAPORAN_COLORS[entry.status] || FALLBACK_COLOR} />
