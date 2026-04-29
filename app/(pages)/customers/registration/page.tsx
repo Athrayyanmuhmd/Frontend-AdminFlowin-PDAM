@@ -22,15 +22,24 @@ import {
   CircularProgress,
   Chip,
   Paper,
+  Stepper,
+  Step,
+  StepLabel,
+  FormControlLabel,
+  Checkbox,
+  Tooltip,
 } from '@mui/material';
 import {
   ArrowBack,
+  ArrowForward,
   Save,
   Person,
   Home,
   Badge,
   Cancel,
   CheckCircle,
+  Assignment,
+  InfoOutlined,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import {
@@ -38,8 +47,11 @@ import {
   useCreateCustomer,
   useUpdateCustomer,
 } from '../../../../lib/graphql/hooks/useCustomers';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { GET_KONEKSI_DATA_BY_PELANGGAN } from '../../../../lib/graphql/queries/connectionData';
+import { CREATE_KONEKSI_DATA, VERIFY_CONNECTION_DATA } from '../../../../lib/graphql/mutations/connectionData';
+
+const STEPS = ['Data Pelanggan', 'Data Sambungan'];
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -67,6 +79,8 @@ function CustomerRegistrationInner() {
   const { customer: graphqlCustomer, loading: loadingCustomer } = useGetCustomer(editId || '');
   const { createCustomer, loading: creating } = useCreateCustomer();
   const { updateCustomer, loading: updating } = useUpdateCustomer();
+  const [createKoneksiData, { loading: creatingKoneksi }] = useMutation(CREATE_KONEKSI_DATA);
+  const [verifyKoneksiData, { loading: verifying }] = useMutation(VERIFY_CONNECTION_DATA);
 
   const { data: koneksiDataResult } = useQuery(GET_KONEKSI_DATA_BY_PELANGGAN, {
     variables: { idPelanggan: editId || '' },
@@ -75,90 +89,197 @@ function CustomerRegistrationInner() {
   });
   const koneksiDataFallback = (koneksiDataResult as any)?.getKoneksiDataByPelanggan;
 
+  const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const loading = creating || updating;
 
-  const [formData, setFormData] = useState({
+  // Step 1: Data Pelanggan
+  const [pelangganForm, setPelangganForm] = useState({
     nik: '',
     name: '',
     email: '',
     phone: '',
-    address: '',
     customerType: 'rumah_tangga',
     birthDate: '',
     accountStatus: 'active',
   });
 
+  // Step 2: Data Sambungan
+  const [sambunganForm, setSambunganForm] = useState({
+    noKK: '',
+    imb: '',
+    alamat: '',
+    kelurahan: '',
+    kecamatan: '',
+    luasBangunan: '',
+    catatan: '',
+    verifikasiLangsung: false,
+  });
+
   useEffect(() => {
     if (!graphqlCustomer || !isEditMode) return;
-    setFormData({
+    setPelangganForm({
       nik: graphqlCustomer.nik || koneksiDataFallback?.NIK || '',
       name: graphqlCustomer.namaLengkap || '',
       email: graphqlCustomer.email || '',
       phone: graphqlCustomer.noHP || '',
-      address: graphqlCustomer.address || koneksiDataFallback?.Alamat || '',
       customerType: graphqlCustomer.customerType || 'rumah_tangga',
       birthDate: graphqlCustomer.birthDate ? graphqlCustomer.birthDate.split('T')[0] : '',
       accountStatus: graphqlCustomer.accountStatus || 'active',
     });
+    if (koneksiDataFallback) {
+      setSambunganForm(prev => ({
+        ...prev,
+        noKK: koneksiDataFallback.NoKK || '',
+        imb: koneksiDataFallback.IMB || '',
+        alamat: koneksiDataFallback.Alamat || '',
+        kelurahan: koneksiDataFallback.Kelurahan || '',
+        kecamatan: koneksiDataFallback.Kecamatan || '',
+        luasBangunan: koneksiDataFallback.LuasBangunan?.toString() || '',
+      }));
+    }
   }, [graphqlCustomer, koneksiDataFallback, isEditMode]);
 
-  const handleChange = (field: string, value: string) =>
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handlePelangganChange = (field: string, value: string) =>
+    setPelangganForm(prev => ({ ...prev, [field]: value }));
 
-  const validate = (): boolean => {
-    if (!formData.nik || formData.nik.length !== 16) {
+  const handleSambunganChange = (field: string, value: string | boolean) =>
+    setSambunganForm(prev => ({ ...prev, [field]: value }));
+
+  const validateStep1 = (): boolean => {
+    if (!pelangganForm.nik || pelangganForm.nik.length !== 16) {
       setError('NIK harus 16 digit'); return false;
     }
-    if (!formData.name || formData.name.length < 3) {
+    if (!pelangganForm.name || pelangganForm.name.length < 3) {
       setError('Nama lengkap minimal 3 karakter'); return false;
     }
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!pelangganForm.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pelangganForm.email)) {
       setError('Format email tidak valid'); return false;
     }
-    if (!formData.phone || !/^(\+62|62|0)[0-9]{9,12}$/.test(formData.phone)) {
+    if (!pelangganForm.phone || !/^(\+62|62|0)[0-9]{9,12}$/.test(pelangganForm.phone)) {
       setError('Format nomor telepon tidak valid'); return false;
-    }
-    if (!formData.address || formData.address.length < 10) {
-      setError('Alamat minimal 10 karakter'); return false;
     }
     return true;
   };
 
+  const validateStep2 = (): boolean => {
+    if (!sambunganForm.noKK || sambunganForm.noKK.length !== 16) {
+      setError('Nomor KK harus 16 digit'); return false;
+    }
+    if (!sambunganForm.imb) {
+      setError('Nomor IMB wajib diisi'); return false;
+    }
+    if (!sambunganForm.alamat || sambunganForm.alamat.length < 5) {
+      setError('Alamat lengkap wajib diisi'); return false;
+    }
+    if (!sambunganForm.kelurahan) {
+      setError('Kelurahan wajib diisi'); return false;
+    }
+    if (!sambunganForm.kecamatan) {
+      setError('Kecamatan wajib diisi'); return false;
+    }
+    if (!sambunganForm.luasBangunan || isNaN(Number(sambunganForm.luasBangunan))) {
+      setError('Luas bangunan harus berupa angka'); return false;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    setError(null);
+    if (activeStep === 0 && !validateStep1()) return;
+    setActiveStep(1);
+  };
+
   const handleSubmit = async () => {
     setError(null);
-    if (!validate()) return;
-    try {
-      const inputData = {
-        nik: formData.nik,
-        namaLengkap: formData.name,
-        email: formData.email,
-        noHP: formData.phone,
-        address: formData.address,
-        customerType: formData.customerType,
-        birthDate: formData.birthDate || undefined,
-        accountStatus: formData.accountStatus,
-      };
+    if (!validateStep2()) return;
 
+    try {
+      // Edit mode — hanya update data pelanggan
       if (isEditMode && editId) {
-        await updateCustomer({ variables: { id: editId, input: inputData } });
+        await updateCustomer({
+          variables: {
+            id: editId,
+            input: {
+              nik: pelangganForm.nik,
+              namaLengkap: pelangganForm.name,
+              email: pelangganForm.email,
+              noHP: pelangganForm.phone,
+              customerType: pelangganForm.customerType,
+              birthDate: pelangganForm.birthDate || undefined,
+              accountStatus: pelangganForm.accountStatus,
+            },
+          },
+        });
         setSuccess('Data pelanggan berhasil diperbarui!');
-      } else {
-        const result = await createCustomer({ variables: { input: inputData } });
-        setSuccess(`Pelanggan berhasil didaftarkan! ID: ${(result.data as any)?.createPelanggan?._id}`);
+        setTimeout(() => router.push(`/customers/detail/${editId}`), 1200);
+        return;
       }
-      setTimeout(() => router.push('/customers'), 1200);
+
+      // Create mode — buat Pengguna dulu, lalu buat KoneksiData
+      const pelangganResult = await createCustomer({
+        variables: {
+          input: {
+            nik: pelangganForm.nik,
+            namaLengkap: pelangganForm.name,
+            email: pelangganForm.email,
+            noHP: pelangganForm.phone,
+            customerType: pelangganForm.customerType,
+            birthDate: pelangganForm.birthDate || undefined,
+            accountStatus: pelangganForm.accountStatus,
+          },
+        },
+      });
+
+      const pelangganId = (pelangganResult.data as any)?.createPelanggan?._id;
+      if (!pelangganId) throw new Error('Gagal mendapatkan ID pelanggan baru');
+
+      // Buat KoneksiData dengan IdPelanggan
+      const koneksiResult = await createKoneksiData({
+        variables: {
+          input: {
+            IdPelanggan: pelangganId,
+            NIK: pelangganForm.nik,
+            NoKK: sambunganForm.noKK,
+            IMB: sambunganForm.imb,
+            Alamat: sambunganForm.alamat,
+            Kelurahan: sambunganForm.kelurahan,
+            Kecamatan: sambunganForm.kecamatan,
+            LuasBangunan: Number(sambunganForm.luasBangunan),
+            catatan: sambunganForm.catatan || null,
+          },
+        },
+      });
+
+      const koneksiId = (koneksiResult.data as any)?.createKoneksiData?._id;
+
+      // Jika admin centang "Verifikasi Langsung" — auto-approve karena dokumen fisik diserahkan
+      if (sambunganForm.verifikasiLangsung && koneksiId) {
+        await verifyKoneksiData({
+          variables: {
+            id: koneksiId,
+            status: 'APPROVED',
+            catatan: 'Verifikasi langsung — pelanggan hadir membawa dokumen asli ke kantor PERUMDAM.',
+          },
+        });
+        setSuccess('Pelanggan berhasil didaftarkan dan pengajuan sambungan langsung disetujui!');
+      } else {
+        setSuccess('Pelanggan berhasil didaftarkan. Pengajuan sambungan menunggu verifikasi dokumen.');
+      }
+
+      setTimeout(() => router.push('/customers'), 1500);
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan saat menyimpan data');
     }
   };
 
+  const loading = creating || updating || creatingKoneksi || verifying;
+
   if (authLoading || !isAuthenticated) return null;
 
   if (loadingCustomer) {
     return (
-      <AdminLayout title={isEditMode ? 'Edit Data Pelanggan' : 'Registrasi Pelanggan'}>
+      <AdminLayout title={isEditMode ? 'Edit Data Pelanggan' : 'Registrasi Pelanggan Baru'}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
           <CircularProgress />
         </Box>
@@ -167,7 +288,7 @@ function CustomerRegistrationInner() {
   }
 
   return (
-    <AdminLayout title={isEditMode ? 'Edit Data Pelanggan' : 'Registrasi Pelanggan'}>
+    <AdminLayout title={isEditMode ? 'Edit Data Pelanggan' : 'Registrasi Pelanggan Baru'}>
       {/* ─── Top bar ─── */}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={1}>
         <Box display="flex" alignItems="center" gap={2}>
@@ -182,11 +303,9 @@ function CustomerRegistrationInner() {
             <Typography variant="h5" fontWeight={700}>
               {isEditMode ? 'Edit Data Pelanggan' : 'Registrasi Pelanggan Baru'}
             </Typography>
-            {isEditMode && graphqlCustomer && (
-              <Typography variant="body2" color="text.secondary">
-                {graphqlCustomer.namaLengkap}
-              </Typography>
-            )}
+            <Typography variant="body2" color="text.secondary">
+              {isEditMode ? graphqlCustomer?.namaLengkap : 'Pendaftaran pelanggan datang langsung ke kantor'}
+            </Typography>
           </Box>
         </Box>
 
@@ -194,9 +313,9 @@ function CustomerRegistrationInner() {
           {isEditMode && (
             <Chip
               size="small"
-              label={formData.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
-              color={formData.accountStatus === 'active' ? 'success' : 'default'}
-              icon={formData.accountStatus === 'active' ? <CheckCircle sx={{ fontSize: 14 }} /> : <Cancel sx={{ fontSize: 14 }} />}
+              label={pelangganForm.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
+              color={pelangganForm.accountStatus === 'active' ? 'success' : 'default'}
+              icon={pelangganForm.accountStatus === 'active' ? <CheckCircle sx={{ fontSize: 14 }} /> : <Cancel sx={{ fontSize: 14 }} />}
             />
           )}
           <Button
@@ -207,129 +326,282 @@ function CustomerRegistrationInner() {
           >
             Batal
           </Button>
-          <Button
-            variant="contained"
-            startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <Save />}
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? 'Menyimpan...' : isEditMode ? 'Simpan Perubahan' : 'Daftarkan Pelanggan'}
-          </Button>
+          {activeStep === 0 && !isEditMode ? (
+            <Button variant="contained" endIcon={<ArrowForward />} onClick={handleNext}>
+              Selanjutnya
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <Save />}
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Menyimpan...' : isEditMode ? 'Simpan Perubahan' : 'Daftarkan Pelanggan'}
+            </Button>
+          )}
         </Box>
       </Box>
+
+      {/* ─── Stepper (hanya create mode) ─── */}
+      {!isEditMode && (
+        <Paper variant="outlined" sx={{ p: 2.5, mb: 3, borderRadius: 2 }}>
+          <Stepper activeStep={activeStep}>
+            {STEPS.map(label => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </Paper>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
       <Grid container spacing={3}>
-        {/* ─── Informasi Pribadi ─── */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={1} mb={2.5}>
-                <Person color="primary" />
-                <Typography variant="h6" fontWeight={600}>Informasi Pribadi</Typography>
-              </Box>
-              <Divider sx={{ mb: 3 }} />
+        {/* ─── STEP 1: Data Pelanggan ─── */}
+        {(activeStep === 0 || isEditMode) && (
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={1} mb={2.5}>
+                  <Person color="primary" />
+                  <Typography variant="h6" fontWeight={600}>Informasi Pribadi</Typography>
+                </Box>
+                <Divider sx={{ mb: 3 }} />
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="NIK (KTP) *"
+                      value={pelangganForm.nik}
+                      onChange={e => handlePelangganChange('nik', e.target.value)}
+                      inputProps={{ maxLength: 16 }}
+                      helperText="Nomor Induk Kependudukan — 16 digit"
+                      placeholder="1234567890987654"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Nama Lengkap *"
+                      value={pelangganForm.name}
+                      onChange={e => handlePelangganChange('name', e.target.value)}
+                      placeholder="Sesuai KTP"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Email *"
+                      type="email"
+                      value={pelangganForm.email}
+                      onChange={e => handlePelangganChange('email', e.target.value)}
+                      placeholder="contoh@email.com"
+                      helperText="Digunakan untuk login aplikasi pelanggan"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Nomor Telepon *"
+                      value={pelangganForm.phone}
+                      onChange={e => handlePelangganChange('phone', e.target.value)}
+                      helperText="Contoh: 081234567890"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Jenis Pelanggan *</InputLabel>
+                      <Select
+                        value={pelangganForm.customerType}
+                        onChange={e => handlePelangganChange('customerType', e.target.value)}
+                        label="Jenis Pelanggan *"
+                      >
+                        <MenuItem value="rumah_tangga">Rumah Tangga</MenuItem>
+                        <MenuItem value="komersial">Komersial</MenuItem>
+                        <MenuItem value="industri">Industri</MenuItem>
+                        <MenuItem value="sosial">Sosial</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Tanggal Lahir"
+                      type="date"
+                      value={pelangganForm.birthDate}
+                      onChange={e => handlePelangganChange('birthDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Opsional"
+                    />
+                  </Grid>
+                  {isEditMode && (
+                    <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Status Akun</InputLabel>
+                        <Select
+                          value={pelangganForm.accountStatus}
+                          onChange={e => handlePelangganChange('accountStatus', e.target.value)}
+                          label="Status Akun"
+                        >
+                          <MenuItem value="active">Aktif</MenuItem>
+                          <MenuItem value="inactive">Tidak Aktif</MenuItem>
+                          <MenuItem value="suspended">Ditangguhkan</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="NIK *"
-                    value={formData.nik}
-                    onChange={e => handleChange('nik', e.target.value)}
-                    inputProps={{ maxLength: 16 }}
-                    helperText="Nomor Induk Kependudukan (16 digit)"
-                    placeholder="Contoh: 1234567890987654"
-                  />
+        {/* ─── STEP 2: Data Sambungan ─── */}
+        {activeStep === 1 && !isEditMode && (
+          <Grid item xs={12} md={8}>
+            {/* Dokumen Identitas */}
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={1} mb={2.5}>
+                  <Assignment color="primary" />
+                  <Typography variant="h6" fontWeight={600}>Dokumen Identitas</Typography>
+                </Box>
+                <Divider sx={{ mb: 3 }} />
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="NIK (KTP) *"
+                      value={pelangganForm.nik}
+                      disabled
+                      helperText="Diambil dari data pelanggan"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="No. Kartu Keluarga (KK) *"
+                      value={sambunganForm.noKK}
+                      onChange={e => handleSambunganChange('noKK', e.target.value)}
+                      inputProps={{ maxLength: 16 }}
+                      helperText="Nomor KK — 16 digit"
+                      placeholder="3215469780879465"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="No. IMB (Izin Mendirikan Bangunan) *"
+                      value={sambunganForm.imb}
+                      onChange={e => handleSambunganChange('imb', e.target.value)}
+                      helperText="Nomor IMB bangunan"
+                      placeholder="Contoh: 345"
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Nama Lengkap *"
-                    value={formData.name}
-                    onChange={e => handleChange('name', e.target.value)}
-                    placeholder="Sesuai KTP"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Email *"
-                    type="email"
-                    value={formData.email}
-                    onChange={e => handleChange('email', e.target.value)}
-                    placeholder="contoh@email.com"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Nomor Telepon *"
-                    value={formData.phone}
-                    onChange={e => handleChange('phone', e.target.value)}
-                    helperText="Contoh: 081234567890 atau +6281234567890"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Alamat Lengkap *"
-                    multiline
-                    rows={3}
-                    value={formData.address}
-                    onChange={e => handleChange('address', e.target.value)}
-                    helperText="Alamat lengkap sesuai KTP (minimal 10 karakter)"
-                    placeholder="Jl. Contoh No. 1, Kelurahan, Kecamatan, Kota"
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* ─── Data Tambahan ─── */}
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={1} mb={2.5}>
-                <Home color="primary" />
-                <Typography variant="h6" fontWeight={600}>Data Tambahan</Typography>
-              </Box>
-              <Divider sx={{ mb: 3 }} />
-
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Jenis Pelanggan *</InputLabel>
-                    <Select
-                      value={formData.customerType}
-                      onChange={e => handleChange('customerType', e.target.value)}
-                      label="Jenis Pelanggan *"
-                    >
-                      <MenuItem value="rumah_tangga">Rumah Tangga</MenuItem>
-                      <MenuItem value="komersial">Komersial</MenuItem>
-                      <MenuItem value="industri">Industri</MenuItem>
-                      <MenuItem value="sosial">Sosial</MenuItem>
-                    </Select>
-                  </FormControl>
+            {/* Alamat & Properti */}
+            <Card sx={{ mt: 3 }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={1} mb={2.5}>
+                  <Home color="primary" />
+                  <Typography variant="h6" fontWeight={600}>Alamat & Properti</Typography>
+                </Box>
+                <Divider sx={{ mb: 3 }} />
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Alamat Lengkap *"
+                      multiline
+                      rows={3}
+                      value={sambunganForm.alamat}
+                      onChange={e => handleSambunganChange('alamat', e.target.value)}
+                      placeholder="Jl. Contoh No. 1"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Kelurahan *"
+                      value={sambunganForm.kelurahan}
+                      onChange={e => handleSambunganChange('kelurahan', e.target.value)}
+                      placeholder="Prada"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Kecamatan *"
+                      value={sambunganForm.kecamatan}
+                      onChange={e => handleSambunganChange('kecamatan', e.target.value)}
+                      placeholder="Syiah Kuala"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Luas Bangunan (m²) *"
+                      type="number"
+                      value={sambunganForm.luasBangunan}
+                      onChange={e => handleSambunganChange('luasBangunan', e.target.value)}
+                      inputProps={{ min: 1 }}
+                      placeholder="128"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Catatan Tambahan"
+                      multiline
+                      rows={2}
+                      value={sambunganForm.catatan}
+                      onChange={e => handleSambunganChange('catatan', e.target.value)}
+                      placeholder="Catatan khusus jika ada (opsional)"
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Tanggal Lahir"
-                    type="date"
-                    value={formData.birthDate}
-                    onChange={e => handleChange('birthDate', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Opsional"
+              </CardContent>
+            </Card>
+
+            {/* Verifikasi Langsung */}
+            <Paper
+              variant="outlined"
+              sx={{
+                mt: 3, p: 2.5, borderRadius: 2,
+                borderColor: sambunganForm.verifikasiLangsung ? 'success.main' : 'divider',
+                bgcolor: sambunganForm.verifikasiLangsung ? 'success.50' : 'background.paper',
+              }}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={sambunganForm.verifikasiLangsung}
+                    onChange={e => handleSambunganChange('verifikasiLangsung', e.target.checked)}
+                    color="success"
                   />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>
+                      Verifikasi Langsung (Walk-in)
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Centang jika pelanggan hadir membawa dokumen asli. Pengajuan akan langsung berstatus Disetujui tanpa menunggu antrean verifikasi.
+                    </Typography>
+                  </Box>
+                }
+              />
+            </Paper>
+          </Grid>
+        )}
 
-        {/* ─── Sidebar: Ringkasan & Status ─── */}
+        {/* ─── Sidebar Ringkasan ─── */}
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
@@ -338,82 +610,93 @@ function CustomerRegistrationInner() {
                 <Typography variant="h6" fontWeight={600}>Ringkasan</Typography>
               </Box>
               <Divider sx={{ mb: 2.5 }} />
-
               <Box display="flex" flexDirection="column" gap={2.5}>
                 <InfoRow label="Nama">
-                  <Typography fontWeight={600}>{formData.name || '—'}</Typography>
+                  <Typography fontWeight={600}>{pelangganForm.name || '—'}</Typography>
                 </InfoRow>
                 <InfoRow label="NIK">
-                  <Typography variant="body2" fontFamily="monospace">{formData.nik || '—'}</Typography>
+                  <Typography variant="body2" fontFamily="monospace">{pelangganForm.nik || '—'}</Typography>
                 </InfoRow>
                 <InfoRow label="Email">
-                  <Typography variant="body2">{formData.email || '—'}</Typography>
+                  <Typography variant="body2">{pelangganForm.email || '—'}</Typography>
                 </InfoRow>
                 <InfoRow label="Telepon">
-                  <Typography variant="body2">{formData.phone || '—'}</Typography>
+                  <Typography variant="body2">{pelangganForm.phone || '—'}</Typography>
                 </InfoRow>
                 <InfoRow label="Jenis Pelanggan">
                   <Chip
                     size="small"
                     label={
-                      formData.customerType === 'rumah_tangga' ? 'Rumah Tangga' :
-                      formData.customerType === 'komersial' ? 'Komersial' :
-                      formData.customerType === 'industri' ? 'Industri' : 'Sosial'
+                      pelangganForm.customerType === 'rumah_tangga' ? 'Rumah Tangga' :
+                      pelangganForm.customerType === 'komersial' ? 'Komersial' :
+                      pelangganForm.customerType === 'industri' ? 'Industri' : 'Sosial'
                     }
                     color="info"
                     variant="outlined"
                   />
                 </InfoRow>
+                {activeStep === 1 && !isEditMode && (
+                  <>
+                    <Divider />
+                    <InfoRow label="No. KK">
+                      <Typography variant="body2" fontFamily="monospace">{sambunganForm.noKK || '—'}</Typography>
+                    </InfoRow>
+                    <InfoRow label="IMB">
+                      <Typography variant="body2">{sambunganForm.imb || '—'}</Typography>
+                    </InfoRow>
+                    <InfoRow label="Alamat">
+                      <Typography variant="body2">{sambunganForm.alamat || '—'}</Typography>
+                    </InfoRow>
+                    <InfoRow label="Kelurahan / Kecamatan">
+                      <Typography variant="body2">
+                        {sambunganForm.kelurahan && sambunganForm.kecamatan
+                          ? `${sambunganForm.kelurahan}, ${sambunganForm.kecamatan}`
+                          : '—'}
+                      </Typography>
+                    </InfoRow>
+                    <InfoRow label="Luas Bangunan">
+                      <Typography variant="body2">
+                        {sambunganForm.luasBangunan ? `${sambunganForm.luasBangunan} m²` : '—'}
+                      </Typography>
+                    </InfoRow>
+                    <InfoRow label="Status Pengajuan">
+                      <Chip
+                        size="small"
+                        label={sambunganForm.verifikasiLangsung ? 'Akan Langsung Disetujui' : 'Menunggu Verifikasi'}
+                        color={sambunganForm.verifikasiLangsung ? 'success' : 'warning'}
+                      />
+                    </InfoRow>
+                  </>
+                )}
               </Box>
             </CardContent>
           </Card>
 
-          {/* Status Akun (hanya edit mode) */}
-          {isEditMode && (
-            <Card sx={{ mt: 2 }}>
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={2}>
-                  <Badge color="primary" />
-                  <Typography variant="h6" fontWeight={600}>Status Akun</Typography>
-                </Box>
-                <Divider sx={{ mb: 2 }} />
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={formData.accountStatus}
-                    onChange={e => handleChange('accountStatus', e.target.value)}
-                    label="Status"
-                  >
-                    <MenuItem value="active">Aktif</MenuItem>
-                    <MenuItem value="inactive">Tidak Aktif</MenuItem>
-                    <MenuItem value="suspended">Ditangguhkan</MenuItem>
-                  </Select>
-                </FormControl>
-                <Paper
-                  sx={{
-                    mt: 2, p: 1.5,
-                    bgcolor: formData.accountStatus === 'active' ? 'success.50' : 'warning.50',
-                    border: 1,
-                    borderColor: formData.accountStatus === 'active' ? 'success.200' : 'warning.200',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    {formData.accountStatus === 'active'
-                      ? 'Pelanggan dapat mengakses layanan dan menerima tagihan.'
-                      : 'Pelanggan tidak dapat mengakses layanan.'}
-                  </Typography>
-                </Paper>
-              </CardContent>
-            </Card>
-          )}
-
+          {/* Info walk-in */}
           {!isEditMode && (
             <Paper sx={{ mt: 2, p: 2, bgcolor: 'info.50', border: 1, borderColor: 'info.200', borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                💡 Setelah pendaftaran, pelanggan perlu mengajukan <strong>Data Sambungan</strong> (KTP, KK, IMB) untuk proses aktivasi koneksi air.
-              </Typography>
+              <Box display="flex" gap={1} alignItems="flex-start">
+                <InfoOutlined sx={{ fontSize: 18, color: 'info.main', mt: 0.2 }} />
+                <Typography variant="body2" color="text.secondary">
+                  {activeStep === 0
+                    ? 'Langkah berikutnya: isi data dokumen sambungan (KK, IMB, alamat lokasi pemasangan).'
+                    : 'Setelah disimpan, data sambungan akan diteruskan ke alur survei dan pemasangan meteran.'}
+                </Typography>
+              </Box>
             </Paper>
+          )}
+
+          {/* Tombol Kembali step (hanya step 2) */}
+          {activeStep === 1 && !isEditMode && (
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<ArrowBack />}
+              sx={{ mt: 2 }}
+              onClick={() => { setError(null); setActiveStep(0); }}
+            >
+              Kembali ke Data Pelanggan
+            </Button>
           )}
         </Grid>
       </Grid>

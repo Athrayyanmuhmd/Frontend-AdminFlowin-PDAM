@@ -5,6 +5,23 @@ import { gql } from '@apollo/client';
  * Disesuaikan dengan Ahmad's schema: PascalCase fields, StatusPengajuanEnum
  */
 
+export const CREATE_KONEKSI_DATA = gql`
+  mutation CreateKoneksiData($input: CreateKoneksiDataInput!) {
+    createKoneksiData(input: $input) {
+      _id
+      StatusPengajuan
+      Alamat
+      Kelurahan
+      Kecamatan
+      NIK
+      NoKK
+      IMB
+      LuasBangunan
+      createdAt
+    }
+  }
+`;
+
 export const VERIFY_CONNECTION_DATA = gql`
   mutation VerifyKoneksiData(
     $id: ID!
