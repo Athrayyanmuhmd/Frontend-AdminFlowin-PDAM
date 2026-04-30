@@ -163,7 +163,7 @@ function CustomerRegistrationInner() {
   };
 
   const validateStep2 = (): boolean => {
-    if (!sambunganForm.noKK || sambunganForm.noKK.length !== 16) {
+    if (!sambunganForm.noKK || sambunganForm.noKK.trim().length !== 16) {
       setError('Nomor KK harus 16 digit'); return false;
     }
     if (!sambunganForm.imb) {
@@ -192,10 +192,9 @@ function CustomerRegistrationInner() {
 
   const handleSubmit = async () => {
     setError(null);
-    if (!validateStep2()) return;
 
     try {
-      // Edit mode — hanya update data pelanggan
+      // Edit mode — hanya update data pelanggan, skip validasi sambungan
       if (isEditMode && editId) {
         await updateCustomer({
           variables: {
@@ -216,7 +215,9 @@ function CustomerRegistrationInner() {
         return;
       }
 
-      // Create mode — buat Pengguna dulu, lalu buat KoneksiData
+      // Create mode — validasi sambungan dulu, lalu buat Pengguna + KoneksiData
+      if (!validateStep2()) return;
+
       const pelangganResult = await createCustomer({
         variables: {
           input: {
@@ -239,9 +240,9 @@ function CustomerRegistrationInner() {
         variables: {
           input: {
             IdPelanggan: pelangganId,
-            NIK: pelangganForm.nik,
-            NoKK: sambunganForm.noKK,
-            IMB: sambunganForm.imb,
+            NIK: pelangganForm.nik.trim(),
+            NoKK: sambunganForm.noKK.trim(),
+            IMB: sambunganForm.imb.trim(),
             Alamat: sambunganForm.alamat,
             Kelurahan: sambunganForm.kelurahan,
             Kecamatan: sambunganForm.kecamatan,
