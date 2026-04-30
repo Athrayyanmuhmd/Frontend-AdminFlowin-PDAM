@@ -20,6 +20,7 @@ import {
 } from '@/lib/graphql/teknisiServer';
 import { useQuery as useApolloQuery } from '@apollo/client/react';
 import { GET_ALL_CONNECTION_DATA } from '@/lib/graphql/queries/connectionData';
+import { GET_ALL_LAPORAN } from '@/lib/graphql/queries/reports';
 import {
   Grid,
   Card,
@@ -277,6 +278,12 @@ export default function WorkOrderManagement() {
   const allKoneksiData: any[] =
     (koneksiDataRaw as any)?.getAllKoneksiData ?? [];
 
+  // ─── Apollo: Laporan list (untuk dropdown penyelesaian_laporan) ──────────
+  const { data: laporanDataRaw } = useApolloQuery(GET_ALL_LAPORAN, {
+    fetchPolicy: 'cache-first',
+  });
+  const allLaporan: any[] = (laporanDataRaw as any)?.getAllLaporan ?? [];
+
   // ─── Buat Work Order State ───────────────────────────────────────────────
   const [dlgBuat, setDlgBuat] = useState(false);
   const [buatLoading, setBuatLoading] = useState(false);
@@ -287,6 +294,7 @@ export default function WorkOrderManagement() {
     idKoneksiData: null as any,
     jenisPekerjaan: '',
     teknisiPenanggungJawab: null as any,
+    idLaporan: null as any,
   });
   const [prerequisiteMsg, setPrerequisiteMsg] = useState<boolean | null>(null);
   const [checkingPrereq, setCheckingPrereq] = useState(false);
@@ -602,6 +610,7 @@ export default function WorkOrderManagement() {
       idKoneksiData: null,
       jenisPekerjaan: '',
       teknisiPenanggungJawab: null,
+      idLaporan: null,
     });
     setPrerequisiteMsg(null);
     setLoadingDropdowns(true);
@@ -656,7 +665,7 @@ export default function WorkOrderManagement() {
 
   const handleBuatWorkOrder = () => {
     const token = localStorage.getItem('admin_token') || '';
-    const { idKoneksiData, jenisPekerjaan, teknisiPenanggungJawab } = buatForm;
+    const { idKoneksiData, jenisPekerjaan, teknisiPenanggungJawab, idLaporan } = buatForm;
     if (!jenisPekerjaan || !teknisiPenanggungJawab) return;
     if (!idKoneksiData && jenisPekerjaan !== 'penyelesaian_laporan') return;
     setBuatLoading(true);
@@ -666,6 +675,9 @@ export default function WorkOrderManagement() {
           idKoneksiData: idKoneksiData?._id || '',
           jenisPekerjaan,
           teknisiPenanggungJawab: teknisiPenanggungJawab?.id,
+          ...(jenisPekerjaan === 'penyelesaian_laporan' && idLaporan?._id
+            ? { idLaporan: idLaporan._id }
+            : {}),
         }),
       'Work order berhasil dibuat',
       () => {
@@ -2470,6 +2482,7 @@ export default function WorkOrderManagement() {
                 ...f,
                 jenisPekerjaan: val,
                 idKoneksiData: null,
+                idLaporan: null,
               }));
               setPrerequisiteMsg(null);
               if (val === 'penyelesaian_laporan') {
@@ -2513,6 +2526,32 @@ export default function WorkOrderManagement() {
                 }
               />
             )}
+
+          {/* Laporan selector — hanya tampil untuk penyelesaian_laporan */}
+          {buatForm.jenisPekerjaan === 'penyelesaian_laporan' && (
+            <Autocomplete
+              options={allLaporan}
+              getOptionLabel={(opt: any) =>
+                `${opt.namaLaporan || opt.masalah || ''} — ${opt.idPengguna?.namaLengkap || opt.alamat || ''}`
+              }
+              value={buatForm.idLaporan}
+              onChange={(_e, val) =>
+                setBuatForm(f => ({ ...f, idLaporan: val }))
+              }
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  size='small'
+                  label='Laporan Pelanggan'
+                  placeholder='Pilih laporan yang akan diselesaikan'
+                />
+              )}
+              isOptionEqualToValue={(opt: any, val: any) =>
+                opt._id === val?._id
+              }
+              noOptionsText='Tidak ada laporan tersedia'
+            />
+          )}
 
           {/* Prerequisite indicator */}
           {checkingPrereq && (
@@ -2572,6 +2611,8 @@ export default function WorkOrderManagement() {
               !buatForm.teknisiPenanggungJawab ||
               (buatForm.jenisPekerjaan !== 'penyelesaian_laporan' &&
                 !buatForm.idKoneksiData) ||
+              (buatForm.jenisPekerjaan === 'penyelesaian_laporan' &&
+                !buatForm.idLaporan) ||
               prerequisiteMsg === false
             }
           >
