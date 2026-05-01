@@ -27,6 +27,7 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
+  TextField,
 } from '@mui/material';
 import {
   Speed,
@@ -120,6 +121,9 @@ export default function SmartMeterManagement() {
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedMeteranId, setSelectedMeteranId] = useState<string>('');
+  const [selectedPeriode, setSelectedPeriode] = useState<string>(
+    new Date().toISOString().slice(0, 7) // default: bulan ini "YYYY-MM"
+  );
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
@@ -162,9 +166,9 @@ export default function SmartMeterManagement() {
       fetchBulanan({ variables: { meteranId: selectedMeteranId } });
       fetchRiwayat({ variables: { meteranId: selectedMeteranId, limit: 30 } });
       fetchEstimasi({ variables: { meteranId: selectedMeteranId } });
-      fetchMonitoring({ variables: { meteranId: selectedMeteranId } });
+      fetchMonitoring({ variables: { meteranId: selectedMeteranId, periode: selectedPeriode } });
     }
-  }, [selectedMeteranId]);
+  }, [selectedMeteranId, selectedPeriode]);
 
   if (loading && meters.length === 0) {
     return (
@@ -414,6 +418,16 @@ export default function SmartMeterManagement() {
                         ))}
                       </Select>
                     </FormControl>
+                    {/* Pilih bulan untuk monitoring */}
+                    <TextField
+                      type="month"
+                      label="Periode"
+                      value={selectedPeriode}
+                      onChange={(e) => setSelectedPeriode(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ minWidth: 160 }}
+                      inputProps={{ max: new Date().toISOString().slice(0, 7) }}
+                    />
                     {monitoringLoading && <CircularProgress size={24} />}
                     {monitoringData && (
                       <Chip

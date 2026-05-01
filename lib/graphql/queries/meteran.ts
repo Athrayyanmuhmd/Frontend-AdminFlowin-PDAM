@@ -220,8 +220,8 @@ export const DELETE_METERAN = gql`
 // ==================== MONITORING ====================
 
 export const GET_MONITORING_DASHBOARD = gql`
-  query GetMonitoringDashboard($meteranId: ID!) {
-    getMonitoringDashboard(meteranId: $meteranId) {
+  query GetMonitoringDashboard($meteranId: ID!, $periode: String) {
+    getMonitoringDashboard(meteranId: $meteranId, periode: $periode) {
       meteranId
       nomorMeteran
       nomorAkun

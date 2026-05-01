@@ -26,6 +26,7 @@ export const GET_ALL_TAGIHAN = gql`
         }
       }
       Periode
+      PeriodeAkhir
       PenggunaanSebelum
       PenggunaanSekarang
       TotalPemakaian

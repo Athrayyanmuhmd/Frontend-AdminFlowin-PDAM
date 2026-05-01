@@ -144,16 +144,13 @@ export default function BillingManagement() {
       nomorAkun.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = filterStatus === 'all' || bill.StatusPembayaran === filterStatus;
 
-    // Filter berdasarkan periode tagihan
+    // Filter berdasarkan TenggatWaktu (lebih reliable dari Periode string)
     let matchPeriod = true;
-    if (filterPeriod !== 'all' && bill.Periode) {
-      const num = Number(bill.Periode);
-      const periodeDate = !isNaN(num) && num > 1_000_000_000_000
-        ? new Date(num)
-        : new Date(bill.Periode);
-      if (!isNaN(periodeDate.getTime())) {
-        const billYear = periodeDate.getFullYear();
-        const billMonth = periodeDate.getMonth();
+    if (filterPeriod !== 'all' && bill.TenggatWaktu) {
+      const tenggatDate = new Date(isNaN(Number(bill.TenggatWaktu)) ? bill.TenggatWaktu : Number(bill.TenggatWaktu));
+      if (!isNaN(tenggatDate.getTime())) {
+        const billYear = tenggatDate.getFullYear();
+        const billMonth = tenggatDate.getMonth();
         if (filterPeriod === 'current') {
           matchPeriod = billYear === currentYear && billMonth === currentMonth;
         } else if (filterPeriod === 'last') {
@@ -324,15 +321,9 @@ export default function BillingManagement() {
     }
   };
 
-  // Format periode dari epoch ms atau YYYY-MM string
-  const formatPeriode = (periode: string) => {
+  // Format satu periode "YYYY-MM" → "Februari 2026"
+  const formatSatuPeriode = (periode: string): string => {
     if (!periode) return '-';
-    const num = Number(periode);
-    if (!isNaN(num) && num > 1000000000000) {
-      const d = new Date(num);
-      return d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
-    }
-    // YYYY-MM format
     const parts = periode.split('-');
     if (parts.length === 2) {
       const d = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
@@ -340,6 +331,21 @@ export default function BillingManagement() {
     }
     return periode;
   };
+
+  // Format periode tagihan — tampil range jika bulanCakupan > 1
+  const formatPeriodeBilling = (bill: any): string => {
+    const start = bill.Periode;
+    const end = bill.PeriodeAkhir;
+    const cakupan = bill.bulanCakupan ?? 1;
+    if (!start) return '-';
+    if (end && end !== start && cakupan > 1) {
+      return `${formatSatuPeriode(start)} – ${formatSatuPeriode(end)} (${cakupan} bln)`;
+    }
+    return formatSatuPeriode(start);
+  };
+
+  // Alias untuk formatPeriode tunggal (dipakai di print & dialog)
+  const formatPeriode = formatSatuPeriode;
 
   // Format tanggal dari epoch ms atau ISO string
   const formatTanggal = (tgl: string | null) => {
@@ -680,8 +686,11 @@ export default function BillingManagement() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {formatPeriode(bill.Periode)}
+                        {formatPeriodeBilling(bill)}
                       </Typography>
+                      {bill.Menunggak && bill.bulanCakupan > 1 && (
+                        <Chip label="Menunggak" size="small" color="error" sx={{ mt: 0.5, fontSize: '0.65rem', height: 18 }} />
+                      )}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
@@ -788,7 +797,7 @@ export default function BillingManagement() {
                   <Typography><strong>Pelanggan:</strong> {selectedBilling.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '-'}</Typography>
                   <Typography><strong>No. Meteran:</strong> {selectedBilling.IdMeteran?.NomorMeteran || '-'}</Typography>
                   <Typography><strong>No. Akun:</strong> {selectedBilling.IdMeteran?.NomorAkun || '-'}</Typography>
-                  <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.Periode)}</Typography>
+                  <Typography><strong>Periode:</strong> {formatPeriodeBilling(selectedBilling)}</Typography>
                   <Typography><strong>Pemakaian:</strong> {selectedBilling.TotalPemakaian} m³</Typography>
                   <Typography><strong>Biaya Air:</strong> Rp {(selectedBilling.Biaya || 0).toLocaleString('id-ID')}</Typography>
                   <Typography><strong>Biaya Beban:</strong> Rp {(selectedBilling.BiayaBeban || 0).toLocaleString('id-ID')}</Typography>
