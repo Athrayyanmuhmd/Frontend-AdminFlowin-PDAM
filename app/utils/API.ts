@@ -30,7 +30,11 @@ API.interceptors.response.use(
   },
   (error: AxiosError): Promise<AxiosError> => {
     // Handle unauthorized access (client-side only)
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    // Hanya redirect pada 401 (token expired/invalid) — BUKAN 403.
+    // 403 bisa berasal dari DDoS mitigation Vercel yang sifatnya sementara;
+    // meredirect + hapus localStorage pada 403 justru memperparah (logout paksa
+    // + hard reload yang langsung kena blok lagi → loop GET / 403 di console).
+    if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('admin_token');
         localStorage.removeItem('adminAuth');
