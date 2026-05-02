@@ -36,8 +36,6 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Tabs,
-  Tab,
 } from '@mui/material';
 import {
   Search,
@@ -58,27 +56,6 @@ import AdminLayout from '../../../layouts/AdminLayout';
 import { CustomerAccount } from '../../../types/admin.types';
 import { useGetAllMeteran, useUpdateMeteran } from '../../../../lib/graphql/hooks/useMeteran';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`account-tabpanel-${index}`}
-      aria-labelledby={`account-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
 export default function CustomerAccounts() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
@@ -87,7 +64,6 @@ export default function CustomerAccounts() {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  const [tabValue, setTabValue] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterTariff, setFilterTariff] = useState('all');
@@ -204,7 +180,6 @@ export default function CustomerAccounts() {
     });
 
   const allFiltered = filterAccounts(accounts);
-  const attentionFiltered = filterAccounts(accounts.filter(a => a.serviceStatus === 'inactive'));
 
   const renderTable = (source: CustomerAccount[]) => {
     const paginated = source.slice((page - 1) * rowsPerPage, page * rowsPerPage);
@@ -462,58 +437,8 @@ export default function CustomerAccounts() {
           </Grid>
         </Grid>
 
-        {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={tabValue} onChange={(_, v) => { setTabValue(v); setPage(1); }} variant="scrollable" scrollButtons="auto">
-            <Tab label="Semua Akun" />
-            <Tab
-              label={`Perlu Perhatian${stats.inactiveAccounts > 0 ? ` (${stats.inactiveAccounts})` : ''}`}
-            />
-            <Tab label="Statistik Tarif" />
-          </Tabs>
-        </Box>
-
-        <TabPanel value={tabValue} index={0}>
-          {renderFilters()}
-          {renderTable(allFiltered)}
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            Akun dengan status tidak aktif — meter dinonaktifkan oleh admin
-          </Alert>
-          {renderFilters()}
-          {renderTable(attentionFiltered)}
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Distribusi Tarif
-                  </Typography>
-                  {Object.entries(stats.accountsByTariff).length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">Belum ada data</Typography>
-                  ) : (
-                    Object.entries(stats.accountsByTariff)
-                      .sort(([, a], [, b]) => b - a)
-                      .map(([tariff, count]) => (
-                        <Box
-                          key={tariff}
-                          sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
-                        >
-                          <Typography variant="body2">{tariff}</Typography>
-                          <Typography variant="body2" fontWeight="bold">{count as number} akun</Typography>
-                        </Box>
-                      ))
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
+        {renderFilters()}
+        {renderTable(allFiltered)}
       </Box>
 
       {/* Action Menu */}
