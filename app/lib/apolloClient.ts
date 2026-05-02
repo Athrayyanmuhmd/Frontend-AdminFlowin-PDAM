@@ -1,6 +1,7 @@
 import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
 import { onError } from '@apollo/client/link/error';
 import { setContext } from '@apollo/client/link/context';
+import { RetryLink } from '@apollo/client/link/retry';
 
 // Create HTTP link for GraphQL endpoint
 const httpLink = new HttpLink({
@@ -40,9 +41,30 @@ const errorLink = onError((err: any) => {
   }
 });
 
+// Retry link — retry network errors with exponential backoff (max 3x)
+// Prevents burst of simultaneous retries during cold start that triggers DDoS mitigation
+const retryLink = new RetryLink({
+  delay: {
+    initial: 1000,  // 1 detik sebelum retry pertama
+    max: 10000,     // maks 10 detik antar retry
+    jitter: true,   // acak sedikit agar request tidak barengan
+  },
+  attempts: {
+    max: 3,
+    retryIf: (error) => {
+      // Hanya retry untuk network error (5xx, timeout), bukan 4xx
+      if (!error) return false;
+      const err = error as any;
+      const status = err?.statusCode ?? err?.response?.status;
+      if (status && status < 500) return false; // 4xx = jangan retry
+      return true;
+    },
+  },
+});
+
 // Create Apollo Client instance
 const apolloClient = new ApolloClient({
-  link: from([errorLink, authLink, httpLink]),
+  link: from([errorLink, retryLink, authLink, httpLink]),
   cache: new InMemoryCache({
     typePolicies: {
       // Semua type pakai _id dari MongoDB sebagai cache key
