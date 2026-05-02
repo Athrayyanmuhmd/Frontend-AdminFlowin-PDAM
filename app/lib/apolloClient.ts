@@ -1,13 +1,16 @@
-import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { ApolloClient, InMemoryCache, from } from '@apollo/client';
+import { BatchHttpLink } from '@apollo/client/link/batch-http';
 import { onError } from '@apollo/client/link/error';
 import { setContext } from '@apollo/client/link/context';
 import { RetryLink } from '@apollo/client/link/retry';
 
-// Create HTTP link for GraphQL endpoint
-const httpLink = new HttpLink({
+// BatchHttpLink — kumpulkan semua query yang fire dalam 20ms jadi 1 HTTP request
+// Mencegah burst request (3-4 query sekaligus) yang trigger Vercel DDoS mitigation
+const batchLink = new BatchHttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql',
+  batchMax: 5,        // maks 5 operasi per batch
+  batchInterval: 20,  // tunggu 20ms untuk kumpulkan operasi sebelum kirim
   credentials: 'include',
-  // 30 second timeout via AbortController
   fetch: (uri, options) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -66,7 +69,7 @@ const retryLink = new RetryLink({
 
 // Create Apollo Client instance
 const apolloClient = new ApolloClient({
-  link: from([errorLink, retryLink, authLink, httpLink]),
+  link: from([errorLink, retryLink, authLink, batchLink]),
   cache: new InMemoryCache({
     typePolicies: {
       // Semua type pakai _id dari MongoDB sebagai cache key
