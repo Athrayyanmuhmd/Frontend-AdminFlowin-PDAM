@@ -183,6 +183,19 @@ function AdminProviderInner({ children }: AdminProviderProps) {
     };
   }, []);
 
+  // Keepalive: ping backend health every 4 minutes while authenticated.
+  // Vercel recycles serverless containers after ~5 min idle, causing cold start bursts
+  // that trigger DDoS mitigation. Pinging every 4 min keeps the container warm.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const graphqlUrl = process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql';
+    const healthUrl = graphqlUrl.replace('/graphql', '/health');
+    const ping = () => fetch(healthUrl, { method: 'GET', cache: 'no-store' }).catch(() => {});
+    ping(); // immediate ping on auth restore
+    const id = setInterval(ping, 4 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [isAuthenticated]);
+
   useEffect(() => {
     // Check saved session on client side
     if (typeof window !== 'undefined') {

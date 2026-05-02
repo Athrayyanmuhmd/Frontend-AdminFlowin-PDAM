@@ -55,13 +55,19 @@ const retryLink = new RetryLink({
     jitter: true,   // acak sedikit agar request tidak barengan
   },
   attempts: {
-    max: 3,
+    max: 2, // max 2 retries (3 total attempts) — lebih sedikit untuk kurangi burst
     retryIf: (error) => {
-      // Hanya retry untuk network error (5xx, timeout), bukan 4xx
       if (!error) return false;
       const err = error as any;
-      const status = err?.statusCode ?? err?.response?.status;
-      if (status && status < 500) return false; // 4xx = jangan retry
+      // Cek semua kemungkinan lokasi status code — Vercel 403 HTML body bikin
+      // Apollo gagal parse JSON sehingga status tersimpan di serverParseError.statusCode
+      const status =
+        err?.statusCode ??
+        err?.response?.status ??
+        err?.networkError?.statusCode ??
+        err?.networkError?.response?.status;
+      // Jangan retry 4xx (termasuk 403 DDoS block dari Vercel)
+      if (status && status >= 400 && status < 500) return false;
       return true;
     },
   },
