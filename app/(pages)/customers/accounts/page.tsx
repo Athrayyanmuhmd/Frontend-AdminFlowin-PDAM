@@ -468,8 +468,9 @@ export default function CustomerAccounts() {
             <Tab label="Semua Akun" />
             <Tab
               label={`Perlu Perhatian${stats.inactiveAccounts > 0 ? ` (${stats.inactiveAccounts})` : ''}`}
+              sx={{ display: 'none' }}
             />
-            <Tab label="Statistik Tarif" />
+            <Tab label="Statistik Tarif" sx={{ display: 'none' }} />
           </Tabs>
         </Box>
 
