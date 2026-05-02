@@ -123,10 +123,10 @@ function AdminProviderInner({ children }: AdminProviderProps) {
   const notifErrorCountRef = useRef(0);
   const notifRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load notifikasi dari GraphQL (poll setiap 30 detik, dengan error backoff)
+  // Load notifikasi dari GraphQL (poll setiap 60 detik, dengan error backoff)
   const { data: notifData, refetch: refetchNotif, error: notifError, stopPolling, startPolling } = useQuery(GET_ALL_NOTIFIKASI_ADMIN, {
     skip: !isAuthenticated,
-    pollInterval: 30000,
+    pollInterval: 60000,
     fetchPolicy: 'network-only',
   });
 
@@ -139,7 +139,7 @@ function AdminProviderInner({ children }: AdminProviderProps) {
         if (notifRetryTimerRef.current) clearTimeout(notifRetryTimerRef.current);
         notifRetryTimerRef.current = setTimeout(() => {
           notifErrorCountRef.current = 0;
-          startPolling(30000);
+          startPolling(60000);
         }, 5 * 60 * 1000);
       }
     } else if (notifData) {
