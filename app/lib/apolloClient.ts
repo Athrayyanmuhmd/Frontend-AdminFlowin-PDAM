@@ -72,7 +72,6 @@ const apolloClient = new ApolloClient({
   link: from([errorLink, retryLink, authLink, batchLink]),
   cache: new InMemoryCache({
     typePolicies: {
-      // Semua type pakai _id dari MongoDB sebagai cache key
       Meteran: { keyFields: ['_id'] },
       Tagihan: { keyFields: ['_id'] },
       Pelanggan: { keyFields: ['_id'] },
@@ -80,10 +79,10 @@ const apolloClient = new ApolloClient({
       KoneksiData: { keyFields: ['_id'] },
       SurveyData: { keyFields: ['_id'] },
       RabConnection: { keyFields: ['_id'] },
-      WorkOrder: { keyFields: ['_id'] },
+      WorkOrder: { keyFields: ['id'] },    // schema pakai id bukan _id
       Notifikasi: { keyFields: ['_id'] },
       AdminAccount: { keyFields: ['_id'] },
-      Teknisi: { keyFields: ['_id'] },
+      Teknisi: { keyFields: ['id'] },      // schema pakai id bukan _id
     },
   }),
   defaultOptions: {
