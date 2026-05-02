@@ -97,13 +97,13 @@ export default function FinancialReports() {
 
   const [currentTab, setCurrentTab] = useState(0);
 
-  const { data: bulananData, loading: loadingBulanan, error: errorBulanan } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { fetchPolicy: 'network-only' });
-  const { data: tunggakanData, loading: loadingTunggakan } = useQuery(GET_TUNGGAKAN_PER_KELOMPOK, { fetchPolicy: 'network-only' });
+  const { data: bulananData, loading: loadingBulanan, error: errorBulanan } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { fetchPolicy: 'cache-and-network' });
+  const { data: tunggakanData, loading: loadingTunggakan } = useQuery(GET_TUNGGAKAN_PER_KELOMPOK, { fetchPolicy: 'cache-and-network' });
   const { data: tertinggiData, loading: loadingTertinggi } = useQuery(GET_TAGIHAN_TERTINGGI, {
     variables: { limit: 10 },
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
-  const { data: ringkasanData, loading: loadingRingkasan, error: errorRingkasan } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { fetchPolicy: 'network-only' });
+  const { data: ringkasanData, loading: loadingRingkasan, error: errorRingkasan } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { fetchPolicy: 'cache-and-network' });
 
   const isLoading = loadingBulanan || loadingRingkasan || loadingTunggakan || loadingTertinggi;
   const queryError = errorBulanan || errorRingkasan;

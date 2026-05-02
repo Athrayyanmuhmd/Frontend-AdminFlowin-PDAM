@@ -135,9 +135,9 @@ export default function ComplianceReports() {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  const { data: kpiData, loading: loadingKpi } = useQuery(GET_KPI_OPERASIONAL, { fetchPolicy: 'network-only' });
-  const { data: woData, loading: loadingWo } = useQuery(GET_RINGKASAN_WORK_ORDER, { fetchPolicy: 'network-only' });
-  const { data: laporanData, loading: loadingLaporan } = useQuery(GET_RINGKASAN_LAPORAN, { fetchPolicy: 'network-only' });
+  const { data: kpiData, loading: loadingKpi } = useQuery(GET_KPI_OPERASIONAL, { fetchPolicy: 'cache-and-network' });
+  const { data: woData, loading: loadingWo } = useQuery(GET_RINGKASAN_WORK_ORDER, { fetchPolicy: 'cache-and-network' });
+  const { data: laporanData, loading: loadingLaporan } = useQuery(GET_RINGKASAN_LAPORAN, { fetchPolicy: 'cache-and-network' });
 
   const kpi = (kpiData as any)?.getKpiOperasional;
   const ringkasanWO: any[] = (woData as any)?.getRingkasanWorkOrder || [];

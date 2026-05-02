@@ -59,7 +59,7 @@ export default function ConnectionDataManagement() {
   const rowsPerPage                             = 10;
 
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_CONNECTION_DATA, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const connectionData: any[] = (data as any)?.getAllKoneksiData ?? [];

@@ -287,7 +287,7 @@ export default function LaporanPage() {
   const [fetchBusyTeknisi, { data: busyData }] = useLazyQuery(
     GET_BUSY_TEKNISI,
     {
-      fetchPolicy: 'network-only',
+      fetchPolicy: 'cache-and-network',
     }
   );
 

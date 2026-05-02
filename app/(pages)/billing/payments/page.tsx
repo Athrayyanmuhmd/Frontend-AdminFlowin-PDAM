@@ -79,7 +79,7 @@ export default function PaymentsPage() {
   // Get all settled/successful payments (statusPembayaran = Settlement)
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_TAGIHAN_BY_STATUS, {
     variables: { status: 'SETTLEMENT' },
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   // ==================== Local State ====================

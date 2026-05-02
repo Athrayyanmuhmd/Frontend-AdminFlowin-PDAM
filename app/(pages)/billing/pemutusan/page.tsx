@@ -101,7 +101,7 @@ export default function PemutusanPage() {
   const { isAuthenticated } = useAdmin();
   const { data, loading, error, refetch } = useQuery(GET_DAFTAR_PEMUTUSAN, {
     skip: !isAuthenticated,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const [deactivate, { loading: deactivating }] = useMutation(DEACTIVATE_CUSTOMER, {

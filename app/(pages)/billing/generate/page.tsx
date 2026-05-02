@@ -151,7 +151,7 @@ export default function GenerateBills() {
 
   // Fetch real meteran data
   const { data: meteranData, loading: loadingMeteran } = useQuery(GET_ALL_METERAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
     skip: activeStep < 1,
   });
 

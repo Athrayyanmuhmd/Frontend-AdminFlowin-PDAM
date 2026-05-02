@@ -92,7 +92,7 @@ export default function UsersPage() {
   const [resetFormError, setResetFormError] = useState('');
 
   // GraphQL
-  const { data, loading, error, refetch } = useQuery(GET_ALL_ADMINS, { fetchPolicy: 'network-only' });
+  const { data, loading, error, refetch } = useQuery(GET_ALL_ADMINS, { fetchPolicy: 'cache-and-network' });
   const [createAdmin, { loading: creating }] = useMutation(CREATE_ADMIN, { onCompleted: () => { refetch(); setOpenAddDialog(false); setAddForm({ NIP: '', namaLengkap: '', email: '', noHP: '', password: '', confirmPassword: '' }); showAlert('success', 'Admin berhasil ditambahkan'); }, onError: (e) => setAddFormError(e.message) });
   const [updateAdmin, { loading: updating }] = useMutation(UPDATE_ADMIN, { onCompleted: () => { refetch(); setOpenEditDialog(false); showAlert('success', 'Data admin berhasil diperbarui'); }, onError: (e) => showAlert('error', e.message) });
   const [deleteAdmin, { loading: deleting }] = useMutation(DELETE_ADMIN, { onCompleted: () => { refetch(); setOpenDeleteDialog(false); showAlert('success', 'Admin berhasil dihapus'); }, onError: (e) => showAlert('error', e.message) });

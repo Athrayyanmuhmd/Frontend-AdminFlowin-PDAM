@@ -80,7 +80,7 @@ export default function TariffsPage() {
   });
 
   const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const [createKelompok, { loading: createLoading }] = useMutation(CREATE_KELOMPOK_PELANGGAN, {

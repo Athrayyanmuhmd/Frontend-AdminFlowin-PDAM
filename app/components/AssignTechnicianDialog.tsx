@@ -46,7 +46,7 @@ export default function AssignTechnicianDialog({
 
   const { data: teknisiData, loading } = useQuery(GET_ALL_TEKNISI, {
     skip: !open,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const technicians = (teknisiData as any)?.getAllTeknisi || [];

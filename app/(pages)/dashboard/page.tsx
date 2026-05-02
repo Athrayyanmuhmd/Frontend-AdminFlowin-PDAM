@@ -63,15 +63,15 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_DASHBOARD_STATS, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: chartKonsumsiData, refetch: refetchKonsumsi } = useQuery(GET_CHART_KONSUMSI_PER_BULAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: distribusiData, refetch: refetchDistribusi } = useQuery(GET_DISTRIBUSI_KELOMPOK_PELANGGAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   useEffect(() => {

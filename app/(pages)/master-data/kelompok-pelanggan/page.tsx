@@ -83,7 +83,7 @@ export default function KelompokPelangganPage() {
 
   // ✅ GraphQL Query - Replace REST API
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const kelompokList = (data as any)?.getAllKelompokPelanggan || [];

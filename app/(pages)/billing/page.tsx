@@ -97,15 +97,15 @@ export default function BillingManagement() {
 
   // GraphQL queries
   const { data, loading, error, refetch } = useQuery(GET_BILLINGS, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: statsData, refetch: refetchStats } = useQuery(GET_BILLING_STATS, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: chartData } = useQuery(GET_BILLING_CHART, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { data: meteranData } = useQuery(GET_ALL_METERAN_IDS, {

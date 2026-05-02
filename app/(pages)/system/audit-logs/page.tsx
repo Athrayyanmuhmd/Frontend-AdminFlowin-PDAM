@@ -122,7 +122,7 @@ export default function AuditLogsPage() {
       startDate: startDate ? startDate.toISOString() : undefined,
       endDate: endDate ? endDate.endOf('day').toISOString() : undefined,
     },
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const logs = (data as any)?.getAuditLogs || [];

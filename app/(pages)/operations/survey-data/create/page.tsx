@@ -76,7 +76,7 @@ function CreateSurveyDataInner() {
   const { data: connResult, loading, error: queryError } = useQuery(GET_CONNECTION_DATA_BY_ID, {
     variables: { id: connectionId },
     skip: !connectionId,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const connectionData = (connResult as any)?.getKoneksiData || null;

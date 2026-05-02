@@ -85,7 +85,7 @@ function CustomerRegistrationInner() {
   const { data: koneksiDataResult } = useQuery(GET_KONEKSI_DATA_BY_PELANGGAN, {
     variables: { idPelanggan: editId || '' },
     skip: !editId,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const koneksiDataFallback = (koneksiDataResult as any)?.getKoneksiDataByPelanggan;
 

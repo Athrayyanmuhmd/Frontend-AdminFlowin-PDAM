@@ -135,14 +135,14 @@ export default function CustomerDetailPage() {
   } = useQuery(GET_CUSTOMER, {
     variables: { id: customerId },
     skip: !customerId,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   // GraphQL Query - KoneksiData (harus sebelum customer useMemo agar tersedia sebagai fallback)
   const { data: koneksiDataResult, loading: loadingKoneksiData } = useQuery(GET_KONEKSI_DATA_BY_PELANGGAN, {
     variables: { idPelanggan: customerId },
     skip: !customerId,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const koneksiData = useMemo(() => {
@@ -180,7 +180,7 @@ export default function CustomerDetailPage() {
   } = useQuery(GET_METERAN_BY_PELANGGAN, {
     variables: { idPelanggan: customerId },
     skip: !customerId,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const meteranInfo = useMemo(() => {
@@ -210,7 +210,7 @@ export default function CustomerDetailPage() {
   } = useQuery(GET_TAGIHAN_BY_METERAN, {
     variables: { IdMeteran: meteranId || '' },
     skip: !meteranId || tabValue !== 0,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const billings = useMemo(() => {

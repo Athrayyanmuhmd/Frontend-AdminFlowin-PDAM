@@ -50,19 +50,19 @@ function CreateMeteranInner() {
   const { data: connResult, loading: loadingConn, error: connError } = useQuery(GET_CONNECTION_DATA_BY_ID, {
     variables: { id: connectionId },
     skip: !connectionId,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   // Fetch pemasangan data untuk auto-fill seriMeteran
   const { data: pemasanganResult } = useQuery(GET_PEMASANGAN_BY_KONEKSI_DATA, {
     variables: { idKoneksiData: connectionId },
     skip: !connectionId,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   // Fetch kelompok pelanggan list
   const { data: kelompokResult, loading: loadingKelompok } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const connectionData = (connResult as any)?.getKoneksiData || null;

@@ -171,12 +171,12 @@ type ReportId = typeof REPORT_CATEGORIES[number]['id'];
 
 function useReportData(reportId: ReportId | null) {
   const skip = !reportId;
-  const { data: kpiData, loading: l1 } = useQuery(GET_KPI_OPERASIONAL, { skip: skip || reportId !== 'kpi_operasional', fetchPolicy: 'network-only' });
-  const { data: woData, loading: l2 } = useQuery(GET_RINGKASAN_WORK_ORDER, { skip: skip || reportId !== 'work_order', fetchPolicy: 'network-only' });
-  const { data: laporanData, loading: l3 } = useQuery(GET_RINGKASAN_LAPORAN, { skip: skip || reportId !== 'laporan_pelanggan', fetchPolicy: 'network-only' });
-  const { data: tagihanData, loading: l4 } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { skip: skip || reportId !== 'ringkasan_tagihan', fetchPolicy: 'network-only' });
-  const { data: bulananData, loading: l5 } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { skip: skip || reportId !== 'laporan_bulanan', fetchPolicy: 'network-only' });
-  const { data: tunggakanData, loading: l6 } = useQuery(GET_TUNGGAKAN_PER_KELOMPOK, { skip: skip || reportId !== 'tunggakan_kelompok', fetchPolicy: 'network-only' });
+  const { data: kpiData, loading: l1 } = useQuery(GET_KPI_OPERASIONAL, { skip: skip || reportId !== 'kpi_operasional', fetchPolicy: 'cache-and-network' });
+  const { data: woData, loading: l2 } = useQuery(GET_RINGKASAN_WORK_ORDER, { skip: skip || reportId !== 'work_order', fetchPolicy: 'cache-and-network' });
+  const { data: laporanData, loading: l3 } = useQuery(GET_RINGKASAN_LAPORAN, { skip: skip || reportId !== 'laporan_pelanggan', fetchPolicy: 'cache-and-network' });
+  const { data: tagihanData, loading: l4 } = useQuery(GET_RINGKASAN_STATUS_TAGIHAN, { skip: skip || reportId !== 'ringkasan_tagihan', fetchPolicy: 'cache-and-network' });
+  const { data: bulananData, loading: l5 } = useQuery(GET_LAPORAN_KEUANGAN_BULANAN, { skip: skip || reportId !== 'laporan_bulanan', fetchPolicy: 'cache-and-network' });
+  const { data: tunggakanData, loading: l6 } = useQuery(GET_TUNGGAKAN_PER_KELOMPOK, { skip: skip || reportId !== 'tunggakan_kelompok', fetchPolicy: 'cache-and-network' });
 
   const loading = l1 || l2 || l3 || l4 || l5 || l6;
 
