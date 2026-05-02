@@ -107,7 +107,7 @@ export function useTagihanList(options?: { limit?: number; offset?: number }) {
 
   const { data, loading, error, refetch } = useQuery(GET_ALL_TAGIHAN, {
     variables: { limit: options?.limit ?? 500, offset: options?.offset ?? 0 },
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   const allTagihan: Tagihan[] = useMemo(
@@ -173,7 +173,7 @@ export function useTagihanList(options?: { limit?: number; offset?: number }) {
 
 export function useTagihanStats() {
   const { data, loading, error, refetch } = useQuery(GET_BILLING_STATS, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const stats: BillingStats | null = (data as any)?.getRingkasanStatusTagihan ?? null;
   return { stats, loading, error, refetch };
@@ -183,7 +183,7 @@ export function useTagihanStats() {
 // Data untuk grafik pendapatan bulanan di halaman /billing
 
 export function useTagihanChart() {
-  const { data, loading } = useQuery(GET_BILLING_CHART, { fetchPolicy: 'network-only' });
+  const { data, loading } = useQuery(GET_BILLING_CHART, { fetchPolicy: 'cache-and-network' });
   const raw: any[] = (data as any)?.getLaporanKeuanganBulanan ?? [];
   const chartData = useMemo(
     () => raw.map((d) => ({ month: d.bulan, revenue: d.totalTagihan, bills: d.jumlahTagihan, collected: d.totalLunas })),
@@ -198,7 +198,7 @@ export function useTagihanChart() {
 export function useTagihanByStatus(status: StatusPembayaran) {
   const { data, loading, error, refetch } = useQuery(GET_TAGIHAN_BY_STATUS, {
     variables: { status },
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const tagihan: Tagihan[] = (data as any)?.getTagihanByStatus ?? [];
   return { tagihan, loading, error, refetch };
@@ -211,7 +211,7 @@ export function useTagihanByMeteran(idMeteran: string | null) {
   const { data, loading, error, refetch } = useQuery(GET_TAGIHAN_BY_METERAN, {
     variables: { IdMeteran: idMeteran },
     skip: !idMeteran,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const tagihan: Tagihan[] = (data as any)?.getTagihanByMeteran ?? [];
   return { tagihan, loading, error, refetch };
@@ -222,7 +222,7 @@ export function useTagihanByMeteran(idMeteran: string | null) {
 
 export function useTunggakan() {
   const { data, loading, error, refetch } = useQuery(GET_TUNGGAKAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const tunggakan: Tagihan[] = (data as any)?.getTunggakan ?? [];
   return { tunggakan, totalTunggakan: tunggakan.length, loading, error, refetch };
@@ -233,7 +233,7 @@ export function useTunggakan() {
 
 export function useDaftarPemutusan() {
   const { data, loading, error, refetch } = useQuery(GET_DAFTAR_PEMUTUSAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
   const daftar: any[] = (data as any)?.getDaftarPemutusan ?? [];
   return { daftar, loading, error, refetch };

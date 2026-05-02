@@ -18,7 +18,7 @@ import {
 
 export function useGetAllKelompokPelanggan() {
   const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {

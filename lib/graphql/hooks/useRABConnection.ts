@@ -19,7 +19,7 @@ import {
 
 export function useGetAllRABConnections() {
   const { data, loading, error, refetch } = useQuery(GET_ALL_RAB_CONNECTIONS, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {
@@ -34,7 +34,7 @@ export function useGetRABConnection(id: string) {
   const { data, loading, error, refetch } = useQuery(GET_RAB_CONNECTION_BY_ID, {
     variables: { id },
     skip: !id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {
@@ -47,7 +47,7 @@ export function useGetRABConnection(id: string) {
 
 export function useGetPendingRAB() {
   const { data, loading, error, refetch } = useQuery(GET_PENDING_RAB, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {

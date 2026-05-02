@@ -15,7 +15,7 @@ import {
 
 export function useGetAllConnectionData() {
   const { data, loading, error, refetch } = useQuery(GET_ALL_CONNECTION_DATA, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {
@@ -30,7 +30,7 @@ export function useGetConnectionData(id: string) {
   const { data, loading, error, refetch } = useQuery(GET_CONNECTION_DATA_BY_ID, {
     variables: { id },
     skip: !id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {

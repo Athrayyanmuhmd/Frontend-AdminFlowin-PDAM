@@ -18,7 +18,7 @@ import {
 
 export function useGetAllSurveyData() {
   const { data, loading, error, refetch } = useQuery(GET_ALL_SURVEY_DATA, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {
@@ -33,7 +33,7 @@ export function useGetSurveyData(id: string) {
   const { data, loading, error, refetch } = useQuery(GET_SURVEY_DATA_BY_ID, {
     variables: { id },
     skip: !id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'cache-and-network',
   });
 
   return {

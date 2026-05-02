@@ -43,10 +43,27 @@ const errorLink = onError((err: any) => {
 // Create Apollo Client instance
 const apolloClient = new ApolloClient({
   link: from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      // Semua type pakai _id dari MongoDB sebagai cache key
+      Meteran: { keyFields: ['_id'] },
+      Tagihan: { keyFields: ['_id'] },
+      Pelanggan: { keyFields: ['_id'] },
+      KelompokPelanggan: { keyFields: ['_id'] },
+      KoneksiData: { keyFields: ['_id'] },
+      SurveyData: { keyFields: ['_id'] },
+      RabConnection: { keyFields: ['_id'] },
+      WorkOrder: { keyFields: ['_id'] },
+      Notifikasi: { keyFields: ['_id'] },
+      AdminAccount: { keyFields: ['_id'] },
+      Teknisi: { keyFields: ['_id'] },
+    },
+  }),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'network-only',
+      // cache-and-network: tampil cache dulu (instan), fetch background, update bila berubah
+      // Efek: navigasi balik ke halaman yang sama langsung tampil tanpa loading
+      fetchPolicy: 'cache-and-network',
       errorPolicy: 'all',
     },
     query: {

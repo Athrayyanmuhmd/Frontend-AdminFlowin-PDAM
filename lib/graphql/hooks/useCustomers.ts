@@ -21,7 +21,7 @@ import {
 
 export function useGetAllCustomers() {
   const { data, loading, error, refetch } = useQuery(GET_ALL_CUSTOMERS, {
-    fetchPolicy: 'network-only', // Always fetch fresh data
+    fetchPolicy: 'cache-and-network', // Always fetch fresh data
   });
 
   return {
