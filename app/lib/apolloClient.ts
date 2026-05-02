@@ -16,14 +16,16 @@ const httpLink = new HttpLink({
   },
 });
 
-// Auth link to add token to headers
+// Auth link to add token + Vercel bypass header
 const authLink = setContext((_, { headers }) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+  const bypassSecret = process.env.NEXT_PUBLIC_VERCEL_BYPASS_SECRET;
 
   return {
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : '',
+      ...(bypassSecret ? { 'x-vercel-protection-bypass': bypassSecret } : {}),
     },
   };
 });
