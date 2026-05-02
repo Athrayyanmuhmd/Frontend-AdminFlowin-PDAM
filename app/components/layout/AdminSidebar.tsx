@@ -120,14 +120,8 @@ const adminMenuItems: MenuItem[] = [
         permission: 'billing:create',
         roles: ['admin'],
       },
-      {
-        id: 'billing-payments',
-        title: 'Pembayaran',
-        icon: <Receipt />,
-        path: '/billing/payments',
-        permission: 'billing:read',
-        roles: ['admin'],
-      },
+      // Menu Pembayaran disembunyikan — duplikat halaman Billing (filter settlement)
+      // Aktifkan kembali saat ada data transaksi Midtrans detail (nomor VA, bank, dll)
       {
         id: 'billing-tariffs',
         title: 'Struktur Tarif',
