@@ -4,12 +4,12 @@ import { onError } from '@apollo/client/link/error';
 import { setContext } from '@apollo/client/link/context';
 import { RetryLink } from '@apollo/client/link/retry';
 
-// BatchHttpLink — kumpulkan semua query yang fire dalam 20ms jadi 1 HTTP request
+// BatchHttpLink — kumpulkan semua query yang fire dalam 50ms jadi 1 HTTP request
 // Mencegah burst request (3-4 query sekaligus) yang trigger Vercel DDoS mitigation
 const batchLink = new BatchHttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql',
   batchMax: 5,        // maks 5 operasi per batch
-  batchInterval: 20,  // tunggu 20ms untuk kumpulkan operasi sebelum kirim
+  batchInterval: 50,  // tunggu 50ms — cukup untuk React multi render cycles
   credentials: 'include',
   fetch: (uri, options) => {
     const controller = new AbortController();
