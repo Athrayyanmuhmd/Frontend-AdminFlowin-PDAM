@@ -147,10 +147,10 @@ export default function SmartMeterManagement() {
     if ((data as any)?.getAllMeteran) {
       const mapped = mapBackendToSmartMeter((data as any).getAllMeteran);
       setMeters(mapped);
-      // Auto-select first meter for monitoring tab
-      if (mapped.length > 0 && !selectedMeteranId) {
-        setSelectedMeteranId(mapped[0].id);
-      }
+      // Auto-select dihapus — 4 query sekunder (bulanan/riwayat/estimasi/monitoring)
+      // hanya jalan saat user pilih meter secara manual dari dropdown.
+      // Sebelumnya auto-select langsung trigger 4 HTTP request saat halaman dibuka
+      // yang dikombinasikan dengan keepalive + notif polling memicu DDoS mitigation.
     }
   }, [data]);
 
@@ -445,6 +445,15 @@ export default function SmartMeterManagement() {
                 </CardContent>
               </Card>
             </Grid>
+
+            {/* Placeholder ketika belum ada meter dipilih */}
+            {!selectedMeteranId && (
+              <Grid item xs={12}>
+                <Alert severity="info" icon={<Speed />}>
+                  Pilih meteran dari dropdown di atas untuk melihat data monitoring pemakaian.
+                </Alert>
+              </Grid>
+            )}
 
             {/* Monitoring Dashboard — tampil kalau ada data */}
             {monitoringData && (
