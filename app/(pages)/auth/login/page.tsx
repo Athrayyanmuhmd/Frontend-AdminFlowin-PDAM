@@ -54,7 +54,8 @@ export default function AdminLogin() {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
-    /* Outer page — cream/beige background like reference */
+    <main>
+    {/* Outer page — cream/beige background like reference */}
     <Box
       sx={{
         minHeight: '100vh',
@@ -182,7 +183,12 @@ export default function AdminLogin() {
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton onClick={togglePasswordVisibility} edge="end" size="small">
+                      <IconButton
+                        onClick={togglePasswordVisibility}
+                        edge="end"
+                        size="small"
+                        aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                      >
                         {showPassword
                           ? <VisibilityOff sx={{ fontSize: 18, color: '#9ca3af' }} />
                           : <Visibility sx={{ fontSize: 18, color: '#9ca3af' }} />}
@@ -245,6 +251,7 @@ export default function AdminLogin() {
             src="/assets/gambar-sebelah-kanan-login.png"
             alt=""
             fill
+            sizes="(max-width: 900px) 0px, 420px"
             style={{ objectFit: 'cover', objectPosition: 'center' }}
             priority
           />
@@ -253,5 +260,6 @@ export default function AdminLogin() {
 
 
     </Box>
+    </main>
   );
 }

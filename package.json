@@ -2,6 +2,13 @@
   "name": "aqualink-admin-panel",
   "version": "1.0.0",
   "private": true,
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions",
+    "last 2 Edge versions",
+    "not dead"
+  ],
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

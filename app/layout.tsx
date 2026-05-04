@@ -1,7 +1,15 @@
 import type { Metadata } from 'next';
+import { Poppins } from 'next/font/google';
 import './globals.css';
 import AdminProvider from './layouts/AdminProvider';
 import NextTopLoader from 'nextjs-toploader';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Flowin Admin Panel - PDAM Tirta Daroy',
@@ -26,7 +34,7 @@ export default function RootLayout({
             Ikon tetesan air biru (#013494) sesuai brand Aqualink. */}
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path fill='%23013494' d='M16 2C10 10 6 15 6 20a10 10 0 0020 0c0-5-4-10-10-18z'/></svg>" />
       </head>
-      <body className="antialiased" suppressHydrationWarning>
+      <body className={`antialiased ${poppins.variable}`} suppressHydrationWarning>
         <NextTopLoader
           color='#013494'
           initialPosition={0.08}
