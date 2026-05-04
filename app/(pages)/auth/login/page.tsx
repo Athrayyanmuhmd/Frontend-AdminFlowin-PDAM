@@ -251,7 +251,7 @@ export default function AdminLogin() {
             src="/assets/gambar-sebelah-kanan-login.png"
             alt=""
             fill
-            sizes="(max-width: 900px) 0px, 420px"
+            sizes="420px"
             style={{ objectFit: 'cover', objectPosition: 'center' }}
             priority
           />
