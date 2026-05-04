@@ -601,6 +601,7 @@ export default function WorkOrderManagement() {
       value: 'pengawasan_setelah_pemasangan',
       label: 'Pengawasan Setelah Pemasangan',
     },
+    { value: 'maintenance', label: 'Maintenance' },
     { value: 'penyelesaian_laporan', label: 'Penyelesaian Laporan' },
   ];
 

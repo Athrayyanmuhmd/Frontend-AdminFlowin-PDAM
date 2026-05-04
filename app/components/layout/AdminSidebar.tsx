@@ -210,6 +210,14 @@ const adminMenuItems: MenuItem[] = [
         permission: 'workorders:read',
         roles: ['admin'],
       },
+      {
+        id: 'maintenance',
+        title: 'Maintenance',
+        icon: <HandymanIcon />,
+        path: '/operations/maintenance',
+        permission: 'workorders:read',
+        roles: ['admin'],
+      },
       // Menu di bawah di-hide karena belum digunakan
       // {
       //   id: 'pemasangan',
