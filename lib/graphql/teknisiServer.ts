@@ -231,6 +231,8 @@ export async function getProgresWorkOrder(token: string, workOrderId: string) {
         urlJaringan diameterPipa urlPosisiBak posisiMeteran jumlahPenghuni standar
         totalBiaya urlRab
         seriMeteran fotoRumah fotoMeteran fotoMeteranDanRumah
+        kondisiSebelumDaya kondisiSebelumKoneksi fotoSebelum
+        kondisiSetelahDaya kondisiSetelahKoneksi fotoSetelah
         urlGambar
         catatan
       }

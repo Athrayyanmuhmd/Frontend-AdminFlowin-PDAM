@@ -8,13 +8,19 @@ import {
   Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, Tooltip, Pagination, CircularProgress, Alert, IconButton,
+  FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { Search, Visibility, Refresh } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 
-const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
-  dikirim: { label: 'Dikirim', color: 'info' },
-  selesai: { label: 'Selesai', color: 'success' },
+const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' | 'primary' }> = {
+  menunggu_penugasan: { label: 'Menunggu Penugasan', color: 'warning' },
+  ditolak:            { label: 'Ditolak Teknisi',    color: 'error' },
+  sedang_dikerjakan:  { label: 'Sedang Dikerjakan',  color: 'info' },
+  dikirim:            { label: 'Dikirim',             color: 'primary' },
+  revisi:             { label: 'Perlu Revisi',        color: 'warning' },
+  selesai:            { label: 'Selesai',             color: 'success' },
+  dibatalkan:         { label: 'Dibatalkan',          color: 'error' },
 };
 
 const fmtDate = (v: string) => {
@@ -30,6 +36,7 @@ export default function MaintenancePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
 
@@ -45,8 +52,7 @@ export default function MaintenancePage() {
     try {
       const res = await getWorkOrdersByJenis(token, 'maintenance');
       if (res.errors?.length) { setError(res.errors[0].message); return; }
-      const all: any[] = (res.data as any)?.workOrders?.data ?? [];
-      setData(all.filter(wo => wo.status === 'dikirim' || wo.status === 'selesai'));
+      setData((res.data as any)?.workOrders?.data ?? []);
     } catch (err: any) {
       setError(err.message ?? 'Gagal memuat data');
     } finally {
@@ -57,14 +63,16 @@ export default function MaintenancePage() {
   useEffect(() => { if (isAuthenticated) fetchData(); }, [isAuthenticated, fetchData]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter(wo =>
-      wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
-      wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
-      wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+    return data.filter(wo => {
+      const q = search.toLowerCase();
+      const matchSearch = !search.trim() ||
+        wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
+        wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
+        wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q);
+      const matchStatus = !filterStatus || wo.status === filterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [data, search, filterStatus]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -90,13 +98,25 @@ export default function MaintenancePage() {
 
         <Card sx={{ mb: 2 }}>
           <CardContent sx={{ pb: '12px !important' }}>
-            <TextField
-              fullWidth size='small'
-              placeholder='Cari nama pelanggan, alamat, teknisi...'
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-              InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
-            />
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <TextField
+                size='small'
+                sx={{ flex: 1, minWidth: { xs: '100%', sm: 220 } }}
+                placeholder='Cari nama pelanggan, alamat, teknisi...'
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
+              />
+              <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+                <InputLabel>Status WO</InputLabel>
+                <Select value={filterStatus} label='Status WO' onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
+                  <MenuItem value=''>Semua</MenuItem>
+                  {Object.entries(STATUS_WO).map(([val, { label }]) => (
+                    <MenuItem key={val} value={val}>{label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
           </CardContent>
         </Card>
 

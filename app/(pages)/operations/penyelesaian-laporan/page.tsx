@@ -162,7 +162,7 @@ export default function PenyelesaianLaporanPage() {
                     <TableHead>
                       <TableRow>
                         <TableCell>No</TableCell>
-                        <TableCell>ID Laporan</TableCell>
+                        <TableCell>Pelanggan / Laporan</TableCell>
                         <TableCell>Teknisi PJ</TableCell>
                         <TableCell>Status WO</TableCell>
                         <TableCell>Respon Teknisi</TableCell>
@@ -179,9 +179,19 @@ export default function PenyelesaianLaporanPage() {
                           <TableRow key={wo.id} hover>
                             <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                             <TableCell>
-                              <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: 11 }}>
-                                {wo.idLaporan ? `…${wo.idLaporan.slice(-10)}` : '-'}
-                              </Typography>
+                              {wo.koneksiData?.pelanggan?.namaLengkap ? (
+                                <>
+                                  <Typography variant='body2' fontWeight={600}>{wo.koneksiData.pelanggan.namaLengkap}</Typography>
+                                  <Typography variant='caption' color='text.secondary'>{wo.koneksiData.alamat || ''}</Typography>
+                                </>
+                              ) : (
+                                <>
+                                  <Typography variant='caption' color='text.secondary'>Laporan:</Typography>
+                                  <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: 11 }}>
+                                    {wo.idLaporan ? `…${wo.idLaporan.slice(-10)}` : '-'}
+                                  </Typography>
+                                </>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Typography variant='body2' fontWeight={600}>{wo.teknisiPenanggungJawab?.namaLengkap || '-'}</Typography>
