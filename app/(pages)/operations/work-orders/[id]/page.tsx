@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAdmin } from '../../../../layouts/AdminProvider';
+import { useLazyQuery } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import {
   getWorkOrder,
   getWorkflowChain,
@@ -14,6 +16,19 @@ import {
   reviewHasil as srvReviewHasil,
   batalkanWorkOrder as srvBatalkan,
 } from '@/lib/graphql/teknisiServer';
+
+const GET_KONEKSI_DATA = gql`
+  query GetKoneksiDataById($id: ID!) {
+    getKoneksiData(id: $id) {
+      _id
+      IdPelanggan { _id namaLengkap email noHP }
+      StatusPengajuan AlasanPenolakan TanggalVerifikasi
+      NIK NoKK IMB NIKUrl KKUrl IMBUrl
+      Alamat Kelurahan Kecamatan LuasBangunan
+      catatan createdAt updatedAt
+    }
+  }
+`;
 import {
   Box,
   Typography,
@@ -278,6 +293,12 @@ export default function WorkOrderDetailPage() {
   const [laporanData, setLaporanData] = useState<any>(null);
   const [loadingExtra, setLoadingExtra] = useState(false);
 
+  // Fetch koneksiData dari Aqualink (sumber data lengkap, termasuk walk-in)
+  const [fetchKoneksiData, { data: koneksiDataResult }] = useLazyQuery<{ getKoneksiData: any }>(GET_KONEKSI_DATA, {
+    fetchPolicy: 'network-only',
+  });
+  const aqualinkKoneksi = koneksiDataResult?.getKoneksiData ?? null;
+
   // Dialogs
   const [dlgTim, setDlgTim] = useState(false);
   const [dlgPenolakan, setDlgPenolakan] = useState(false);
@@ -314,6 +335,7 @@ export default function WorkOrderDetailPage() {
             .then(r => setWorkflow((r.data as any)?.workflowChain || []))
             .catch(() => {})
         );
+        fetchKoneksiData({ variables: { id: data.idKoneksiData } });
       }
 
       promises.push(
@@ -337,7 +359,7 @@ export default function WorkOrderDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, fetchKoneksiData]);
 
   useEffect(() => {
     if (isAuthenticated) fetchAll();
@@ -467,7 +489,34 @@ export default function WorkOrderDetailPage() {
   const needsPenolakan = wo.statusRespon === 'penolakan_diajukan';
   const needsHasil = wo.status === 'dikirim';
   const needsAction = needsTim || needsPenolakan || needsHasil;
-  const koneksi = wo.koneksiData;
+  // Prioritaskan data dari Aqualink (lengkap, termasuk walk-in); fallback ke Rafli
+  const koneksiRafli = wo.koneksiData;
+  const koneksi = aqualinkKoneksi
+    ? {
+        pelanggan: aqualinkKoneksi.IdPelanggan
+          ? {
+              namaLengkap: aqualinkKoneksi.IdPelanggan.namaLengkap,
+              email:        aqualinkKoneksi.IdPelanggan.email,
+              noHp:         aqualinkKoneksi.IdPelanggan.noHP,
+            }
+          : koneksiRafli?.pelanggan,
+        statusPengajuan:  aqualinkKoneksi.StatusPengajuan,
+        alasanPenolakan:  aqualinkKoneksi.AlasanPenolakan,
+        tanggalVerifikasi: aqualinkKoneksi.TanggalVerifikasi,
+        alamat:       aqualinkKoneksi.Alamat,
+        kelurahan:    aqualinkKoneksi.Kelurahan,
+        kecamatan:    aqualinkKoneksi.Kecamatan,
+        nik:          aqualinkKoneksi.NIK,
+        noKK:         aqualinkKoneksi.NoKK,
+        imb:          aqualinkKoneksi.IMB,
+        luasBangunan: aqualinkKoneksi.LuasBangunan,
+        nikUrl:       aqualinkKoneksi.NIKUrl,
+        kkUrl:        aqualinkKoneksi.KKUrl,
+        imbUrl:       aqualinkKoneksi.IMBUrl,
+        createdAt:    aqualinkKoneksi.createdAt,
+        catatan:      aqualinkKoneksi.catatan,
+      }
+    : koneksiRafli;
 
   return (
     <AdminLayout
