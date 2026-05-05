@@ -78,6 +78,7 @@ const JENIS_LABELS: Record<string, string> = {
   pengawasan_pemasangan: 'Pengawasan Pemasangan',
   pengawasan_setelah_pemasangan: 'Pengawasan Setelah Pemasangan',
   penyelesaian_laporan: 'Penyelesaian Laporan',
+  maintenance: 'Maintenance',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -2033,6 +2034,79 @@ function ProgresDataView({ data, jenis }: { data: any; jenis: string }) {
         ),
       });
     }
+    addCatatan();
+  } else if (jenis === 'maintenance') {
+    const kondisiDayaLabel = (v: string | null) =>
+      v === 'menyala' ? 'Menyala' : v === 'mati' ? 'Mati' : null;
+    const kondisiKoneksiLabel = (v: string | null) =>
+      v === 'terkoneksi' ? 'Terkoneksi' : v === 'tidak_terkoneksi' ? 'Tidak Terkoneksi' : null;
+
+    items.push({
+      label: 'Kondisi Sebelum',
+      value: (
+        <Stack direction='row' spacing={1} flexWrap='wrap' alignItems='center'>
+          {kondisiDayaLabel(data.kondisiSebelumDaya) ? (
+            <Chip size='small' variant='outlined' label={`Daya: ${kondisiDayaLabel(data.kondisiSebelumDaya)}`}
+              color={data.kondisiSebelumDaya === 'menyala' ? 'success' : 'error'} />
+          ) : <Typography variant='body2' color='text.secondary'>Daya: —</Typography>}
+          {kondisiKoneksiLabel(data.kondisiSebelumKoneksi) ? (
+            <Chip size='small' variant='outlined' label={`Koneksi: ${kondisiKoneksiLabel(data.kondisiSebelumKoneksi)}`}
+              color={data.kondisiSebelumKoneksi === 'terkoneksi' ? 'success' : 'error'} />
+          ) : <Typography variant='body2' color='text.secondary'>Koneksi: —</Typography>}
+        </Stack>
+      ),
+    });
+
+    if (data.fotoSebelum?.length > 0) {
+      items.push({
+        label: `Foto Sebelum (${data.fotoSebelum.length})`,
+        value: (
+          <Stack direction='row' gap={1} flexWrap='wrap'>
+            {data.fotoSebelum.map((url: string, i: number) => (
+              <a key={i} href={url} target='_blank' rel='noopener noreferrer'>
+                <Box component='img' src={url} alt={`Sebelum ${i + 1}`}
+                  sx={{ width: 100, height: 80, objectFit: 'cover', borderRadius: 1,
+                    border: '1px solid', borderColor: 'divider', '&:hover': { opacity: 0.8 } }} />
+              </a>
+            ))}
+          </Stack>
+        ),
+      });
+    }
+
+    items.push({
+      label: 'Kondisi Sesudah',
+      value: (
+        <Stack direction='row' spacing={1} flexWrap='wrap' alignItems='center'>
+          {kondisiDayaLabel(data.kondisiSetelahDaya) ? (
+            <Chip size='small' variant='outlined' label={`Daya: ${kondisiDayaLabel(data.kondisiSetelahDaya)}`}
+              color={data.kondisiSetelahDaya === 'menyala' ? 'success' : 'error'} />
+          ) : <Typography variant='body2' color='text.secondary'>Daya: —</Typography>}
+          {kondisiKoneksiLabel(data.kondisiSetelahKoneksi) ? (
+            <Chip size='small' variant='outlined' label={`Koneksi: ${kondisiKoneksiLabel(data.kondisiSetelahKoneksi)}`}
+              color={data.kondisiSetelahKoneksi === 'terkoneksi' ? 'success' : 'error'} />
+          ) : <Typography variant='body2' color='text.secondary'>Koneksi: —</Typography>}
+        </Stack>
+      ),
+    });
+
+    if (data.fotoSetelah?.length > 0) {
+      items.push({
+        label: `Foto Sesudah (${data.fotoSetelah.length})`,
+        value: (
+          <Stack direction='row' gap={1} flexWrap='wrap'>
+            {data.fotoSetelah.map((url: string, i: number) => (
+              <a key={i} href={url} target='_blank' rel='noopener noreferrer'>
+                <Box component='img' src={url} alt={`Sesudah ${i + 1}`}
+                  sx={{ width: 100, height: 80, objectFit: 'cover', borderRadius: 1,
+                    border: '1px solid', borderColor: 'divider', '&:hover': { opacity: 0.8 } }} />
+              </a>
+            ))}
+          </Stack>
+        ),
+      });
+    }
+
     addCatatan();
   } else {
     addCatatan();
