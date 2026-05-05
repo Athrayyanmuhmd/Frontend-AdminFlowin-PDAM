@@ -108,7 +108,7 @@ export default function MaintenanceDetailPage() {
         getWorkOrder(token, id),
         getProgresWorkOrder(token, id),
       ]);
-      if (woRes.errors?.length) { setError(woRes.errors[0].message); return; }
+      if (woRes.errors?.length) setError(woRes.errors[0].message);
       setWo((woRes.data as any)?.workOrder ?? null);
       setProgres((progresRes.data as any)?.progresWorkOrder ?? null);
     } catch (err: any) {

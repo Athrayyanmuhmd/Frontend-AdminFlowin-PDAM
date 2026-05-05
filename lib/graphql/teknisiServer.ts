@@ -154,7 +154,6 @@ export async function getWorkOrder(token: string, id: string) {
         alasanPenolakan catatanReviewPenolakan catatanReview createdAt updatedAt
         koneksiData {
           id alamat kelurahan kecamatan statusPengajuan
-          nik noKK imb luasBangunan nikUrl kkUrl imbUrl
           tanggalVerifikasi alasanPenolakan createdAt updatedAt
           pelanggan { id namaLengkap noHp email alamat }
         }
