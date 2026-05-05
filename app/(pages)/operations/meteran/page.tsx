@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -68,6 +68,7 @@ export default function MeteranListPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterTariff, setFilterTariff] = useState('all');
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
 
@@ -95,6 +96,20 @@ export default function MeteranListPage() {
   const { updateMeteran } = useUpdateMeteran();
   const { deleteMeteran } = useDeleteMeteran();
 
+  // Unique tariff options derived from loaded data
+  const tariffOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const opts: { id: string; name: string }[] = [];
+    (allMeteran as any[]).forEach((m: any) => {
+      const k = m.IdKelompokPelanggan;
+      if (k?._id && !seen.has(k._id)) {
+        seen.add(k._id);
+        opts.push({ id: k._id, name: k.NamaKelompok });
+      }
+    });
+    return opts;
+  }, [allMeteran]);
+
   // Filter
   const filtered = (allMeteran as any[]).filter((m: any) => {
     const namaLengkap = m.IdKoneksiData?.IdPelanggan?.namaLengkap || '';
@@ -108,7 +123,10 @@ export default function MeteranListPage() {
       filterStatus === 'all' ||
       (filterStatus === 'aktif' && m.statusAktif) ||
       (filterStatus === 'nonaktif' && !m.statusAktif);
-    return matchSearch && matchStatus;
+    const matchTariff =
+      filterTariff === 'all' ||
+      m.IdKelompokPelanggan?._id === filterTariff;
+    return matchSearch && matchStatus && matchTariff;
   });
 
   const totalPages = Math.ceil(filtered.length / rowsPerPage);
@@ -288,7 +306,7 @@ export default function MeteranListPage() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid item xs={12} md={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
@@ -296,13 +314,28 @@ export default function MeteranListPage() {
                     onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
                     label="Status"
                   >
-                    <MenuItem value="all">Semua</MenuItem>
+                    <MenuItem value="all">Semua Status</MenuItem>
                     <MenuItem value="aktif">Aktif</MenuItem>
                     <MenuItem value="nonaktif">Nonaktif</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid item xs={12} md={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Kelompok Tarif</InputLabel>
+                  <Select
+                    value={filterTariff}
+                    onChange={(e) => { setFilterTariff(e.target.value); setPage(1); }}
+                    label="Kelompok Tarif"
+                  >
+                    <MenuItem value="all">Semua Tarif</MenuItem>
+                    {tariffOptions.map(opt => (
+                      <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={2}>
                 <Typography variant="body2" color="text.secondary">
                   Menampilkan {filtered.length} dari {(allMeteran as any[]).length} meteran
                 </Typography>
@@ -320,7 +353,8 @@ export default function MeteranListPage() {
                   <TableCell>Nomor Meteran / Akun</TableCell>
                   <TableCell>Pelanggan</TableCell>
                   <TableCell>Kelompok Tarif</TableCell>
-                  <TableCell>Pemakaian Belum Bayar</TableCell>
+                  <TableCell align="right">Total Pemakaian</TableCell>
+                  <TableCell align="right">Belum Terbayar</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="right">Aksi</TableCell>
                 </TableRow>
@@ -357,11 +391,16 @@ export default function MeteranListPage() {
                         {m.IdKelompokPelanggan?.NamaKelompok || '-'}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TableCell align="right">
+                      <Typography variant="body2">
+                        {(m.totalPemakaian ?? 0).toFixed(2)} m³
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
                         <WaterDrop fontSize="small" color={m.pemakaianBelumTerbayar > 0 ? 'warning' : 'disabled'} />
-                        <Typography variant="body2">
-                          {m.pemakaianBelumTerbayar ?? 0} m³
+                        <Typography variant="body2" color={m.pemakaianBelumTerbayar > 0 ? 'warning.main' : 'text.secondary'}>
+                          {(m.pemakaianBelumTerbayar ?? 0).toFixed(2)} m³
                         </Typography>
                       </Box>
                     </TableCell>
@@ -381,9 +420,9 @@ export default function MeteranListPage() {
                 ))}
                 {paginated.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
-                        {searchTerm || filterStatus !== 'all'
+                        {searchTerm || filterStatus !== 'all' || filterTariff !== 'all'
                           ? 'Tidak ada meteran yang sesuai filter'
                           : 'Belum ada meteran terdaftar'}
                       </Typography>

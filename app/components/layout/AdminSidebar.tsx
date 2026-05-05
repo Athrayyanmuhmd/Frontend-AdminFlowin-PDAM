@@ -95,6 +95,7 @@ const adminMenuItems: MenuItem[] = [
         path: '/customers/accounts',
         permission: 'customers:read',
         roles: ['admin'],
+        hidden: true,
       },
     ],
   },
@@ -217,6 +218,7 @@ const adminMenuItems: MenuItem[] = [
         path: '/operations/maintenance',
         permission: 'workorders:read',
         roles: ['admin'],
+        hidden: true,
       },
       // Menu di bawah di-hide karena belum digunakan
       // {

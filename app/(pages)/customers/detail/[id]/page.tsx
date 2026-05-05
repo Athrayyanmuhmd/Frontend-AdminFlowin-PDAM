@@ -38,7 +38,6 @@ import {
   LocationOn,
   WaterDrop,
   Receipt,
-  History,
   Settings,
   CheckCircle,
   Warning,
@@ -99,9 +98,6 @@ export default function CustomerDetailPage() {
   }, [authLoading, isAuthenticated, hasPermission, router]);
 
   const [tabValue, setTabValue] = useState(0);
-  const [historyUsage, setHistoryUsage] = useState<any[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState<'hari' | 'minggu' | 'bulan' | 'tahun'>('minggu');
 
   // State untuk Pengaturan Akun
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; action: 'activate' | 'deactivate' | null }>({ open: false, action: null });
@@ -232,61 +228,6 @@ export default function CustomerDetailPage() {
       pemakaianAkhir: bill.PenggunaanSekarang || 0,
     }));
   }, [billingData]);
-
-  useEffect(() => {
-    if (meteranId && tabValue === 1) {
-      fetchHistoryUsage();
-    }
-  }, [meteranId, tabValue, historyFilter]);
-
-  const fetchHistoryUsage = async () => {
-    if (!meteranId || !customerId) return;
-    try {
-      setLoadingHistory(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/history/getHistory/${customerId}/${meteranId}?filter=${historyFilter}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('admin_token')}`,
-          },
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.status === 200 && data.data) {
-          const mappedHistory = data.data.map((item: any) => {
-            let timeLabel = '';
-            switch (historyFilter) {
-              case 'hari':
-                timeLabel = item._id.time || '-';
-                break;
-              case 'minggu':
-                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-                timeLabel = days[item._id.day - 1] || '-';
-                break;
-              case 'bulan':
-                timeLabel = `Minggu ${item._id.week}` || '-';
-                break;
-              case 'tahun':
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                timeLabel = months[item._id.month - 1] || '-';
-                break;
-            }
-            return {
-              time: timeLabel,
-              usage: item.totalUsedWater || 0,
-              count: item.count || 0,
-            };
-          });
-          setHistoryUsage(mappedHistory);
-        }
-      }
-    } catch (error: any) {
-      console.error('Error fetching history usage:', error);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
 
   if (loading || loadingMeteran) {
     return (
@@ -480,7 +421,6 @@ export default function CustomerDetailPage() {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)} variant='scrollable' scrollButtons='auto'>
               <Tab icon={<Receipt />} label='Riwayat Tagihan' iconPosition='start' />
-              <Tab icon={<History />} label='Riwayat Pembacaan' iconPosition='start' />
               <Tab icon={<Assignment />} label='Data Verifikasi' iconPosition='start' />
               <Tab icon={<Settings />} label='Pengaturan Akun' iconPosition='start' />
             </Tabs>
@@ -553,90 +493,8 @@ export default function CustomerDetailPage() {
             )}
           </TabPanel>
 
-          <TabPanel value={tabValue} index={1}>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant='h6' gutterBottom>Riwayat Pemakaian Air</Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                {(['hari', 'minggu', 'bulan', 'tahun'] as const).map(f => (
-                  <Chip
-                    key={f}
-                    label={f === 'hari' ? 'Hari Ini' : f === 'minggu' ? 'Minggu Ini' : f === 'bulan' ? 'Bulan Ini' : 'Tahun Ini'}
-                    color={historyFilter === f ? 'primary' : 'default'}
-                    onClick={() => setHistoryFilter(f)}
-                    clickable
-                  />
-                ))}
-              </Box>
-            </Box>
-            {loadingHistory ? (
-              <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
-            ) : historyUsage.length > 0 ? (
-              <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table sx={{ minWidth: 500 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>
-                        {historyFilter === 'hari' && 'Jam'}
-                        {historyFilter === 'minggu' && 'Hari'}
-                        {historyFilter === 'bulan' && 'Minggu'}
-                        {historyFilter === 'tahun' && 'Bulan'}
-                      </TableCell>
-                      <TableCell align='right'>Pemakaian (Liter)</TableCell>
-                      <TableCell align='right'>Jumlah Pembacaan</TableCell>
-                      <TableCell align='right'>Rata-rata (L/pembacaan)</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {historyUsage.map((item: any, index: number) => (
-                      <TableRow key={index}>
-                        <TableCell><Typography variant='body2' sx={{ fontWeight: 600 }}>{item.time}</Typography></TableCell>
-                        <TableCell align='right'>
-                          <Typography variant='body2' sx={{ fontWeight: 600, color: 'primary.main' }}>
-                            {item.usage.toFixed(2)} L
-                          </Typography>
-                        </TableCell>
-                        <TableCell align='right'>{item.count}</TableCell>
-                        <TableCell align='right'>
-                          {item.count > 0 ? (item.usage / item.count).toFixed(2) : '0.00'} L
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow sx={{ bgcolor: 'primary.50' }}>
-                      <TableCell><Typography variant='body2' sx={{ fontWeight: 700 }}>TOTAL</Typography></TableCell>
-                      <TableCell align='right'>
-                        <Typography variant='body2' sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {historyUsage.reduce((sum, item) => sum + item.usage, 0).toFixed(2)} L
-                        </Typography>
-                      </TableCell>
-                      <TableCell align='right'>
-                        <Typography variant='body2' sx={{ fontWeight: 700 }}>
-                          {historyUsage.reduce((sum, item) => sum + item.count, 0)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align='right'>
-                        <Typography variant='body2' sx={{ fontWeight: 700 }}>
-                          {(() => {
-                            const totalUsage = historyUsage.reduce((sum, item) => sum + item.usage, 0);
-                            const totalCount = historyUsage.reduce((sum, item) => sum + item.count, 0);
-                            return totalCount > 0 ? (totalUsage / totalCount).toFixed(2) : '0.00';
-                          })()} L
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Alert severity='info'>
-                {meteranInfo
-                  ? `Belum ada data pemakaian untuk filter "${historyFilter}"`
-                  : 'Pelanggan belum memiliki meteran'}
-              </Alert>
-            )}
-          </TabPanel>
-
           {/* ── Tab: Data Verifikasi (KoneksiData yang disubmit user) ── */}
-          <TabPanel value={tabValue} index={2}>
+          <TabPanel value={tabValue} index={1}>
             {loadingKoneksiData ? (
               <Box display='flex' justifyContent='center' py={4}><CircularProgress /></Box>
             ) : !koneksiData ? (
@@ -785,7 +643,7 @@ export default function CustomerDetailPage() {
             )}
           </TabPanel>
 
-          <TabPanel value={tabValue} index={3}>
+          <TabPanel value={tabValue} index={2}>
             <Grid container spacing={3}>
               {/* Status Akun */}
               <Grid item xs={12} md={6}>
