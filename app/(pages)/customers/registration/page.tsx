@@ -39,6 +39,11 @@ import {
   CheckCircle,
   Assignment,
   InfoOutlined,
+  PersonAdd,
+  Key,
+  NavigateNext,
+  Visibility,
+  ContentCopy,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import {
@@ -91,6 +96,14 @@ function CustomerRegistrationInner() {
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [registrationResult, setRegistrationResult] = useState<{
+    pelangganId: string;
+    koneksiId: string | null;
+    namaLengkap: string;
+    email: string;
+    nik: string;
+    verifikasiLangsung: boolean;
+  } | null>(null);
 
   // Step 1: Data Pelanggan
   const [pelangganForm, setPelangganForm] = useState({
@@ -253,7 +266,7 @@ function CustomerRegistrationInner() {
 
       const koneksiId = (koneksiResult.data as any)?.createKoneksiData?._id;
 
-      // Jika admin centang "Verifikasi Langsung" — auto-approve karena dokumen fisik diserahkan
+      // Jika admin centang "Verifikasi Langsung" — auto-approve koneksidatas + set isVerified
       if (sambunganForm.verifikasiLangsung && koneksiId) {
         await verifyKoneksiData({
           variables: {
@@ -262,12 +275,20 @@ function CustomerRegistrationInner() {
             catatan: 'Verifikasi langsung — pelanggan hadir membawa dokumen asli ke kantor PERUMDAM.',
           },
         });
-        setSuccess('Pelanggan berhasil didaftarkan dan pengajuan sambungan langsung disetujui!');
-      } else {
-        setSuccess('Pelanggan berhasil didaftarkan. Pengajuan sambungan menunggu verifikasi dokumen.');
+        // Fix: set isVerified=true karena admin sudah verifikasi dokumen fisik langsung
+        await updateCustomer({
+          variables: { id: pelangganId, input: { isVerified: true } },
+        });
       }
 
-      setTimeout(() => router.push('/customers'), 1500);
+      setRegistrationResult({
+        pelangganId,
+        koneksiId: koneksiId || null,
+        namaLengkap: pelangganForm.name,
+        email: pelangganForm.email,
+        nik: pelangganForm.nik,
+        verifikasiLangsung: sambunganForm.verifikasiLangsung,
+      });
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan saat menyimpan data');
     }
@@ -276,6 +297,141 @@ function CustomerRegistrationInner() {
   const loading = creating || updating || creatingKoneksi || verifying;
 
   if (authLoading || !isAuthenticated) return null;
+
+  // ─── Sukses Screen ───
+  if (registrationResult) {
+    return (
+      <AdminLayout title="Registrasi Berhasil">
+        <Box sx={{ maxWidth: 680, mx: 'auto', mt: 4 }}>
+          {/* Header sukses */}
+          <Card sx={{ mb: 3, border: 2, borderColor: 'success.main' }}>
+            <CardContent sx={{ textAlign: 'center', py: 4 }}>
+              <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+              <Typography variant="h5" fontWeight={700} color="success.main" gutterBottom>
+                Pelanggan Berhasil Didaftarkan!
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {registrationResult.namaLengkap} telah terdaftar sebagai pelanggan baru.
+              </Typography>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Chip
+                  label={registrationResult.verifikasiLangsung ? 'Pengajuan: Langsung Disetujui' : 'Pengajuan: Menunggu Verifikasi'}
+                  color={registrationResult.verifikasiLangsung ? 'success' : 'warning'}
+                  size="small"
+                />
+                {registrationResult.verifikasiLangsung && (
+                  <Chip label="Identitas Terverifikasi" color="info" size="small" icon={<CheckCircle />} />
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Kredensial login */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <Key color="primary" />
+                <Typography variant="h6" fontWeight={600}>Kredensial Login Pelanggan</Typography>
+              </Box>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Sampaikan informasi berikut kepada pelanggan untuk login ke aplikasi Aqualink. Minta pelanggan mengganti password setelah login pertama.
+              </Alert>
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                <Box display="flex" flexDirection="column" gap={1.5}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2" color="text.secondary">Email</Typography>
+                    <Typography variant="body2" fontWeight={600} fontFamily="monospace">
+                      {registrationResult.email}
+                    </Typography>
+                  </Box>
+                  <Divider />
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2" color="text.secondary">Password sementara</Typography>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography variant="body2" fontWeight={600} fontFamily="monospace">
+                        {registrationResult.nik}
+                      </Typography>
+                      <Tooltip title="NIK digunakan sebagai password sementara">
+                        <Key sx={{ fontSize: 16, color: 'text.disabled' }} />
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                </Box>
+              </Paper>
+            </CardContent>
+          </Card>
+
+          {/* Next steps */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={600} gutterBottom>Langkah Selanjutnya</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                {registrationResult.verifikasiLangsung
+                  ? 'Pengajuan sambungan sudah disetujui. Lanjutkan ke penjadwalan survei lapangan.'
+                  : 'Verifikasi dokumen pelanggan terlebih dahulu sebelum menjadwalkan survei.'}
+              </Typography>
+              <Box display="flex" flexDirection="column" gap={1.5}>
+                {registrationResult.verifikasiLangsung && registrationResult.koneksiId && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    size="large"
+                    endIcon={<NavigateNext />}
+                    onClick={() => router.push(`/operations/survey-data/create?connectionId=${registrationResult.koneksiId}`)}
+                  >
+                    Jadwalkan Survei Lapangan
+                  </Button>
+                )}
+                {!registrationResult.verifikasiLangsung && registrationResult.koneksiId && (
+                  <Button
+                    variant="contained"
+                    color="warning"
+                    fullWidth
+                    size="large"
+                    endIcon={<NavigateNext />}
+                    onClick={() => router.push(`/operations/connection-data/${registrationResult.koneksiId}`)}
+                  >
+                    Verifikasi Dokumen Pengajuan
+                  </Button>
+                )}
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<Visibility />}
+                  onClick={() => router.push(`/customers/detail/${registrationResult.pelangganId}`)}
+                >
+                  Lihat Detail Pelanggan
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  fullWidth
+                  startIcon={<PersonAdd />}
+                  onClick={() => {
+                    setRegistrationResult(null);
+                    setActiveStep(0);
+                    setPelangganForm({ nik: '', name: '', email: '', phone: '', customerType: 'rumah_tangga', birthDate: '', accountStatus: 'active' });
+                    setSambunganForm({ noKK: '', imb: '', alamat: '', kelurahan: '', kecamatan: '', luasBangunan: '', catatan: '', verifikasiLangsung: false });
+                  }}
+                >
+                  Daftarkan Pelanggan Lain
+                </Button>
+                <Button
+                  variant="text"
+                  color="inherit"
+                  fullWidth
+                  onClick={() => router.push('/customers')}
+                >
+                  Kembali ke Daftar Pelanggan
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      </AdminLayout>
+    );
+  }
 
   if (loadingCustomer) {
     return (
