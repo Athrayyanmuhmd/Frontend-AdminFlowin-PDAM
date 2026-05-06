@@ -33,16 +33,39 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
-// Global error handler — log network errors, let components handle GraphQL errors
+// Helper: clear auth state and redirect to login
+function forceLogout() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('admin_token');
+  localStorage.removeItem('adminAuth');
+  window.location.href = '/auth/login';
+}
+
+// Global error handler — handle 401/UNAUTHENTICATED, log other errors
 const errorLink = onError((err: any) => {
   const { graphQLErrors, networkError, operation } = err;
+  // Tangkap HTTP 401 dari backend (sesi tidak valid / logout dari perangkat lain)
+  const status =
+    (networkError as any)?.statusCode ??
+    (networkError as any)?.response?.status;
+  if (status === 401) {
+    forceLogout();
+    return;
+  }
+
+  // Tangkap UNAUTHENTICATED dari GraphQL errors array (fallback)
+  if (graphQLErrors?.some((e: any) => e?.extensions?.code === 'UNAUTHENTICATED')) {
+    forceLogout();
+    return;
+  }
+
   if (networkError) {
     console.error('[Network Error]', operation?.operationName, networkError);
   }
   if (graphQLErrors) {
-    graphQLErrors.forEach((e: any) => {
-      console.error('[GraphQL Error]', operation?.operationName, e?.message);
-    });
+    graphQLErrors.forEach((e: any) =>
+      console.error('[GraphQL Error]', operation?.operationName, e?.message)
+    );
   }
 });
 
