@@ -34,27 +34,46 @@ const authLink = setContext((_, { headers }) => {
 });
 
 // Helper: clear auth state and redirect to login
+// Gunakan replace() agar user tidak bisa back ke halaman yang rusak
 function forceLogout() {
   if (typeof window === 'undefined') return;
+  // Guard: jangan redirect berulang jika sudah di halaman login
+  if (window.location.pathname.startsWith('/auth')) return;
   localStorage.removeItem('admin_token');
   localStorage.removeItem('adminAuth');
-  window.location.href = '/auth/login';
+  window.location.replace('/auth/login?reason=session_expired');
 }
 
-// Global error handler — handle 401/UNAUTHENTICATED, log other errors
-const errorLink = onError((err: any) => {
-  const { graphQLErrors, networkError, operation } = err;
-  // Tangkap HTTP 401 dari backend (sesi tidak valid / logout dari perangkat lain)
+// Deteksi apakah error adalah sesi tidak valid dari semua kemungkinan lokasi
+// BatchHttpLink menyimpan parsed body di networkError.result (berbeda dari HttpLink)
+function isSessionInvalidError(graphQLErrors: any, networkError: any): boolean {
+  const SESSION_MSG = 'Sesi tidak valid. Silakan login ulang.';
+
+  // 1. HTTP status code (HttpLink / beberapa versi BatchHttpLink)
   const status =
     (networkError as any)?.statusCode ??
     (networkError as any)?.response?.status;
-  if (status === 401) {
-    forceLogout();
-    return;
-  }
+  if (status === 401) return true;
 
-  // Tangkap UNAUTHENTICATED dari GraphQL errors array (fallback)
-  if (graphQLErrors?.some((e: any) => e?.extensions?.code === 'UNAUTHENTICATED')) {
+  // 2. BatchHttpLink: parsed body ada di networkError.result.errors
+  const resultErrors: any[] = (networkError as any)?.result?.errors ?? [];
+  if (resultErrors.some(e =>
+    e?.extensions?.code === 'UNAUTHENTICATED' || e?.message === SESSION_MSG
+  )) return true;
+
+  // 3. GraphQL errors array (HTTP 200 dengan errors)
+  if (graphQLErrors?.some((e: any) =>
+    e?.extensions?.code === 'UNAUTHENTICATED' || e?.message === SESSION_MSG
+  )) return true;
+
+  return false;
+}
+
+// Global error handler — handle sesi expired, log error lain
+const errorLink = onError((err: any) => {
+  const { graphQLErrors, networkError, operation } = err;
+
+  if (isSessionInvalidError(graphQLErrors, networkError)) {
     forceLogout();
     return;
   }
