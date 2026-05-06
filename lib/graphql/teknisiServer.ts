@@ -62,28 +62,35 @@ async function teknisiGql<T = Record<string, unknown>>(
   variables?: Record<string, unknown>,
   options?: TeknisiGqlOptions
 ): Promise<GqlResult<T>> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-api-key': INTERNAL_API_SECRET,
-  };
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-api-key': INTERNAL_API_SECRET,
+    };
 
-  if (options?.token) {
-    headers['Authorization'] = `Bearer ${options.token}`;
+    if (options?.token) {
+      headers['Authorization'] = `Bearer ${options.token}`;
+    }
+
+    if (options?.signaturePayload) {
+      headers['x-signature'] = generateSignature(options.signaturePayload);
+    }
+
+    const res = await fetch(TEKNISI_GRAPHQL_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ query, variables }),
+      cache: 'no-store',
+    });
+
+    const json = await res.json();
+    return { data: json.data ?? null, errors: json.errors ?? null };
+  } catch (e: any) {
+    return {
+      data: null,
+      errors: [{ message: e?.message ?? 'Gagal terhubung ke server teknisi' }],
+    };
   }
-
-  if (options?.signaturePayload) {
-    headers['x-signature'] = generateSignature(options.signaturePayload);
-  }
-
-  const res = await fetch(TEKNISI_GRAPHQL_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ query, variables }),
-    cache: 'no-store',
-  });
-
-  const json = await res.json();
-  return { data: json.data ?? null, errors: json.errors ?? null };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

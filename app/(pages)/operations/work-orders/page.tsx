@@ -282,6 +282,11 @@ export default function WorkOrderManagement() {
     fetchPolicy: 'cache-first',
   });
   const allLaporan: any[] = (laporanDataRaw as any)?.getAllLaporan ?? [];
+  const laporanById = React.useMemo(() => {
+    const map: Record<string, any> = {};
+    allLaporan.forEach(l => { if (l._id) map[l._id] = l; });
+    return map;
+  }, [allLaporan]);
 
   // ─── Buat Work Order State ───────────────────────────────────────────────
   const [dlgBuat, setDlgBuat] = useState(false);
@@ -374,7 +379,11 @@ export default function WorkOrderManagement() {
 
   // ─── Filter ──────────────────────────────────────────────────────────────
   const filtered = allWO.filter(wo => {
-    const pelangganName = (wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || '').toLowerCase();
+    const pelangganName = (
+      wo.koneksiData?.pelanggan?.namaLengkap ||
+      (wo.idLaporan && laporanById[wo.idLaporan]?.idPengguna?.namaLengkap) ||
+      ''
+    ).toLowerCase();
     const teknisiName = (wo.teknisiPenanggungJawab?.namaLengkap || '').toLowerCase();
     const woId = (wo.id || '').toLowerCase();
     const q = search.toLowerCase();
@@ -1053,21 +1062,36 @@ export default function WorkOrderManagement() {
                             </TableCell>
 
                             <TableCell>
-                              <Typography
-                                variant='body2'
-                                fontWeight={600}
-                                noWrap
-                              >
-                                {wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || (
-                                  <Typography
-                                    component='span'
-                                    variant='caption'
-                                    color='text.disabled'
-                                  >
-                                    —
-                                  </Typography>
-                                )}
-                              </Typography>
+                              {(() => {
+                                const nama = wo.koneksiData?.pelanggan?.namaLengkap
+                                  || (wo.idLaporan && laporanById[wo.idLaporan]?.idPengguna?.namaLengkap)
+                                  || null;
+                                if (nama) {
+                                  return (
+                                    <Box>
+                                      <Typography variant='body2' fontWeight={600} noWrap>{nama}</Typography>
+                                      {wo.idLaporan && laporanById[wo.idLaporan]?.namaLaporan && (
+                                        <Typography variant='caption' color='text.secondary' noWrap>
+                                          {laporanById[wo.idLaporan].namaLaporan}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  );
+                                }
+                                if (wo.idLaporan) {
+                                  return (
+                                    <Box>
+                                      <Typography variant='caption' color='text.secondary'>Laporan:</Typography>
+                                      <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: 11 }}>
+                                        …{wo.idLaporan.slice(-10)}
+                                      </Typography>
+                                    </Box>
+                                  );
+                                }
+                                return (
+                                  <Typography variant='caption' color='text.disabled'>—</Typography>
+                                );
+                              })()}
                             </TableCell>
 
                             <TableCell>
