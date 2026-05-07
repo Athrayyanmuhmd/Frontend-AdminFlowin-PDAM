@@ -266,6 +266,9 @@ function CustomerRegistrationInner() {
 
       const koneksiId = (koneksiResult.data as any)?.createKoneksiData?._id;
 
+      // Sync alamat dari sambungan ke User.address agar tampil di list pelanggan
+      const userUpdateInput: Record<string, any> = { address: sambunganForm.alamat };
+
       // Jika admin centang "Verifikasi Langsung" — auto-approve koneksidatas + set isVerified
       if (sambunganForm.verifikasiLangsung && koneksiId) {
         await verifyKoneksiData({
@@ -275,11 +278,12 @@ function CustomerRegistrationInner() {
             catatan: 'Verifikasi langsung — pelanggan hadir membawa dokumen asli ke kantor PERUMDAM.',
           },
         });
-        // Fix: set isVerified=true karena admin sudah verifikasi dokumen fisik langsung
-        await updateCustomer({
-          variables: { id: pelangganId, input: { isVerified: true } },
-        });
+        userUpdateInput.isVerified = true;
       }
+
+      await updateCustomer({
+        variables: { id: pelangganId, input: userUpdateInput },
+      });
 
       setRegistrationResult({
         pelangganId,
