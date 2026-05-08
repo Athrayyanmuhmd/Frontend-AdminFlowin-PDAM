@@ -12,10 +12,11 @@ import {
   Grid,
   Button,
   Chip,
-  Alert,
-  CircularProgress,
   Divider,
+  Alert,
 } from '@mui/material';
+import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
+import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
 import {
   ArrowBack,
   LocationOn,
@@ -136,16 +137,10 @@ export default function SurveyDataDetailPage() {
           {s && <Chip label={s.label} color={s.color} size='small' />}
         </Box>
 
-        {error && (
-          <Alert severity='error' sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
+          <DetailSkeleton sections={[{ md: 5, rows: 6 }, { md: 7, rows: 5 }]} hasHeader={false} />
+        ) : error ? (
+          <ErrorWithRetry message='Gagal memuat data survei.' detail={error} onRetry={fetchData} />
         ) : !wo ? (
           <EmptyState
             title='Data tidak ditemukan'

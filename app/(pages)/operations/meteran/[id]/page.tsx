@@ -11,11 +11,12 @@ import {
   Grid,
   Chip,
   IconButton,
-  CircularProgress,
   Alert,
   Divider,
   Button,
 } from '@mui/material';
+import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
+import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
 import {
   ArrowBack,
   Speed,
@@ -128,15 +129,8 @@ export default function MeteranDetail() {
   if (loading) {
     return (
       <AdminLayout>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '60vh',
-          }}
-        >
-          <CircularProgress />
+        <Box sx={{ p: 3 }}>
+          <DetailSkeleton sections={[{ md: 6, rows: 7 }, { md: 6, rows: 5 }, { md: 6, rows: 4 }, { md: 6, rows: 3 }]} />
         </Box>
       </AdminLayout>
     );
@@ -146,7 +140,11 @@ export default function MeteranDetail() {
     return (
       <AdminLayout>
         <Box sx={{ p: 3 }}>
-          <Alert severity='error'>{error || 'Data tidak ditemukan'}</Alert>
+          <ErrorWithRetry
+            message='Gagal memuat data meteran.'
+            detail={error}
+            onRetry={refetch}
+          />
           <Button
             startIcon={<ArrowBack />}
             onClick={() => router.back()}

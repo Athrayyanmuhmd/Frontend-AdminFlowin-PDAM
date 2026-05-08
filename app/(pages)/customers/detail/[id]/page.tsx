@@ -53,6 +53,7 @@ import { GET_CUSTOMER, UPDATE_CUSTOMER } from '../../../../../lib/graphql/querie
 import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billing';
 import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
 import { GET_KONEKSI_DATA_BY_PELANGGAN } from '../../../../../lib/graphql/queries/connectionData';
+import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
 
 const KONFIRMASI_PEMBAYARAN_LOKET = gql`
   mutation KonfirmasiPembayaranLoket($userId: ID!) {
@@ -232,8 +233,8 @@ export default function CustomerDetailPage() {
   if (loading || loadingMeteran) {
     return (
       <AdminLayout title='Detail Pelanggan'>
-        <Box display='flex' justifyContent='center' alignItems='center' minHeight='400px'>
-          <CircularProgress />
+        <Box sx={{ p: 3 }}>
+          <DetailSkeleton sections={[{ md: 4, rows: 6 }, { md: 8, rows: 7 }]} />
         </Box>
       </AdminLayout>
     );
