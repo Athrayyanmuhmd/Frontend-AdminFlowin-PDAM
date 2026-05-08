@@ -8,9 +8,10 @@ import {
   Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, Tooltip, Pagination, Alert, IconButton,
-  FormControl, InputLabel, Select, MenuItem, Stack,
+  FormControl, InputLabel, Select, MenuItem, Stack, TableSortLabel,
 } from '@mui/material';
 import { Search, Visibility, Refresh } from '@mui/icons-material';
+import { useTableSort } from '../../../hooks/useTableSort';
 import AdminLayout from '../../../layouts/AdminLayout';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -104,8 +105,10 @@ export default function PenyelesaianLaporanPage() {
     });
   }, [data, debouncedSearch, filterStatus]);
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const { sorted, sortKey, sortOrder, handleSort } = useTableSort(filtered);
+  const onSort = (key: string) => { handleSort(key); setPage(1); };
+  const totalPages = Math.ceil(sorted.length / PER_PAGE);
+  const paginated = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   // Stats
   const totalProses = data.filter(wo => ['menunggu_penugasan', 'sedang_dikerjakan', 'dikirim'].includes(wo.status)).length;
@@ -188,12 +191,24 @@ export default function PenyelesaianLaporanPage() {
                     <TableHead>
                       <TableRow>
                         <TableCell>No</TableCell>
-                        <TableCell>Pelanggan / Laporan</TableCell>
+                        <TableCell sortDirection={sortKey === 'koneksiData.pelanggan.namaLengkap' ? sortOrder : false}>
+                          <TableSortLabel active={sortKey === 'koneksiData.pelanggan.namaLengkap'} direction={sortKey === 'koneksiData.pelanggan.namaLengkap' ? sortOrder : 'asc'} onClick={() => onSort('koneksiData.pelanggan.namaLengkap')}>
+                            Pelanggan / Laporan
+                          </TableSortLabel>
+                        </TableCell>
                         <TableCell>Teknisi PJ</TableCell>
-                        <TableCell>Status WO</TableCell>
+                        <TableCell sortDirection={sortKey === 'status' ? sortOrder : false}>
+                          <TableSortLabel active={sortKey === 'status'} direction={sortKey === 'status' ? sortOrder : 'asc'} onClick={() => onSort('status')}>
+                            Status WO
+                          </TableSortLabel>
+                        </TableCell>
                         <TableCell>Respon Teknisi</TableCell>
                         <TableCell>Catatan Review</TableCell>
-                        <TableCell>Tanggal Update</TableCell>
+                        <TableCell sortDirection={sortKey === 'updatedAt' ? sortOrder : false}>
+                          <TableSortLabel active={sortKey === 'updatedAt'} direction={sortKey === 'updatedAt' ? sortOrder : 'asc'} onClick={() => onSort('updatedAt')}>
+                            Tanggal Update
+                          </TableSortLabel>
+                        </TableCell>
                         <TableCell align='center'>Aksi</TableCell>
                       </TableRow>
                     </TableHead>

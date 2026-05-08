@@ -16,6 +16,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Paper,
   Chip,
   IconButton,
@@ -44,6 +45,7 @@ import { GET_ALL_CONNECTION_DATA } from '@/lib/graphql/queries/connectionData';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useFilterPersist } from '../../../hooks/useFilterPersist';
+import { useTableSort } from '../../../hooks/useTableSort';
 import { useDebounce } from '../../../hooks/useDebounce';
 
 // Status from Ahmad's GQL enum
@@ -114,12 +116,15 @@ export default function ConnectionDataManagement() {
 
   useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
 
+  const { sorted: sortedData, sortKey, sortOrder, handleSort } = useTableSort(filteredData);
+  const onSort = (key: string) => { handleSort(key); setPage(1); };
+
   if (authLoading || !isAuthenticated) return null;
 
   const getStatusInfo = (item: any) =>
     STATUS_LABELS[item.StatusPengajuan] ?? STATUS_LABELS.PENDING;
 
-  const paginatedData = filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const paginatedData = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const exportCSV = () => {
     const rows = [
@@ -230,11 +235,19 @@ export default function ConnectionDataManagement() {
                   <Table sx={{ minWidth: 700 }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Pelanggan</TableCell>
+                        <TableCell sortDirection={sortKey === 'IdPelanggan.namaLengkap' ? sortOrder : false}>
+                          <TableSortLabel active={sortKey === 'IdPelanggan.namaLengkap'} direction={sortKey === 'IdPelanggan.namaLengkap' ? sortOrder : 'asc'} onClick={() => onSort('IdPelanggan.namaLengkap')}>
+                            Pelanggan
+                          </TableSortLabel>
+                        </TableCell>
                         <TableCell>NIK / No KK</TableCell>
                         <TableCell>Alamat</TableCell>
                         <TableCell>Luas Bangunan</TableCell>
-                        <TableCell>Status</TableCell>
+                        <TableCell sortDirection={sortKey === 'StatusPengajuan' ? sortOrder : false}>
+                          <TableSortLabel active={sortKey === 'StatusPengajuan'} direction={sortKey === 'StatusPengajuan' ? sortOrder : 'asc'} onClick={() => onSort('StatusPengajuan')}>
+                            Status
+                          </TableSortLabel>
+                        </TableCell>
                         <TableCell align='center'>Aksi</TableCell>
                       </TableRow>
                     </TableHead>
@@ -306,7 +319,7 @@ export default function ConnectionDataManagement() {
 
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                   <Pagination
-                    count={Math.ceil(filteredData.length / rowsPerPage)}
+                    count={Math.ceil(sortedData.length / rowsPerPage)}
                     page={page}
                     onChange={(_, v) => setPage(v)}
                     color='primary'
