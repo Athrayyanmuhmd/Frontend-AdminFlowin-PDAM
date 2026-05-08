@@ -10,7 +10,9 @@ import {
   Chip, Tooltip, Pagination, Alert, IconButton,
   FormControl, InputLabel, Select, MenuItem, TableSortLabel,
 } from '@mui/material';
-import { Search, Visibility, Refresh } from '@mui/icons-material';
+import { Search, Visibility, Refresh, FilterAltOff } from '@mui/icons-material';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useTableSort } from '../../../hooks/useTableSort';
 import AdminLayout from '../../../layouts/AdminLayout';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
@@ -42,6 +44,8 @@ export default function MaintenancePage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useFilterPersist('maintenance-search', '');
   const [filterStatus, setFilterStatus] = useFilterPersist('maintenance-status', '');
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -94,9 +98,18 @@ export default function MaintenancePage() {
         wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
         wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q);
       const matchStatus = !filterStatus || wo.status === filterStatus;
-      return matchSearch && matchStatus;
+      let matchDate = true;
+      if (dateFrom || dateTo) {
+        const d = /^\d+$/.test(wo.updatedAt) ? new Date(Number(wo.updatedAt)) : new Date(wo.updatedAt);
+        if (dateFrom) matchDate = matchDate && d >= dateFrom;
+        if (dateTo) {
+          const end = new Date(dateTo); end.setHours(23, 59, 59, 999);
+          matchDate = matchDate && d <= end;
+        }
+      }
+      return matchSearch && matchStatus && matchDate;
     });
-  }, [data, debouncedSearch, filterStatus]);
+  }, [data, debouncedSearch, filterStatus, dateFrom, dateTo]);
 
   const { sorted, sortKey, sortOrder, handleSort } = useTableSort(filtered);
   const onSort = (key: string) => { handleSort(key); setPage(1); };
@@ -124,26 +137,48 @@ export default function MaintenancePage() {
 
         <Card sx={{ mb: 2 }}>
           <CardContent sx={{ pb: '12px !important' }}>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-              <TextField
-                size='small'
-                sx={{ flex: 1, minWidth: { xs: '100%', sm: 220 } }}
-                placeholder='Cari nama pelanggan, alamat, teknisi... (tekan / untuk fokus)'
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                inputRef={searchRef}
-                InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
-              />
-              <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 200 } }}>
-                <InputLabel>Status WO</InputLabel>
-                <Select value={filterStatus} label='Status WO' onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
-                  <MenuItem value=''>Semua</MenuItem>
-                  {Object.entries(STATUS_WO).map(([val, { label }]) => (
-                    <MenuItem key={val} value={val}>{label}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <TextField
+                  size='small'
+                  sx={{ flex: 1, minWidth: { xs: '100%', sm: 220 } }}
+                  placeholder='Cari nama pelanggan, alamat, teknisi... (tekan / untuk fokus)'
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                  inputRef={searchRef}
+                  InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
+                />
+                <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 160 } }}>
+                  <InputLabel>Status WO</InputLabel>
+                  <Select value={filterStatus} label='Status WO' onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
+                    <MenuItem value=''>Semua</MenuItem>
+                    {Object.entries(STATUS_WO).map(([val, { label }]) => (
+                      <MenuItem key={val} value={val}>{label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <DatePicker
+                  label='Dari Tanggal'
+                  value={dateFrom}
+                  onChange={v => { setDateFrom(v); setPage(1); }}
+                  slotProps={{ textField: { size: 'small', sx: { minWidth: 150 } } }}
+                />
+                <DatePicker
+                  label='Sampai Tanggal'
+                  value={dateTo}
+                  onChange={v => { setDateTo(v); setPage(1); }}
+                  minDate={dateFrom ?? undefined}
+                  slotProps={{ textField: { size: 'small', sx: { minWidth: 150 } } }}
+                />
+                {(dateFrom || dateTo) && (
+                  <Tooltip title='Reset filter tanggal'>
+                    <IconButton size='small' onClick={() => { setDateFrom(null); setDateTo(null); setPage(1); }}>
+                      <FilterAltOff fontSize='small' />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            </LocalizationProvider>
           </CardContent>
         </Card>
 
