@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { ArrowBack, Receipt, Person, Engineering } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
+import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
 
 const fmtDate = (v?: string) => {
   if (!v) return '-';
@@ -73,6 +74,11 @@ export default function RabDetailPage() {
 
   return (
     <AdminLayout title='Detail RAB'>
+      <PageBreadcrumb crumbs={[
+        { label: 'Operasi' },
+        { label: 'Data RAB', href: '/operations/rab-connection' },
+        { label: 'Detail' },
+      ]} />
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
           <Button startIcon={<ArrowBack />} onClick={() => router.back()} size='small'>Kembali</Button>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { getWorkOrder, getProgresWorkOrder } from '@/lib/graphql/teknisiServer';
 import AdminLayout from '../../../../layouts/AdminLayout';
+import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
 import {
   Box, Card, CardContent, Typography, Chip, Grid, Divider, Button,
   CircularProgress, Alert,
@@ -130,6 +131,11 @@ export default function MaintenanceDetailPage() {
 
   return (
     <AdminLayout title='Detail Maintenance'>
+      <PageBreadcrumb crumbs={[
+        { label: 'Operasi' },
+        { label: 'Data Maintenance', href: '/operations/maintenance' },
+        { label: 'Detail' },
+      ]} />
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
           <Button component={Link} href='/operations/maintenance' startIcon={<ArrowBack />} variant='text' size='small'>

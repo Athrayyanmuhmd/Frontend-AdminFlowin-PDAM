@@ -17,6 +17,7 @@ import {
   Tooltip,
   Chip,
   Toolbar,
+  Badge,
 } from '@mui/material';
 import {
   Dashboard,
@@ -444,7 +445,8 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ open, onToggle, onClose, isMobile = false }: AdminSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { hasPermission, userRole } = useAdmin();
+  const { hasPermission, userRole, notifications } = useAdmin();
+  const unreadCount = (notifications as any[])?.filter((n: any) => !n.isRead).length ?? 0;
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Persist expanded state so sidebar re-mount (per-page layout) doesn't re-animate
     if (typeof window === 'undefined') return [];
@@ -554,7 +556,13 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 transition: 'color 0.2s ease',
               }}
             >
-              {item.icon}
+              {item.id === 'notifications' && unreadCount > 0 ? (
+                <Badge badgeContent={unreadCount} color='error' max={99}>
+                  {item.icon}
+                </Badge>
+              ) : (
+                item.icon
+              )}
             </ListItemIcon>
             <ListItemText
               primary={item.title}

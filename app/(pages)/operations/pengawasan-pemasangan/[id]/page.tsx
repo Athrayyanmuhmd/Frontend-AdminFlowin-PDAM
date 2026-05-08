@@ -5,8 +5,9 @@ import { getWorkOrder, getProgresWorkOrder } from '@/lib/graphql/teknisiServer';
 import Link from 'next/link';
 import {
   Box, Card, CardContent, Typography, Chip, Grid, Divider, Button,
+  Breadcrumbs, Link as MuiLink,
 } from '@mui/material';
-import { ArrowBack, OpenInNew } from '@mui/icons-material';
+import { ArrowBack, OpenInNew, NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 
 const fmtDate = (v: string) => {
   const d = /^\d+$/.test(v) ? new Date(Number(v)) : new Date(v);
@@ -46,6 +47,13 @@ export default async function PengawasanPemasanganDetailPage({ params }: { param
 
   return (
     <Box sx={{ p: 3 }}>
+      <Breadcrumbs separator={<NavigateNextIcon fontSize='small' />} sx={{ mb: 2 }}>
+        <Typography variant='body2' color='text.secondary'>Operasi</Typography>
+        <MuiLink component={Link} href='/operations/pengawasan-pemasangan' variant='body2' underline='hover' color='inherit'>
+          Pengawasan Pemasangan
+        </MuiLink>
+        <Typography variant='body2' color='text.primary' fontWeight={500}>Detail</Typography>
+      </Breadcrumbs>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <Button component={Link} href='/operations/pengawasan-pemasangan' startIcon={<ArrowBack />} variant='text' size='small'>
           Kembali

@@ -23,6 +23,7 @@ import {
   Engineering,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
+import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
 
 const fmtDate = (v?: string) => {
   if (!v) return '-';
@@ -114,6 +115,11 @@ export default function SurveyDataDetailPage() {
 
   return (
     <AdminLayout title='Detail Survei'>
+      <PageBreadcrumb crumbs={[
+        { label: 'Operasi' },
+        { label: 'Data Survei', href: '/operations/survey-data' },
+        { label: 'Detail' },
+      ]} />
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <Button

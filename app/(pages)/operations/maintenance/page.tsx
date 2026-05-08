@@ -7,11 +7,14 @@ import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
 import {
   Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Tooltip, Pagination, CircularProgress, Alert, IconButton,
+  Chip, Tooltip, Pagination, Alert, IconButton,
   FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { Search, Visibility, Refresh } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
+import EmptyState from '../../../components/ui/EmptyState';
+import { useFilterPersist } from '../../../hooks/useFilterPersist';
 
 const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' | 'primary' }> = {
   menunggu_penugasan: { label: 'Menunggu Penugasan', color: 'warning' },
@@ -35,8 +38,8 @@ export default function MaintenancePage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [search, setSearch] = useFilterPersist('maintenance-search', '');
+  const [filterStatus, setFilterStatus] = useFilterPersist('maintenance-status', '');
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
 
@@ -61,6 +64,12 @@ export default function MaintenancePage() {
   }, []);
 
   useEffect(() => { if (isAuthenticated) fetchData(); }, [isAuthenticated, fetchData]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const id = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, fetchData]);
 
   const filtered = useMemo(() => {
     return data.filter(wo => {
@@ -123,11 +132,12 @@ export default function MaintenancePage() {
         <Card>
           <CardContent>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress /></Box>
+              <TableSkeleton rows={5} cols={7} />
             ) : filtered.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 5 }}>
-                <Typography color='text.secondary'>Belum ada data maintenance yang disubmit teknisi</Typography>
-              </Box>
+              <EmptyState
+                title='Belum ada data maintenance'
+                description={search || filterStatus ? 'Tidak ada hasil yang cocok dengan filter Anda' : 'Belum ada work order maintenance yang disubmit oleh teknisi'}
+              />
             ) : (
               <>
                 <TableContainer sx={{ overflowX: 'auto' }}>

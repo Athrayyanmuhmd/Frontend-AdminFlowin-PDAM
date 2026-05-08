@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { getWorkOrder, getProgresWorkOrder, getLaporan } from '@/lib/graphql/teknisiServer';
 import AdminLayout from '../../../../layouts/AdminLayout';
+import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
 import {
   Box, Card, CardContent, Typography, Chip, Grid, Divider, Button,
   CircularProgress, Alert,
@@ -111,6 +112,11 @@ export default function PenyelesaianLaporanDetailPage() {
 
   return (
     <AdminLayout title='Detail Penyelesaian Laporan'>
+      <PageBreadcrumb crumbs={[
+        { label: 'Operasi' },
+        { label: 'Penyelesaian Laporan', href: '/operations/penyelesaian-laporan' },
+        { label: 'Detail' },
+      ]} />
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
           <Button component={Link} href='/operations/penyelesaian-laporan' startIcon={<ArrowBack />} variant='text' size='small'>

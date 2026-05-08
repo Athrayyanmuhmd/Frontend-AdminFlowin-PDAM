@@ -64,6 +64,7 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../layouts/AdminLayout';
 import { useAdmin } from '../../layouts/AdminProvider';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { User, CustomerAccount } from '../../types/admin.types';
 import { Checkbox } from '@mui/material';
 import {
@@ -113,6 +114,11 @@ export default function CustomerManagement() {
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; message: string;
+    severity: 'error' | 'warning'; loading: boolean; onConfirm: () => void;
+  }>({ open: false, title: '', message: '', severity: 'warning', loading: false, onConfirm: () => {} });
+  const closeConfirm = () => setConfirmState(prev => ({ ...prev, open: false }));
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
   const [snackbar, setSnackbar] = useState({
@@ -165,60 +171,76 @@ export default function CustomerManagement() {
     handleMenuClose();
   };
 
-  const handleDeleteCustomer = async () => {
-    if (
-      selectedCustomer &&
-      window.confirm('Apakah Anda yakin ingin menghapus pelanggan ini?')
-    ) {
-      try {
-        await deleteCustomerMutation({
-          variables: { id: selectedCustomer.id },
-        });
-        // refetchCustomers will be called automatically by Apollo
-        setSnackbar({
-          open: true,
-          message: 'Pelanggan berhasil dihapus',
-          severity: 'success',
-        });
-        handleMenuClose();
-      } catch (error) {
-        console.error('Error deleting customer:', error);
-        setSnackbar({
-          open: true,
-          message: 'Gagal menghapus pelanggan',
-          severity: 'error',
-        });
-      }
-    }
+  const handleDeleteCustomer = () => {
+    if (!selectedCustomer) return;
+    const target = selectedCustomer;
     handleMenuClose();
+    setConfirmState({
+      open: true,
+      title: 'Hapus Pelanggan',
+      message: `Apakah Anda yakin ingin menghapus pelanggan "${target.name}"? Tindakan ini tidak dapat dibatalkan.`,
+      severity: 'error',
+      loading: false,
+      onConfirm: async () => {
+        setConfirmState(prev => ({ ...prev, loading: true }));
+        try {
+          await deleteCustomerMutation({ variables: { id: target.id } });
+          setSnackbar({ open: true, message: 'Pelanggan berhasil dihapus', severity: 'success' });
+        } catch {
+          setSnackbar({ open: true, message: 'Gagal menghapus pelanggan', severity: 'error' });
+        } finally {
+          setConfirmState(prev => ({ ...prev, open: false, loading: false }));
+        }
+      },
+    });
   };
 
-  const handlePemutusan = async () => {
+  const handlePemutusan = () => {
     if (!selectedCustomer) return;
+    const target = selectedCustomer;
     handleMenuClose();
-    if (!window.confirm(
-      `Putuskan sambungan air untuk ${selectedCustomer.name}?\n\nPemutusan hanya bisa dilakukan jika pelanggan menunggak minimal 3 bulan. Denda pemutusan akan otomatis ditambahkan ke tagihan.`
-    )) return;
-    try {
-      await deactivateCustomerMutation({ variables: { userId: selectedCustomer.id } });
-      setSnackbar({ open: true, message: 'Sambungan berhasil diputus. Billing denda telah dibuat.', severity: 'success' });
-    } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || 'Gagal memutus sambungan', severity: 'error' });
-    }
+    setConfirmState({
+      open: true,
+      title: 'Putuskan Sambungan Air',
+      message: `Putuskan sambungan air untuk ${target.name}? Pemutusan hanya bisa dilakukan jika pelanggan menunggak minimal 3 bulan. Denda pemutusan akan otomatis ditambahkan ke tagihan.`,
+      severity: 'warning',
+      loading: false,
+      onConfirm: async () => {
+        setConfirmState(prev => ({ ...prev, loading: true }));
+        try {
+          await deactivateCustomerMutation({ variables: { userId: target.id } });
+          setSnackbar({ open: true, message: 'Sambungan berhasil diputus. Billing denda telah dibuat.', severity: 'success' });
+        } catch (err: any) {
+          setSnackbar({ open: true, message: err.message || 'Gagal memutus sambungan', severity: 'error' });
+        } finally {
+          setConfirmState(prev => ({ ...prev, open: false, loading: false }));
+        }
+      },
+    });
   };
 
-  const handleAktifkanKembali = async () => {
+  const handleAktifkanKembali = () => {
     if (!selectedCustomer) return;
+    const target = selectedCustomer;
     handleMenuClose();
-    if (!window.confirm(
-      `Aktifkan kembali sambungan air untuk ${selectedCustomer.name}?\n\nPastikan pelanggan sudah membayar semua tunggakan di loket.`
-    )) return;
-    try {
-      await konfirmasiPembayaranLoketMutation({ variables: { userId: selectedCustomer.id } });
-      setSnackbar({ open: true, message: 'Sambungan berhasil diaktifkan kembali.', severity: 'success' });
-    } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || 'Gagal mengaktifkan kembali', severity: 'error' });
-    }
+    setConfirmState({
+      open: true,
+      title: 'Aktifkan Kembali Sambungan',
+      message: `Aktifkan kembali sambungan air untuk ${target.name}? Pastikan pelanggan sudah membayar semua tunggakan di loket.`,
+      severity: 'warning',
+      loading: false,
+      onConfirm: async () => {
+        setConfirmState(prev => ({ ...prev, loading: true }));
+        try {
+          await konfirmasiPembayaranLoketMutation({ variables: { userId: target.id } });
+          setSnackbar({ open: true, message: 'Sambungan berhasil diaktifkan kembali.', severity: 'success' });
+        } catch (err: any) {
+          setSnackbar({ open: true, message: err.message || 'Gagal mengaktifkan kembali', severity: 'error' });
+        } finally {
+          setConfirmState(prev => ({ ...prev, open: false, loading: false }));
+        }
+      },
+    });
   };
 
   const handleExportData = () => {
@@ -290,33 +312,26 @@ export default function CustomerManagement() {
       return;
     }
 
-    if (
-      window.confirm(
-        `Apakah Anda yakin ingin menghapus ${selectedCustomers.length} pelanggan?`
-      )
-    ) {
-      try {
-        await Promise.all(
-          selectedCustomers.map(id =>
-            deleteCustomerMutation({ variables: { id } })
-          )
-        );
-        // refetchCustomers will be called automatically by Apollo
-        setSelectedCustomers([]);
-        setSnackbar({
-          open: true,
-          message: 'Pelanggan berhasil dihapus',
-          severity: 'success',
-        });
-      } catch (error) {
-        console.error('Error bulk deleting:', error);
-        setSnackbar({
-          open: true,
-          message: 'Gagal menghapus pelanggan',
-          severity: 'error',
-        });
-      }
-    }
+    const ids = [...selectedCustomers];
+    setConfirmState({
+      open: true,
+      title: 'Hapus Pelanggan Terpilih',
+      message: `Apakah Anda yakin ingin menghapus ${ids.length} pelanggan? Tindakan ini tidak dapat dibatalkan.`,
+      severity: 'error',
+      loading: false,
+      onConfirm: async () => {
+        setConfirmState(prev => ({ ...prev, loading: true }));
+        try {
+          await Promise.all(ids.map(id => deleteCustomerMutation({ variables: { id } })));
+          setSelectedCustomers([]);
+          setSnackbar({ open: true, message: 'Pelanggan berhasil dihapus', severity: 'success' });
+        } catch {
+          setSnackbar({ open: true, message: 'Gagal menghapus pelanggan', severity: 'error' });
+        } finally {
+          setConfirmState(prev => ({ ...prev, open: false, loading: false }));
+        }
+      },
+    });
   };
 
   const toggleSelectCustomer = (customerId: string) => {
@@ -933,6 +948,16 @@ export default function CustomerManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        severity={confirmState.severity}
+        loading={confirmState.loading}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+      />
 
       {/* Snackbar for notifications */}
       <Snackbar
