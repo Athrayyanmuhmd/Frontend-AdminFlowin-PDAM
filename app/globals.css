@@ -10,3 +10,26 @@ body {
 * {
   font-family: var(--font-poppins), sans-serif;
 }
+
+/* ── Print styles ────────────────────────────────────────────────────────── */
+@media print {
+  /* Hide sidebar, header, and any element marked no-print */
+  [data-print-hide],
+  .no-print {
+    display: none !important;
+  }
+  /* Remove shadows and backgrounds for cleaner print output */
+  * {
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body {
+    background: white !important;
+  }
+  /* Allow content to expand full width without sidebar offset */
+  main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}

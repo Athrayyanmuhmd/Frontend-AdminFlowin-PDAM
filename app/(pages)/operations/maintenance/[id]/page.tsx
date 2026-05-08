@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
 import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
+import PrintButton from '../../../../components/ui/PrintButton';
 import { ArrowBack, OpenInNew } from '@mui/icons-material';
 
 const fmtDate = (v?: string) => {
@@ -140,11 +141,12 @@ export default function MaintenanceDetailPage() {
       ]} />
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
-          <Button component={Link} href='/operations/maintenance' startIcon={<ArrowBack />} variant='text' size='small'>
+          <Button className='no-print' component={Link} href='/operations/maintenance' startIcon={<ArrowBack />} variant='text' size='small'>
             Kembali
           </Button>
-          <Typography variant='h6' fontWeight={700}>Detail Work Order Maintenance</Typography>
+          <Typography variant='h6' fontWeight={700} sx={{ flex: 1 }}>Detail Work Order Maintenance</Typography>
           {st && <Chip label={st.label} color={st.color as any} size='small' />}
+          <PrintButton />
         </Box>
 
         {loading ? (

@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
 import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
+import PrintButton from '../../../../components/ui/PrintButton';
 import {
   ArrowBack,
   Speed,
@@ -179,6 +180,7 @@ export default function MeteranDetail() {
             color='success'
             sx={{ fontWeight: 'bold' }}
           />
+          <PrintButton />
         </Box>
 
         <Grid container spacing={3}>

@@ -26,6 +26,7 @@ import {
 import AdminLayout from '../../../../layouts/AdminLayout';
 import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
 import EmptyState from '../../../../components/ui/EmptyState';
+import PrintButton from '../../../../components/ui/PrintButton';
 
 const fmtDate = (v?: string) => {
   if (!v) return '-';
@@ -125,15 +126,17 @@ export default function SurveyDataDetailPage() {
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <Button
+            className='no-print'
             startIcon={<ArrowBack />}
             onClick={() => router.back()}
             size='small'
           >
             Kembali
           </Button>
-          <Typography variant='h5' fontWeight={700}>
+          <Typography variant='h5' fontWeight={700} sx={{ flex: 1 }}>
             Detail Data Survei
           </Typography>
+          <PrintButton />
           {s && <Chip label={s.label} color={s.color} size='small' />}
         </Box>
 

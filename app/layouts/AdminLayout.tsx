@@ -80,8 +80,10 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
       
-      <AdminSidebar open={sidebarOpen} onToggle={handleSidebarToggle} onClose={handleSidebarClose} isMobile={isMobile} />
-      
+      <Box data-print-hide>
+        <AdminSidebar open={sidebarOpen} onToggle={handleSidebarToggle} onClose={handleSidebarClose} isMobile={isMobile} />
+      </Box>
+
       <Box
         component="main"
         sx={{
@@ -95,7 +97,9 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        <AdminHeader onMenuToggle={handleSidebarToggle} title={title} />
+        <Box data-print-hide>
+          <AdminHeader onMenuToggle={handleSidebarToggle} title={title} />
+        </Box>
         
         <Box
           sx={{
