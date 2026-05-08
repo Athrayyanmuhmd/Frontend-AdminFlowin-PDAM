@@ -7,6 +7,7 @@ import { useAdmin } from '../../../../layouts/AdminProvider';
 import { getWorkOrder, getProgresWorkOrder } from '@/lib/graphql/teknisiServer';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
+import EmptyState from '../../../../components/ui/EmptyState';
 import {
   Box, Card, CardContent, Typography, Chip, Grid, Divider, Button,
   CircularProgress, Alert,
@@ -150,7 +151,13 @@ export default function MaintenanceDetailPage() {
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
         ) : !wo ? (
-          !error && <Alert severity='warning'>Data tidak ditemukan</Alert>
+          !error && (
+            <EmptyState
+              title='Data tidak ditemukan'
+              description='Work order ini tidak ada atau sudah dihapus'
+              action={{ label: 'Kembali ke Daftar', onClick: () => router.back() }}
+            />
+          )
         ) : (
           <Grid container spacing={3}>
             {/* Kiri: Info WO */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
@@ -15,6 +15,7 @@ import AdminLayout from '../../../layouts/AdminLayout';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useFilterPersist } from '../../../hooks/useFilterPersist';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' | 'primary' | 'secondary' }> = {
   menunggu_penugasan: { label: 'Menunggu Penugasan', color: 'warning' },
@@ -47,6 +48,8 @@ export default function PenyelesaianLaporanPage() {
   const [search, setSearch] = useFilterPersist('penyelesaian-laporan-search', '');
   const [filterStatus, setFilterStatus] = useFilterPersist('penyelesaian-laporan-status', '');
   const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounce(search, 300);
+  const searchRef = useRef<HTMLInputElement>(null);
   const PER_PAGE = 10;
 
   useEffect(() => {
@@ -77,17 +80,29 @@ export default function PenyelesaianLaporanPage() {
     return () => clearInterval(id);
   }, [isAuthenticated, fetchData]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const filtered = useMemo(() => {
     return data.filter(wo => {
-      const matchSearch = !search.trim() ||
-        wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(search.toLowerCase()) ||
-        wo.koneksiData?.alamat?.toLowerCase().includes(search.toLowerCase()) ||
-        wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(search.toLowerCase()) ||
-        wo.idLaporan?.toLowerCase().includes(search.toLowerCase());
+      const q = debouncedSearch.toLowerCase();
+      const matchSearch = !debouncedSearch.trim() ||
+        wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
+        wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
+        wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q) ||
+        wo.idLaporan?.toLowerCase().includes(q);
       const matchStatus = !filterStatus || wo.status === filterStatus;
       return matchSearch && matchStatus;
     });
-  }, [data, search, filterStatus]);
+  }, [data, debouncedSearch, filterStatus]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -138,9 +153,10 @@ export default function PenyelesaianLaporanPage() {
               <TextField
                 size='small'
                 sx={{ flex: 1, minWidth: { xs: '100%', sm: 220 } }}
-                placeholder='Cari teknisi, pelanggan, ID laporan...'
+                placeholder='Cari teknisi, pelanggan, ID laporan... (tekan / untuk fokus)'
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
+                inputRef={searchRef}
                 InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
               />
               <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 200 } }}>
@@ -186,7 +202,7 @@ export default function PenyelesaianLaporanPage() {
                         const st = STATUS_WO[wo.status];
                         const sr = STATUS_RESPON[wo.statusRespon];
                         return (
-                          <TableRow key={wo.id} hover>
+                          <TableRow key={wo.id} hover onClick={() => router.push(`/operations/penyelesaian-laporan/${wo.id}`)} sx={{ cursor: 'pointer' }}>
                             <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                             <TableCell>
                               {wo.koneksiData?.pelanggan?.namaLengkap ? (

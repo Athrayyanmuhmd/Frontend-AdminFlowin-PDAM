@@ -87,6 +87,7 @@ import {
   Add,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
 
 // ─── Label & Color Maps ───────────────────────────────────────────────────────
 
@@ -951,9 +952,7 @@ export default function WorkOrderManagement() {
         {/* ─── Table ─────────────────────────────────────────────────────── */}
         <Card variant='outlined' sx={{ borderRadius: 2 }}>
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
-              <CircularProgress />
-            </Box>
+            <TableSkeleton rows={6} cols={9} />
           ) : (
             <>
               <TableContainer sx={{ overflowX: 'auto' }}>
@@ -1001,10 +1000,11 @@ export default function WorkOrderManagement() {
                   <TableBody>
                     {rows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} align='center' sx={{ py: 5 }}>
-                          <Typography color='text.secondary'>
-                            Tidak ada data
-                          </Typography>
+                        <TableCell colSpan={9} sx={{ border: 0, py: 0 }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 6, gap: 1, color: 'text.secondary' }}>
+                            <Typography variant='h6' fontWeight={600} color='text.secondary'>Belum ada work order</Typography>
+                            <Typography variant='body2' color='text.disabled'>Buat work order baru untuk menugaskan teknisi</Typography>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ) : (

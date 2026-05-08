@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
@@ -9,11 +9,12 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, Tooltip, Pagination, Alert, IconButton,
 } from '@mui/material';
-import { Search, Visibility, Refresh } from '@mui/icons-material';
+import { Search, Visibility, Refresh, FileDownload } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useFilterPersist } from '../../../hooks/useFilterPersist';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
   dikirim: { label: 'Dikirim', color: 'info' },
@@ -35,6 +36,8 @@ export default function SurveyDataPage() {
   const [search, setSearch] = useFilterPersist('survey-data-search', '');
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
+  const debouncedSearch = useDebounce(search, 300);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
@@ -66,18 +69,51 @@ export default function SurveyDataPage() {
     return () => clearInterval(id);
   }, [isAuthenticated, fetchData]);
 
+  // Keyboard shortcut: '/' focuses search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
+    if (!debouncedSearch.trim()) return data;
+    const q = debouncedSearch.toLowerCase();
     return data.filter(wo =>
       wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
       wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
       wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q)
     );
-  }, [data, search]);
+  }, [data, debouncedSearch]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  const exportCSV = () => {
+    const rows = [
+      ['No', 'Pelanggan', 'Alamat', 'Teknisi', 'NIP Teknisi', 'Status', 'Catatan Review', 'Tanggal Submit'],
+      ...filtered.map((wo, i) => [
+        i + 1,
+        wo.koneksiData?.pelanggan?.namaLengkap ?? '-',
+        wo.koneksiData?.alamat ?? '-',
+        wo.teknisiPenanggungJawab?.namaLengkap ?? '-',
+        wo.teknisiPenanggungJawab?.nip ?? '-',
+        wo.status ?? '-',
+        wo.catatanReview ?? '-',
+        fmtDate(wo.updatedAt),
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `data-survei-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
 
   if (authLoading || !isAuthenticated) return null;
 
@@ -91,9 +127,14 @@ export default function SurveyDataPage() {
               Work order survei yang telah disubmit oleh teknisi
             </Typography>
           </Box>
-          <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
-            Refresh
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || filtered.length === 0} size='small'>
+              Export CSV
+            </Button>
+            <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
+              Refresh
+            </Button>
+          </Box>
         </Box>
 
         {error && <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -102,9 +143,10 @@ export default function SurveyDataPage() {
           <CardContent sx={{ pb: '12px !important' }}>
             <TextField
               fullWidth size='small'
-              placeholder='Cari nama pelanggan, alamat, teknisi...'
+              placeholder='Cari nama pelanggan, alamat, teknisi... (tekan / untuk fokus)'
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
+              inputRef={searchRef}
               InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
             />
           </CardContent>
@@ -138,7 +180,7 @@ export default function SurveyDataPage() {
                       {paginated.map((wo, idx) => {
                         const s = STATUS_WO[wo.status];
                         return (
-                          <TableRow key={wo.id} hover>
+                          <TableRow key={wo.id} hover onClick={() => router.push(`/operations/survey-data/${wo.id}`)} sx={{ cursor: 'pointer' }}>
                             <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                             <TableCell>
                               <Typography variant='body2' fontWeight={600}>{wo.koneksiData?.alamat || '-'}</Typography>

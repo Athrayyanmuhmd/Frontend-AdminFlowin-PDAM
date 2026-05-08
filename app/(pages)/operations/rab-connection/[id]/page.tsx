@@ -11,6 +11,7 @@ import {
 import { ArrowBack, Receipt, Person, Engineering } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
+import EmptyState from '../../../../components/ui/EmptyState';
 
 const fmtDate = (v?: string) => {
   if (!v) return '-';
@@ -91,7 +92,11 @@ export default function RabDetailPage() {
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
         ) : !wo ? (
-          <Alert severity='warning'>Data tidak ditemukan</Alert>
+          <EmptyState
+            title='Data tidak ditemukan'
+            description='Work order ini tidak ada atau sudah dihapus'
+            action={{ label: 'Kembali ke Daftar', onClick: () => router.back() }}
+          />
         ) : (
           <Grid container spacing={2}>
             <Grid item xs={12} md={5}>

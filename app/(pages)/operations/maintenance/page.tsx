@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
@@ -15,6 +15,7 @@ import AdminLayout from '../../../layouts/AdminLayout';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useFilterPersist } from '../../../hooks/useFilterPersist';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' | 'primary' }> = {
   menunggu_penugasan: { label: 'Menunggu Penugasan', color: 'warning' },
@@ -41,6 +42,8 @@ export default function MaintenancePage() {
   const [search, setSearch] = useFilterPersist('maintenance-search', '');
   const [filterStatus, setFilterStatus] = useFilterPersist('maintenance-status', '');
   const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounce(search, 300);
+  const searchRef = useRef<HTMLInputElement>(null);
   const PER_PAGE = 10;
 
   useEffect(() => {
@@ -71,17 +74,28 @@ export default function MaintenancePage() {
     return () => clearInterval(id);
   }, [isAuthenticated, fetchData]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const filtered = useMemo(() => {
     return data.filter(wo => {
-      const q = search.toLowerCase();
-      const matchSearch = !search.trim() ||
+      const q = debouncedSearch.toLowerCase();
+      const matchSearch = !debouncedSearch.trim() ||
         wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
         wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
         wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q);
       const matchStatus = !filterStatus || wo.status === filterStatus;
       return matchSearch && matchStatus;
     });
-  }, [data, search, filterStatus]);
+  }, [data, debouncedSearch, filterStatus]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -111,9 +125,10 @@ export default function MaintenancePage() {
               <TextField
                 size='small'
                 sx={{ flex: 1, minWidth: { xs: '100%', sm: 220 } }}
-                placeholder='Cari nama pelanggan, alamat, teknisi...'
+                placeholder='Cari nama pelanggan, alamat, teknisi... (tekan / untuk fokus)'
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
+                inputRef={searchRef}
                 InputProps={{ startAdornment: <InputAdornment position='start'><Search fontSize='small' /></InputAdornment> }}
               />
               <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 200 } }}>
@@ -157,7 +172,7 @@ export default function MaintenancePage() {
                       {paginated.map((wo, idx) => {
                         const s = STATUS_WO[wo.status];
                         return (
-                          <TableRow key={wo.id} hover>
+                          <TableRow key={wo.id} hover onClick={() => router.push(`/operations/maintenance/${wo.id}`)} sx={{ cursor: 'pointer' }}>
                             <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                             <TableCell>
                               <Typography variant='body2' fontWeight={600}>{wo.koneksiData?.alamat || '-'}</Typography>

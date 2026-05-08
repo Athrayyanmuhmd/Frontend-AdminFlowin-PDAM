@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -25,7 +25,6 @@ import {
   MenuItem,
   Tooltip,
   Pagination,
-  CircularProgress,
   Alert,
   SelectChangeEvent,
 } from '@mui/material';
@@ -36,11 +35,16 @@ import {
   HourglassEmpty,
   Cancel,
   Refresh,
+  FileDownload,
 } from '@mui/icons-material';
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import { GET_ALL_CONNECTION_DATA } from '@/lib/graphql/queries/connectionData';
+import TableSkeleton from '../../../components/ui/TableSkeleton';
+import EmptyState from '../../../components/ui/EmptyState';
+import { useFilterPersist } from '../../../hooks/useFilterPersist';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 // Status from Ahmad's GQL enum
 const STATUS_LABELS: Record<string, { label: string; color: 'success' | 'error' | 'warning'; icon: React.ReactElement }> = {
@@ -51,34 +55,53 @@ const STATUS_LABELS: Record<string, { label: string; color: 'success' | 'error' 
 
 export default function ConnectionDataManagement() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  const [searchQuery, setSearchQuery]           = useState('');
-  const [statusFilter, setStatusFilter]         = useState<string>('all');
-  const [page, setPage]                         = useState(1);
-  const rowsPerPage                             = 10;
+  const [searchQuery, setSearchQuery]   = useFilterPersist('connection-data-search', '');
+  const [statusFilter, setStatusFilter] = useFilterPersist('connection-data-status', 'all');
+  const [page, setPage]                 = useState(1);
+  const rowsPerPage                     = 10;
+  const debouncedSearch                 = useDebounce(searchQuery, 300);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace('/auth/login');
+  }, [authLoading, isAuthenticated, router]);
 
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_CONNECTION_DATA, {
     fetchPolicy: 'cache-and-network',
+    skip: !isAuthenticated,
   });
 
   const connectionData: any[] = (data as any)?.getAllKoneksiData ?? [];
 
+  // Auto-refresh every 5 minutes
   useEffect(() => {
-    if (graphqlError) console.error('GraphQL Error loading connection data:', graphqlError);
-  }, [graphqlError]);
+    if (!isAuthenticated) return;
+    const id = setInterval(() => refetch(), 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, refetch]);
+
+  // Keyboard shortcut: press '/' to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Client-side filtering — all field names match Ahmad's PascalCase GQL schema
   const filteredData = useMemo(() => {
     let filtered = [...connectionData];
-
-    // Filter by StatusPengajuan enum (PENDING | APPROVED | REJECTED)
     if (statusFilter !== 'all') {
       filtered = filtered.filter((item: any) => item.StatusPengajuan === statusFilter);
     }
-
-    // Search: nama, email, NIK, alamat
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
       filtered = filtered.filter((item: any) =>
         item.IdPelanggan?.namaLengkap?.toLowerCase().includes(q) ||
         item.IdPelanggan?.email?.toLowerCase().includes(q) ||
@@ -86,16 +109,37 @@ export default function ConnectionDataManagement() {
         item.Alamat?.toLowerCase().includes(q)
       );
     }
-
     return filtered;
-  }, [connectionData, statusFilter, searchQuery]);
+  }, [connectionData, statusFilter, debouncedSearch]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, statusFilter]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
+
+  if (authLoading || !isAuthenticated) return null;
 
   const getStatusInfo = (item: any) =>
     STATUS_LABELS[item.StatusPengajuan] ?? STATUS_LABELS.PENDING;
 
   const paginatedData = filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+  const exportCSV = () => {
+    const rows = [
+      ['No', 'Nama Pelanggan', 'Email', 'NIK', 'Alamat', 'Status Pengajuan', 'Tanggal Pengajuan'],
+      ...filteredData.map((item: any, i: number) => [
+        i + 1,
+        item.IdPelanggan?.namaLengkap ?? '-',
+        item.IdPelanggan?.email ?? '-',
+        item.NIK ?? '-',
+        item.Alamat ?? '-',
+        STATUS_LABELS[item.StatusPengajuan]?.label ?? item.StatusPengajuan ?? '-',
+        item.createdAt ? new Date(Number(item.createdAt)).toLocaleDateString('id-ID') : '-',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `data-sambungan-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
 
   return (
     <AdminLayout>
@@ -110,9 +154,14 @@ export default function ConnectionDataManagement() {
               Kelola data pengajuan sambungan air dari pelanggan
             </Typography>
           </Box>
-          <Button variant='contained' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading}>
-            Refresh
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || filteredData.length === 0} size='small'>
+              Export CSV
+            </Button>
+            <Button variant='outlined' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading} size='small'>
+              Refresh
+            </Button>
+          </Box>
         </Box>
 
         {/* Filters */}
@@ -123,9 +172,10 @@ export default function ConnectionDataManagement() {
                 <TextField
                   fullWidth
                   size='small'
-                  placeholder='Cari NIK, Nama, Email, Alamat...'
+                  placeholder='Cari NIK, Nama, Email, Alamat... (tekan / untuk fokus)'
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
+                  inputRef={searchRef}
                   slotProps={{
                     input: {
                       startAdornment: (
@@ -168,18 +218,12 @@ export default function ConnectionDataManagement() {
         <Card>
           <CardContent>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-                <CircularProgress />
-              </Box>
+              <TableSkeleton rows={6} cols={6} />
             ) : filteredData.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 5 }}>
-                <Typography variant='h6' color='text.secondary'>
-                  Tidak ada data sambungan
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  {searchQuery ? 'Coba kata kunci pencarian yang berbeda' : 'Belum ada pengajuan sambungan'}
-                </Typography>
-              </Box>
+              <EmptyState
+                title='Tidak ada data sambungan'
+                description={searchQuery || statusFilter !== 'all' ? 'Coba ubah filter atau kata kunci pencarian' : 'Belum ada pengajuan sambungan air dari pelanggan'}
+              />
             ) : (
               <>
                 <TableContainer component={Paper} variant='outlined' sx={{ overflowX: 'auto' }}>
@@ -198,7 +242,12 @@ export default function ConnectionDataManagement() {
                       {paginatedData.map((item: any) => {
                         const statusInfo = getStatusInfo(item);
                         return (
-                          <TableRow key={item._id} hover>
+                          <TableRow
+                            key={item._id}
+                            hover
+                            onClick={() => router.push(`/operations/connection-data/${item._id}`)}
+                            sx={{ cursor: 'pointer' }}
+                          >
                             <TableCell>
                               <Typography variant='body2' fontWeight='bold'>
                                 {item.IdPelanggan?.namaLengkap || 'N/A'}
