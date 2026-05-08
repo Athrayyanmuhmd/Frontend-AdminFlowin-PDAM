@@ -28,6 +28,7 @@ import {
   Pagination,
   Alert,
   SelectChangeEvent,
+  Checkbox,
 } from '@mui/material';
 import {
   Search,
@@ -63,6 +64,7 @@ export default function ConnectionDataManagement() {
   const [searchQuery, setSearchQuery]   = useFilterPersist('connection-data-search', '');
   const [statusFilter, setStatusFilter] = useFilterPersist('connection-data-status', 'all');
   const [page, setPage]                 = useState(1);
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set());
   const rowsPerPage                     = 10;
   const debouncedSearch                 = useDebounce(searchQuery, 300);
 
@@ -115,6 +117,7 @@ export default function ConnectionDataManagement() {
   }, [connectionData, statusFilter, debouncedSearch]);
 
   useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
+  useEffect(() => { setSelectedIds(new Set()); }, [debouncedSearch, statusFilter]);
 
   const { sorted: sortedData, sortKey, sortOrder, handleSort } = useTableSort(filteredData);
   const onSort = (key: string) => { handleSort(key); setPage(1); };
@@ -126,10 +129,31 @@ export default function ConnectionDataManagement() {
 
   const paginatedData = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
+  const allPageSelected = paginatedData.length > 0 && paginatedData.every((item: any) => selectedIds.has(item._id));
+  const somePageSelected = paginatedData.some((item: any) => selectedIds.has(item._id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) paginatedData.forEach((item: any) => next.delete(item._id));
+      else paginatedData.forEach((item: any) => next.add(item._id));
+      return next;
+    });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const exportCSV = () => {
+    const toExport = selectedIds.size > 0 ? sortedData.filter((item: any) => selectedIds.has(item._id)) : sortedData;
     const rows = [
       ['No', 'Nama Pelanggan', 'Email', 'NIK', 'Alamat', 'Status Pengajuan', 'Tanggal Pengajuan'],
-      ...filteredData.map((item: any, i: number) => [
+      ...toExport.map((item: any, i: number) => [
         i + 1,
         item.IdPelanggan?.namaLengkap ?? '-',
         item.IdPelanggan?.email ?? '-',
@@ -159,9 +183,12 @@ export default function ConnectionDataManagement() {
               Kelola data pengajuan sambungan air dari pelanggan
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || filteredData.length === 0} size='small'>
-              Export CSV
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {selectedIds.size > 0 && (
+              <Typography variant='caption' color='text.secondary'>{selectedIds.size} baris dipilih</Typography>
+            )}
+            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || sortedData.length === 0} size='small'>
+              {selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export CSV'}
             </Button>
             <Button variant='outlined' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading} size='small'>
               Refresh
@@ -235,6 +262,14 @@ export default function ConnectionDataManagement() {
                   <Table sx={{ minWidth: 700 }}>
                     <TableHead>
                       <TableRow>
+                        <TableCell padding='checkbox'>
+                          <Checkbox
+                            indeterminate={somePageSelected && !allPageSelected}
+                            checked={allPageSelected}
+                            onChange={toggleSelectAll}
+                            size='small'
+                          />
+                        </TableCell>
                         <TableCell sortDirection={sortKey === 'IdPelanggan.namaLengkap' ? sortOrder : false}>
                           <TableSortLabel active={sortKey === 'IdPelanggan.namaLengkap'} direction={sortKey === 'IdPelanggan.namaLengkap' ? sortOrder : 'asc'} onClick={() => onSort('IdPelanggan.namaLengkap')}>
                             Pelanggan
@@ -261,6 +296,9 @@ export default function ConnectionDataManagement() {
                             onClick={() => router.push(`/operations/connection-data/${item._id}`)}
                             sx={{ cursor: 'pointer' }}
                           >
+                            <TableCell padding='checkbox' onClick={e => e.stopPropagation()}>
+                              <Checkbox size='small' checked={selectedIds.has(item._id)} onChange={() => toggleSelect(item._id)} />
+                            </TableCell>
                             <TableCell>
                               <Typography variant='body2' fontWeight='bold'>
                                 {item.IdPelanggan?.namaLengkap || 'N/A'}

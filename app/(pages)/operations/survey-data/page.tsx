@@ -7,7 +7,7 @@ import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
 import {
   Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Tooltip, Pagination, Alert, IconButton, TableSortLabel,
+  Chip, Tooltip, Pagination, Alert, IconButton, TableSortLabel, Checkbox,
 } from '@mui/material';
 import { Search, Visibility, Refresh, FileDownload } from '@mui/icons-material';
 import { useTableSort } from '../../../hooks/useTableSort';
@@ -36,6 +36,7 @@ export default function SurveyDataPage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useFilterPersist('survey-data-search', '');
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const PER_PAGE = 10;
   const debouncedSearch = useDebounce(search, 300);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -97,10 +98,34 @@ export default function SurveyDataPage() {
   const totalPages = Math.ceil(sorted.length / PER_PAGE);
   const paginated = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+  // Reset selection when search/filter changes
+  useEffect(() => { setSelectedIds(new Set()); }, [debouncedSearch]);
+
+  const allPageSelected = paginated.length > 0 && paginated.every(wo => selectedIds.has(wo.id));
+  const somePageSelected = paginated.some(wo => selectedIds.has(wo.id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) paginated.forEach(wo => next.delete(wo.id));
+      else paginated.forEach(wo => next.add(wo.id));
+      return next;
+    });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const exportCSV = () => {
+    const toExport = selectedIds.size > 0 ? sorted.filter(wo => selectedIds.has(wo.id)) : sorted;
     const rows = [
       ['No', 'Pelanggan', 'Alamat', 'Teknisi', 'NIP Teknisi', 'Status', 'Catatan Review', 'Tanggal Submit'],
-      ...filtered.map((wo, i) => [
+      ...toExport.map((wo, i) => [
         i + 1,
         wo.koneksiData?.pelanggan?.namaLengkap ?? '-',
         wo.koneksiData?.alamat ?? '-',
@@ -130,9 +155,12 @@ export default function SurveyDataPage() {
               Work order survei yang telah disubmit oleh teknisi
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || filtered.length === 0} size='small'>
-              Export CSV
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {selectedIds.size > 0 && (
+              <Typography variant='caption' color='text.secondary'>{selectedIds.size} baris dipilih</Typography>
+            )}
+            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || sorted.length === 0} size='small'>
+              {selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export CSV'}
             </Button>
             <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
               Refresh
@@ -170,6 +198,14 @@ export default function SurveyDataPage() {
                   <Table size='small' sx={{ minWidth: 600 }}>
                     <TableHead>
                       <TableRow>
+                        <TableCell padding='checkbox'>
+                          <Checkbox
+                            indeterminate={somePageSelected && !allPageSelected}
+                            checked={allPageSelected}
+                            onChange={toggleSelectAll}
+                            size='small'
+                          />
+                        </TableCell>
                         <TableCell>No</TableCell>
                         <TableCell sortDirection={sortKey === 'koneksiData.pelanggan.namaLengkap' ? sortOrder : false}>
                           <TableSortLabel active={sortKey === 'koneksiData.pelanggan.namaLengkap'} direction={sortKey === 'koneksiData.pelanggan.namaLengkap' ? sortOrder : 'asc'} onClick={() => onSort('koneksiData.pelanggan.namaLengkap')}>
@@ -196,6 +232,9 @@ export default function SurveyDataPage() {
                         const s = STATUS_WO[wo.status];
                         return (
                           <TableRow key={wo.id} hover onClick={() => router.push(`/operations/survey-data/${wo.id}`)} sx={{ cursor: 'pointer' }}>
+                            <TableCell padding='checkbox' onClick={e => e.stopPropagation()}>
+                              <Checkbox size='small' checked={selectedIds.has(wo.id)} onChange={() => toggleSelect(wo.id)} />
+                            </TableCell>
                             <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                             <TableCell>
                               <Typography variant='body2' fontWeight={600}>{wo.koneksiData?.alamat || '-'}</Typography>
