@@ -5,9 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAdmin } from '../../../../layouts/AdminProvider';
 import { getWorkOrder, getProgresWorkOrder } from '@/lib/graphql/teknisiServer';
 import {
-  Box, Card, CardContent, Typography, Grid, Button, Chip,
-  Alert, CircularProgress, Divider,
+  Box, Card, CardContent, Typography, Grid, Button, Chip, Divider, Alert,
 } from '@mui/material';
+import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
+import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
 import { ArrowBack, Receipt, Person, Engineering } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
@@ -87,10 +88,10 @@ export default function RabDetailPage() {
           {s && <Chip label={s.label} color={s.color} size='small' />}
         </Box>
 
-        {error && <Alert severity='error' sx={{ mb: 2 }}>{error}</Alert>}
-
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+          <DetailSkeleton sections={[{ md: 5, rows: 6 }, { md: 7, rows: 5 }]} hasHeader={false} />
+        ) : error ? (
+          <ErrorWithRetry message='Gagal memuat data RAB.' detail={error} onRetry={fetchData} />
         ) : !wo ? (
           <EmptyState
             title='Data tidak ditemukan'

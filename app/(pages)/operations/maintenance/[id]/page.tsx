@@ -10,8 +10,9 @@ import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
 import EmptyState from '../../../../components/ui/EmptyState';
 import {
   Box, Card, CardContent, Typography, Chip, Grid, Divider, Button,
-  CircularProgress, Alert,
 } from '@mui/material';
+import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
+import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
 import { ArrowBack, OpenInNew } from '@mui/icons-material';
 
 const fmtDate = (v?: string) => {
@@ -146,18 +147,16 @@ export default function MaintenanceDetailPage() {
           {st && <Chip label={st.label} color={st.color as any} size='small' />}
         </Box>
 
-        {error && <Alert severity='error' sx={{ mb: 2 }}>{error}</Alert>}
-
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+          <DetailSkeleton sections={[{ md: 4, rows: 7 }, { md: 4, rows: 5 }, { md: 4, rows: 3, hasImage: true }]} hasHeader={false} />
+        ) : error ? (
+          <ErrorWithRetry message='Gagal memuat data maintenance.' detail={error} onRetry={fetchData} />
         ) : !wo ? (
-          !error && (
-            <EmptyState
-              title='Data tidak ditemukan'
-              description='Work order ini tidak ada atau sudah dihapus'
-              action={{ label: 'Kembali ke Daftar', onClick: () => router.back() }}
-            />
-          )
+          <EmptyState
+            title='Data tidak ditemukan'
+            description='Work order ini tidak ada atau sudah dihapus'
+            action={{ label: 'Kembali ke Daftar', onClick: () => router.back() }}
+          />
         ) : (
           <Grid container spacing={3}>
             {/* Kiri: Info WO */}
