@@ -9,6 +9,7 @@ import {
   Grid,
   Card,
   CardContent,
+  Divider,
   Typography,
   Box,
   Button,
@@ -51,9 +52,11 @@ import {
   Schedule,
   Download,
   Autorenew,
+  TrendingUp,
 } from '@mui/icons-material';
 import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
+import StatCard from '../../components/ui/StatCard';
 import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART, UPDATE_STATUS_PEMBAYARAN, GENERATE_TAGIHAN_BULANAN } from '@/lib/graphql/queries/billing';
 
 const GET_ALL_METERAN_IDS = gql`
@@ -411,213 +414,162 @@ export default function BillingManagement() {
         </Typography>
         
         {/* Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={3} sx={{ mb: 5, mt: 1 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main' }}>
-                    <Receipt />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      Rp {totalRevenue.toLocaleString('id-ID')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Tagihan
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              color="primary"
+              icon={<Receipt />}
+              title="Total Tagihan"
+              count={`Rp ${totalRevenue.toLocaleString('id-ID')}`}
+              subtitle={`${billingStats?.totalTagihan || 0} tagihan diterbitkan`}
+            />
           </Grid>
-          
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'success.main' }}>
-                    <Payment />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      Rp {totalCollected.toLocaleString('id-ID')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Terkumpul
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              color="success"
+              icon={<Payment />}
+              title="Terkumpul"
+              count={`Rp ${totalCollected.toLocaleString('id-ID')}`}
+              subtitle={`${billingStats?.totalLunas || 0} tagihan lunas`}
+              subtitleColor="success.main"
+            />
           </Grid>
-          
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'warning.main' }}>
-                    <CheckCircle />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {collectionRate.toFixed(1)}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Efisiensi Penagihan
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              color="info"
+              icon={<TrendingUp />}
+              title="Efisiensi Penagihan"
+              count={`${collectionRate.toFixed(1)}%`}
+              subtitle={collectionRate >= 80 ? 'Target tercapai' : 'Di bawah target'}
+              subtitleColor={collectionRate >= 80 ? 'success.main' : 'warning.main'}
+            />
           </Grid>
-          
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'error.main' }}>
-                    <Warning />
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      Rp {overdueAmount.toLocaleString('id-ID')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Tunggakan
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              color="error"
+              icon={<Warning />}
+              title="Tunggakan"
+              count={`Rp ${overdueAmount.toLocaleString('id-ID')}`}
+              subtitle={`${billingStats?.totalTunggakan || 0} belum terbayar`}
+              subtitleColor={overdueAmount > 0 ? 'error.main' : 'success.main'}
+            />
           </Grid>
         </Grid>
 
-        {/* Revenue Chart */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} lg={8}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Tren Pendapatan (6 Bulan Terakhir)
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                      <YAxis
-                        tickFormatter={(v) => {
-                          if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
-                          if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
-                          return String(v);
-                        }}
-                        tick={{ fontSize: 11 }}
-                        width={55}
-                      />
-                      <RechartsTooltip
-                        formatter={(value: number, name: string) => [
-                          `Rp ${value.toLocaleString('id-ID')}`,
-                          name === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)',
-                        ]}
-                      />
-                      <Legend
-                        formatter={(value) => value === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)'}
-                      />
-                      <Bar dataKey="revenue" fill="#FF9800" name="revenue" radius={[3, 3, 0, 0]} />
-                      <Line type="monotone" dataKey="collected" stroke="#4CAF50" strokeWidth={2} dot={{ r: 4 }} name="collected" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+        {/* Revenue Chart + Status */}
+        <Grid container spacing={3} sx={{ mb: 4 }} alignItems="stretch">
+          <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
+            <Card sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>Tren Pendapatan</Typography>
+                  <Typography variant="body2" color="text.secondary">6 bulan terakhir</Typography>
                 </Box>
-              </CardContent>
+                <Box sx={{ background: 'linear-gradient(195deg, #FFA726, #FB8C00)', borderRadius: '8px', px: 1.5, py: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, letterSpacing: '0.03em' }}>KEUANGAN</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flex: 1, px: 1, py: 2, minHeight: 280 }}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <ComposedChart data={revenueData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#666' }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      tickFormatter={(v) => {
+                        if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
+                        if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
+                        return String(v);
+                      }}
+                      tick={{ fontSize: 11, fill: '#666' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={50}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 12, padding: '8px 12px' }}
+                      labelStyle={{ fontWeight: 600, marginBottom: 4, color: '#333' }}
+                      formatter={(value: number, name: string) => [
+                        `Rp ${value.toLocaleString('id-ID')}`,
+                        name === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)',
+                      ]}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => <span style={{ fontSize: 12, color: '#555' }}>{value === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)'}</span>}
+                    />
+                    <Bar dataKey="revenue" fill="#013494" fillOpacity={0.85} name="revenue" radius={[4, 4, 0, 0]} />
+                    <Line type="monotone" dataKey="collected" stroke="#43A047" strokeWidth={2.5} dot={{ r: 4, fill: '#43A047', strokeWidth: 0 }} activeDot={{ r: 6 }} name="collected" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </Box>
+              <Divider />
+              <Box sx={{ px: 3, py: 1.25, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
+                <Typography variant="caption" color="text.secondary">Diperbarui secara otomatis</Typography>
+              </Box>
             </Card>
           </Grid>
 
-          <Grid item xs={12} lg={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Status Penagihan
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2">Lunas</Typography>
-                      <Typography variant="body2">
-                        {billingStats?.totalLunas || 0} / {billingStats?.totalTagihan || 0}
+          <Grid item xs={12} lg={4} sx={{ display: 'flex' }}>
+            <Card sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Status Penagihan</Typography>
+                <Typography variant="body2" color="text.secondary">Ringkasan pembayaran</Typography>
+              </Box>
+              <Box sx={{ px: 3, py: 2.5, flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {[
+                  { label: 'Lunas', value: billingStats?.totalLunas || 0, color: 'success' as const, colorHex: '#43A047' },
+                  { label: 'Belum Bayar', value: billingStats?.totalPending || 0, color: 'warning' as const, colorHex: '#FB8C00' },
+                  { label: 'Terlambat', value: billingStats?.totalTunggakan || 0, color: 'error' as const, colorHex: '#E53935' },
+                ].map(({ label, value, color, colorHex }) => (
+                  <Box key={label}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colorHex }} />
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{label}</Typography>
+                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        {value} / {billingStats?.totalTagihan || 0}
                       </Typography>
                     </Box>
                     <LinearProgress
                       variant="determinate"
-                      value={totalBillings > 0 ? (paidBillings / totalBillings) * 100 : 0}
-                      color="success"
-                      sx={{ height: 8, borderRadius: 4 }}
+                      value={totalBillings > 0 ? (value / totalBillings) * 100 : 0}
+                      color={color}
+                      sx={{ height: 6, borderRadius: 3 }}
                     />
                   </Box>
-
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2">Belum Bayar</Typography>
-                      <Typography variant="body2">
-                        {billingStats?.totalPending || 0} / {billingStats?.totalTagihan || 0}
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={totalBillings > 0 ? ((billingStats?.totalPending || 0) / totalBillings) * 100 : 0}
-                      color="warning"
-                      sx={{ height: 8, borderRadius: 4 }}
-                    />
-                  </Box>
-
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2">Terlambat</Typography>
-                      <Typography variant="body2">
-                        {billingStats?.totalTunggakan || 0} / {billingStats?.totalTagihan || 0}
-                      </Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={totalBillings > 0 ? ((billingStats?.totalTunggakan || 0) / totalBillings) * 100 : 0}
-                      color="error"
-                      sx={{ height: 8, borderRadius: 4 }}
-                    />
-                  </Box>
-                </Box>
-              </CardContent>
+                ))}
+              </Box>
             </Card>
           </Grid>
         </Grid>
 
         {/* Filters and Search */}
         <Card sx={{ mb: 3 }}>
-          <CardContent>
+          <Box sx={{ px: 2.5, py: 2 }}>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
+                  size="small"
                   placeholder="Cari nomor akun..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Search />
+                        <Search sx={{ fontSize: 20, color: 'text.disabled' }} />
                       </InputAdornment>
                     ),
                   }}
                 />
               </Grid>
-              
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    label="Status"
-                  >
+                  <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} label="Status">
                     <MenuItem value="all">Semua</MenuItem>
                     <MenuItem value="SETTLEMENT">Lunas</MenuItem>
                     <MenuItem value="PENDING">Belum Bayar</MenuItem>
@@ -626,35 +578,28 @@ export default function BillingManagement() {
                   </Select>
                 </FormControl>
               </Grid>
-              
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size="small">
                   <InputLabel>Periode</InputLabel>
-                  <Select
-                    value={filterPeriod}
-                    onChange={(e) => setFilterPeriod(e.target.value)}
-                    label="Periode"
-                  >
+                  <Select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} label="Periode">
                     <MenuItem value="current">Bulan Ini</MenuItem>
                     <MenuItem value="last">Bulan Lalu</MenuItem>
                     <MenuItem value="all">Semua</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              
               <Grid item xs={12} md={2}>
                 <Button
                   fullWidth
                   variant="contained"
                   startIcon={<Autorenew />}
                   onClick={handleGenerateBills}
-                  sx={{ height: '56px' }}
                 >
                   Generate
                 </Button>
               </Grid>
             </Grid>
-          </CardContent>
+          </Box>
         </Card>
 
         {/* Billing Table */}
