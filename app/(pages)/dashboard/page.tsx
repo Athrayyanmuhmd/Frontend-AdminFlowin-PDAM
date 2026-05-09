@@ -6,7 +6,6 @@ import { useAdmin } from '../../layouts/AdminProvider';
 import {
   Grid,
   Card,
-  CardContent,
   Typography,
   Box,
   Divider,
@@ -217,39 +216,63 @@ export default function Dashboard() {
       )}
 
       {/* Charts */}
-      <Grid container spacing={3} sx={{ mt: 1 }}>
+      <Grid container spacing={3} sx={{ mt: 1 }} alignItems="stretch">
+
         {/* Line chart — Pendapatan */}
-        <Grid item xs={12} lg={8}>
-          <Card sx={{ overflow: 'visible', pt: 0 }}>
+        <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
+          <Card sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Card Header */}
             <Box
               sx={{
-                background: 'linear-gradient(195deg, #49a3f1, #1A73E8)',
-                borderRadius: '12px',
-                mx: 2,
-                mt: -3,
-                p: 1,
-                height: 190,
-                boxShadow: '0 4px 20px 0 rgba(0,0,0,0.14), 0 7px 10px -5px rgba(26,115,232,0.4)',
+                px: 3, pt: 2.5, pb: 1.5,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                borderBottom: '1px solid', borderColor: 'divider',
               }}
             >
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                  Pendapatan Tagihan
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                  6 bulan terakhir
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  background: 'linear-gradient(195deg, #49a3f1, #1A73E8)',
+                  borderRadius: '8px',
+                  px: 1.5,
+                  py: 0.5,
+                  flexShrink: 0,
+                }}
+              >
+                <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, letterSpacing: '0.03em' }}>
+                  6 BULAN
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Chart area */}
+            <Box sx={{ flex: 1, px: 1, py: 1.5, minHeight: 260 }}>
               {konsumsiChartData.length === 0 ? (
-                <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Belum ada data tagihan
-                  </Typography>
+                <Box sx={{ height: 260, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                  <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Receipt sx={{ color: 'text.disabled', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="body2" color="text.disabled">Belum ada data tagihan</Typography>
+                  <Typography variant="caption" color="text.disabled">Data muncul setelah tagihan pertama diterbitkan</Typography>
                 </Box>
               ) : (
-                <DashboardLineChart data={konsumsiChartData} darkMode />
+                <Box sx={{ height: 260 }}>
+                  <DashboardLineChart data={konsumsiChartData} />
+                </Box>
               )}
             </Box>
-            <Box px={2.5} pb={2} pt={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Pendapatan Tagihan
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                6 bulan terakhir
-              </Typography>
-              <Divider sx={{ my: 1.5 }} />
+
+            {/* Footer */}
+            <Divider />
+            <Box sx={{ px: 3, py: 1.25, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
               <Typography variant="caption" color="text.secondary">
                 Diperbarui secara otomatis
               </Typography>
@@ -258,43 +281,67 @@ export default function Dashboard() {
         </Grid>
 
         {/* Pie chart — Distribusi */}
-        <Grid item xs={12} lg={4}>
-          <Card sx={{ overflow: 'visible' }}>
+        <Grid item xs={12} lg={4} sx={{ display: 'flex' }}>
+          <Card sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Card Header */}
             <Box
               sx={{
-                background: 'linear-gradient(195deg, #42424a, #191919)',
-                borderRadius: '12px',
-                mx: 2,
-                mt: -3,
-                p: 1,
-                height: 190,
-                boxShadow: '0 4px 20px 0 rgba(0,0,0,0.14), 0 7px 10px -5px rgba(25,25,25,0.4)',
+                px: 3, pt: 2.5, pb: 1.5,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                borderBottom: '1px solid', borderColor: 'divider',
               }}
             >
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                  Distribusi Pelanggan
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                  Berdasarkan kelompok
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  background: 'linear-gradient(195deg, #42424a, #191919)',
+                  borderRadius: '8px',
+                  px: 1.5,
+                  py: 0.5,
+                  flexShrink: 0,
+                }}
+              >
+                <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, letterSpacing: '0.03em' }}>
+                  LIVE
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Chart area */}
+            <Box sx={{ flex: 1, px: 1, py: 1, minHeight: 220 }}>
               {distribusiChartData.length === 0 ? (
-                <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Belum ada data meteran
-                  </Typography>
+                <Box sx={{ height: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                  <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <People sx={{ color: 'text.disabled', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="body2" color="text.disabled">Belum ada data meteran</Typography>
+                  <Typography variant="caption" color="text.disabled">Data muncul setelah meteran dipasang</Typography>
                 </Box>
               ) : (
-                <DashboardPieChart data={distribusiChartData} darkMode />
+                <Box sx={{ height: 220 }}>
+                  <DashboardPieChart data={distribusiChartData} />
+                </Box>
               )}
             </Box>
-            <Box px={2.5} pb={2} pt={2}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Distribusi Kelompok Pelanggan
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                Berdasarkan meteran terpasang
-              </Typography>
-              <Divider sx={{ my: 1.5 }} />
+
+            {/* Footer */}
+            <Divider />
+            <Box sx={{ px: 3, py: 1.25, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'success.main' }} />
               <Typography variant="caption" color="text.secondary">
                 Diperbarui secara otomatis
               </Typography>
             </Box>
           </Card>
         </Grid>
+
       </Grid>
     </AdminLayout>
   );
