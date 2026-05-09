@@ -7,7 +7,6 @@ import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
-  CardContent,
   Typography,
   Box,
   Button,
@@ -17,7 +16,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   IconButton,
   Dialog,
   DialogTitle,
@@ -39,6 +37,7 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import StatCard from '../../../components/ui/StatCard';
 import {
   GET_ALL_KELOMPOK_PELANGGAN,
   CREATE_KELOMPOK_PELANGGAN,
@@ -216,58 +215,41 @@ export default function TariffsPage() {
           </Box>
         </Box>
 
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Tarif air menggunakan sistem dua tingkat: di bawah 10m³ dan di atas 10m³. Perubahan tarif akan langsung mempengaruhi perhitungan tagihan berikutnya.
+        <Alert severity="info" sx={{ mb: 3, py: 0.75 }} icon={false}>
+          <Typography variant="caption">
+            Tarif air menggunakan sistem dua tingkat: di bawah 10m³ dan di atas 10m³. Perubahan tarif akan langsung mempengaruhi perhitungan tagihan berikutnya.
+          </Typography>
         </Alert>
 
         {/* Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={3} sx={{ mb: 5 }}>
           <Grid item xs={12} sm={6} md={4}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: 'primary.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <AttachMoney sx={{ color: 'primary.main' }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{kelompokList.length}</Typography>
-                    <Typography variant="body2" color="text.secondary">Total Kelompok Tarif</Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              color="primary"
+              icon={<AttachMoney />}
+              title="Total Kelompok Tarif"
+              count={kelompokList.length}
+              subtitle="Kelompok terdaftar"
+            />
           </Grid>
           <Grid item xs={12} sm={6} md={4}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CheckCircle sx={{ color: 'success.main' }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{kelompokList.length}</Typography>
-                    <Typography variant="body2" color="text.secondary">Kelompok Aktif</Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              color="success"
+              icon={<CheckCircle />}
+              title="Kelompok Aktif"
+              count={kelompokList.length}
+              subtitle="Status normal"
+              subtitleColor="success.main"
+            />
           </Grid>
           <Grid item xs={12} sm={6} md={4}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: 'warning.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <TrendingUp sx={{ color: 'warning.main' }} />
-                  </Box>
-                  <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {formatRupiah(minHarga)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">Tarif Terendah (≤10m³)</Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              color="info"
+              icon={<TrendingUp />}
+              title="Tarif Terendah (≤10m³)"
+              count={formatRupiah(minHarga)}
+              subtitle="Per meter kubik"
+            />
           </Grid>
         </Grid>
 
@@ -276,13 +258,13 @@ export default function TariffsPage() {
           <TableContainer sx={{ overflowX: 'auto' }}>
             <Table sx={{ minWidth: 600 }}>
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 600 }}>Nama Kelompok</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">Tarif ≤ 10m³ (per m³)</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">Tarif &gt; 10m³ (per m³)</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">Biaya Beban</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Dibuat</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="center">Aksi</TableCell>
+                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Nama Kelompok</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif ≤ 10m³</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif &gt; 10m³</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Biaya Beban</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Dibuat</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="center">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -297,7 +279,10 @@ export default function TariffsPage() {
                     <TableRow key={k._id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Chip label={k.NamaKelompok} color="primary" size="small" />
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#013494', flexShrink: 0 }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {k.NamaKelompok}
+                          </Typography>
                         </Box>
                       </TableCell>
                       <TableCell align="right">
