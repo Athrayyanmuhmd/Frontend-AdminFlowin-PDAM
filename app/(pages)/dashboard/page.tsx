@@ -6,6 +6,7 @@ import { useAdmin } from '../../layouts/AdminProvider';
 import {
   Grid,
   Card,
+  CardContent,
   Typography,
   Box,
   Divider,
@@ -25,25 +26,20 @@ import {
   Receipt,
   Warning,
   Cable,
-  Schedule,
 } from '@mui/icons-material';
 import nextDynamic from 'next/dynamic';
 import { Skeleton } from '@mui/material';
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DashboardKPI } from '../../types/admin.types';
-import {
-  GET_DASHBOARD_STATS,
-  GET_CHART_KONSUMSI_PER_BULAN,
-  GET_DISTRIBUSI_KELOMPOK_PELANGGAN,
-} from '@/lib/graphql/queries/dashboard';
+import { GET_DASHBOARD_STATS, GET_CHART_KONSUMSI_PER_BULAN, GET_DISTRIBUSI_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/dashboard';
 import StatCard, { StatCardColor } from '../../components/ui/StatCard';
 
 const DashboardLineChart = nextDynamic(
   () => import('../../components/charts/DashboardLineChart'),
   {
     ssr: false,
-    loading: () => <Skeleton variant="rectangular" width="100%" height="100%" sx={{ borderRadius: 1 }} />,
+    loading: () => <Skeleton variant="rectangular" width="100%" height={200} sx={{ borderRadius: 1 }} />,
   }
 );
 
@@ -51,25 +47,20 @@ const DashboardPieChart = nextDynamic(
   () => import('../../components/charts/DashboardPieChart'),
   {
     ssr: false,
-    loading: () => <Skeleton variant="circular" width={140} height={140} sx={{ mx: 'auto', mt: 2 }} />,
+    loading: () => <Skeleton variant="circular" width={180} height={180} sx={{ mx: 'auto' }} />,
   }
 );
 
 const CHART_COLORS = ['#013494', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
 
-interface KpiConfig {
-  icon: React.ReactNode;
-  color: StatCardColor;
-  format?: (v: number) => string;
-}
-
+interface KpiConfig { icon: React.ReactNode; color: StatCardColor; format?: (v: number, unit: string) => string }
 const KPI_CONFIG: Record<string, KpiConfig> = {
-  '1': { icon: <People />,      color: 'info' },
-  '2': { icon: <Speed />,       color: 'success' },
-  '3': { icon: <Engineering />, color: 'warning' },
-  '4': { icon: <Receipt />,     color: 'primary', format: (v) => `Rp ${v.toLocaleString('id-ID')}` },
-  '5': { icon: <Warning />,     color: 'error' },
-  '6': { icon: <Cable />,       color: 'dark' },
+  '1': { icon: <People />,       color: 'info' },
+  '2': { icon: <Speed />,        color: 'success' },
+  '3': { icon: <Engineering />,  color: 'warning' },
+  '4': { icon: <Receipt />,      color: 'primary', format: (v) => `Rp ${v.toLocaleString('id-ID')}` },
+  '5': { icon: <Warning />,      color: 'error' },
+  '6': { icon: <Cable />,        color: 'dark' },
 };
 
 export default function Dashboard() {
@@ -86,29 +77,38 @@ export default function Dashboard() {
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_DASHBOARD_STATS, {
     fetchPolicy: 'cache-and-network',
   });
+
   const { data: chartKonsumsiData, refetch: refetchKonsumsi } = useQuery(GET_CHART_KONSUMSI_PER_BULAN, {
     fetchPolicy: 'cache-and-network',
   });
+
   const { data: distribusiData, refetch: refetchDistribusi } = useQuery(GET_DISTRIBUSI_KELOMPOK_PELANGGAN, {
     fetchPolicy: 'cache-and-network',
   });
 
   useEffect(() => {
-    const stats = (data as any)?.getDashboardStats;
-    if (!stats) return;
-    setKpis([
-      { id: '1', name: 'Total Pelanggan',         value: stats.totalPelanggan || 0,       unit: '',   trend: 'up',  status: 'good',                                              lastUpdated: new Date() },
-      { id: '2', name: 'Total Meteran Terpasang',  value: stats.totalMeteran || 0,         unit: '',   trend: 'up',  status: 'good',                                              lastUpdated: new Date() },
-      { id: '3', name: 'Work Orders Aktif',        value: stats.activeWorkOrders || 0,     unit: '',   trend: 'up',  status: stats.activeWorkOrders > 30 ? 'warning' : 'good',    lastUpdated: new Date() },
-      { id: '4', name: 'Tagihan Bulan Ini',        value: stats.totalTagihanBulanIni || 0, unit: 'Rp', trend: 'up',  status: 'good',                                              lastUpdated: new Date() },
-      { id: '5', name: 'Tunggakan Aktif',          value: stats.tunggakanAktif || 0,       unit: '',   trend: 'up',  status: stats.tunggakanAktif > 100 ? 'warning' : 'good',     lastUpdated: new Date() },
-      { id: '6', name: 'Pending Koneksi',          value: stats.pendingKoneksi || 0,       unit: '',   trend: 'up',  status: stats.pendingKoneksi > 20 ? 'warning' : 'good',      lastUpdated: new Date() },
-    ]);
+    if ((data as any)?.getDashboardStats) {
+      updateDashboardFromGraphQL((data as any).getDashboardStats);
+    }
   }, [data]);
 
   useEffect(() => {
-    if (graphqlError) console.error('GraphQL Error:', graphqlError);
+    if (graphqlError) {
+      console.error('GraphQL Error:', graphqlError);
+    }
   }, [graphqlError]);
+
+  const updateDashboardFromGraphQL = (stats: any) => {
+    const realKPIs: DashboardKPI[] = [
+      { id: '1', name: 'Total Pelanggan',        value: stats.totalPelanggan || 0,         unit: '',   trend: 'up',   status: 'good',    lastUpdated: new Date() },
+      { id: '2', name: 'Total Meteran Terpasang', value: stats.totalMeteran || 0,           unit: '',   trend: 'up',   status: 'good',    lastUpdated: new Date() },
+      { id: '3', name: 'Work Orders Aktif',       value: stats.activeWorkOrders || 0,       unit: '',   trend: stats.activeWorkOrders > 0 ? 'up' : 'down', status: stats.activeWorkOrders > 30 ? 'warning' : 'good', lastUpdated: new Date() },
+      { id: '4', name: 'Tagihan Bulan Ini',       value: stats.totalTagihanBulanIni || 0,   unit: 'Rp', trend: 'up',   status: 'good',    lastUpdated: new Date() },
+      { id: '5', name: 'Tunggakan Aktif',         value: stats.tunggakanAktif || 0,         unit: '',   trend: stats.tunggakanAktif > 0 ? 'up' : 'down', status: stats.tunggakanAktif > 100 ? 'warning' : 'good', lastUpdated: new Date() },
+      { id: '6', name: 'Pending Koneksi',         value: stats.pendingKoneksi || 0,         unit: '',   trend: stats.pendingKoneksi > 0 ? 'up' : 'down', status: stats.pendingKoneksi > 20 ? 'warning' : 'good', lastUpdated: new Date() },
+    ];
+    setKpis(realKPIs);
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -117,14 +117,12 @@ export default function Dashboard() {
   };
 
   const konsumsiChartData = (chartKonsumsiData as any)?.getChartKonsumsiPerBulan || [];
-  const distribusiChartData = (
-    (distribusiData as any)?.getDistribusiKelompokPelanggan || []
-  ).map((item: { namaKelompok: string; jumlahMeteran: number }, idx: number) => ({
-    ...item,
-    color: CHART_COLORS[idx % CHART_COLORS.length],
-  }));
-
-  const stats = (data as any)?.getDashboardStats;
+  const distribusiChartData = ((distribusiData as any)?.getDistribusiKelompokPelanggan || []).map(
+    (item: { namaKelompok: string; jumlahMeteran: number }, index: number) => ({
+      ...item,
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    })
+  );
 
   if (loading && kpis.length === 0) {
     return (
@@ -140,23 +138,13 @@ export default function Dashboard() {
 
   return (
     <AdminLayout title="Dashboard Eksekutif">
-
-      {/* ─── Page Header ─── */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-            Dashboard Eksekutif
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Ringkasan operasional sistem Aqualink
-          </Typography>
-        </Box>
+      {/* Header */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
+          Dashboard Eksekutif
+        </Typography>
         <Tooltip title="Refresh Data">
-          <IconButton
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            sx={{ bgcolor: 'background.paper', boxShadow: 1, '&:hover': { bgcolor: 'background.paper' } }}
-          >
+          <IconButton onClick={handleRefresh} disabled={isRefreshing}>
             <Refresh />
           </IconButton>
         </Tooltip>
@@ -164,22 +152,21 @@ export default function Dashboard() {
 
       {graphqlError && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          Gagal memuat sebagian data: {graphqlError.message}
+          Gagal memuat sebagian data dashboard: {graphqlError.message}
         </Alert>
       )}
 
-      {/* ─── KPI Cards ─── */}
-      {/* mt: 4 on this row gives the floating icon boxes room to overflow upward */}
-      <Grid container spacing={3} sx={{ mb: 4, mt: 1 }}>
+      {/* KPI StatCards */}
+      <Grid container spacing={3} sx={{ mb: 5 }}>
         {kpis.map((kpi) => {
           const cfg = KPI_CONFIG[kpi.id];
           return (
-            <Grid item xs={12} sm={6} md={4} lg={2} key={kpi.id} sx={{ display: 'flex' }}>
+            <Grid item xs={12} sm={6} md={4} lg={2} key={kpi.id}>
               <StatCard
                 color={cfg.color}
                 icon={cfg.icon}
                 title={kpi.name}
-                count={cfg.format ? cfg.format(kpi.value) : kpi.value.toLocaleString('id-ID')}
+                count={cfg.format ? cfg.format(kpi.value, kpi.unit) : kpi.value.toLocaleString('id-ID')}
                 subtitle={kpi.status === 'warning' ? 'Perlu perhatian' : 'Status normal'}
                 subtitleColor={kpi.status === 'warning' ? 'warning.main' : 'success.main'}
               />
@@ -188,48 +175,66 @@ export default function Dashboard() {
         })}
       </Grid>
 
-      {/* ─── Status Pengajuan ─── */}
-      {stats && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+      {/* Status Pengajuan Sambungan */}
+      {(data as any)?.getDashboardStats && (
+        <Box sx={{ mb: 5 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
             Status Pengajuan Sambungan Air
           </Typography>
           <Grid container spacing={3}>
-            {[
-              { color: 'warning' as StatCardColor, icon: <HourglassEmpty />, title: 'Menunggu Verifikasi', count: stats.koneksiMenunggu ?? 0, subtitle: 'Perlu ditinjau', subtitleColor: 'warning.main' },
-              { color: 'success' as StatCardColor, icon: <CheckCircle />,    title: 'Disetujui',           count: stats.koneksiDisetujui ?? 0, subtitle: 'Pengajuan berhasil', subtitleColor: 'success.main' },
-              { color: 'error'   as StatCardColor, icon: <Cancel />,         title: 'Ditolak',             count: stats.koneksiDitolak ?? 0,  subtitle: 'Pengajuan ditolak', subtitleColor: 'error.main' },
-            ].map((card) => (
-              <Grid item xs={12} sm={4} key={card.title} sx={{ display: 'flex' }}>
-                <StatCard {...card} />
-              </Grid>
-            ))}
+            <Grid item xs={12} sm={4}>
+              <StatCard
+                color="warning"
+                icon={<HourglassEmpty />}
+                title="Menunggu Verifikasi"
+                count={(data as any).getDashboardStats.koneksiMenunggu ?? 0}
+                subtitle="Perlu ditinjau"
+                subtitleColor="warning.main"
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <StatCard
+                color="success"
+                icon={<CheckCircle />}
+                title="Disetujui"
+                count={(data as any).getDashboardStats.koneksiDisetujui ?? 0}
+                subtitle="Pengajuan berhasil"
+                subtitleColor="success.main"
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <StatCard
+                color="error"
+                icon={<Cancel />}
+                title="Ditolak"
+                count={(data as any).getDashboardStats.koneksiDitolak ?? 0}
+                subtitle="Pengajuan ditolak"
+                subtitleColor="error.main"
+              />
+            </Grid>
           </Grid>
         </Box>
       )}
 
-      {/* ─── Charts ─── */}
-      {/* mt: 4 creates space so floating chart header (mt: -3 inside card) visually floats above card edge */}
-      <Grid container spacing={3} sx={{ mt: 1 }} alignItems="stretch">
-
-        {/* Line Chart */}
-        <Grid item xs={12} lg={8} sx={{ display: 'flex' }}>
-          <Card sx={{ overflow: 'visible', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* Charts */}
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        {/* Line chart — Pendapatan */}
+        <Grid item xs={12} lg={8}>
+          <Card sx={{ overflow: 'visible', pt: 0 }}>
             <Box
               sx={{
                 background: 'linear-gradient(195deg, #49a3f1, #1A73E8)',
                 borderRadius: '12px',
                 mx: 2,
                 mt: -3,
-                height: 200,
-                flexShrink: 0,
-                overflow: 'hidden',
+                p: 1,
+                height: 190,
                 boxShadow: '0 4px 20px 0 rgba(0,0,0,0.14), 0 7px 10px -5px rgba(26,115,232,0.4)',
               }}
             >
               {konsumsiChartData.length === 0 ? (
                 <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', px: 2, textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                     Belum ada data tagihan
                   </Typography>
                 </Box>
@@ -237,78 +242,59 @@ export default function Dashboard() {
                 <DashboardLineChart data={konsumsiChartData} darkMode />
               )}
             </Box>
-            <Box px={2.5} pt={2} pb={2} sx={{ flex: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Box px={2.5} pb={2} pt={2}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Pendapatan Tagihan
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 6 bulan terakhir
               </Typography>
               <Divider sx={{ my: 1.5 }} />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Schedule sx={{ fontSize: 14, color: 'text.disabled' }} />
-                <Typography variant="caption" color="text.disabled">
-                  Diperbarui secara otomatis
-                </Typography>
-              </Box>
+              <Typography variant="caption" color="text.secondary">
+                Diperbarui secara otomatis
+              </Typography>
             </Box>
           </Card>
         </Grid>
 
-        {/* Pie Chart */}
-        <Grid item xs={12} lg={4} sx={{ display: 'flex' }}>
-          <Card sx={{ overflow: 'visible', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Pie chart — Distribusi */}
+        <Grid item xs={12} lg={4}>
+          <Card sx={{ overflow: 'visible' }}>
             <Box
               sx={{
                 background: 'linear-gradient(195deg, #42424a, #191919)',
                 borderRadius: '12px',
                 mx: 2,
                 mt: -3,
-                height: 200,
-                flexShrink: 0,
-                overflow: 'hidden',
+                p: 1,
+                height: 190,
                 boxShadow: '0 4px 20px 0 rgba(0,0,0,0.14), 0 7px 10px -5px rgba(25,25,25,0.4)',
               }}
             >
               {distribusiChartData.length === 0 ? (
                 <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', px: 2, textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                     Belum ada data meteran
                   </Typography>
                 </Box>
               ) : (
-                <DashboardPieChart data={distribusiChartData} darkMode showLegend={false} />
+                <DashboardPieChart data={distribusiChartData} darkMode />
               )}
             </Box>
-            <Box px={2.5} pt={2} pb={2} sx={{ flex: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <Box px={2.5} pb={2} pt={2}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Distribusi Kelompok Pelanggan
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 Berdasarkan meteran terpasang
               </Typography>
-              {/* Legend inline di card body — lebih rapi daripada di dalam area gelap */}
-              {distribusiChartData.length > 0 && (
-                <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {distribusiChartData.map((item: any) => (
-                    <Box key={item.namaKelompok} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: item.color, flexShrink: 0 }} />
-                      <Typography variant="caption" color="text.secondary">{item.namaKelompok}</Typography>
-                    </Box>
-                  ))}
-                </Box>
-              )}
               <Divider sx={{ my: 1.5 }} />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Schedule sx={{ fontSize: 14, color: 'text.disabled' }} />
-                <Typography variant="caption" color="text.disabled">
-                  Diperbarui secara otomatis
-                </Typography>
-              </Box>
+              <Typography variant="caption" color="text.secondary">
+                Diperbarui secara otomatis
+              </Typography>
             </Box>
           </Card>
         </Grid>
-
       </Grid>
     </AdminLayout>
   );

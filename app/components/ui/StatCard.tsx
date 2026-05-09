@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import { Card, Box, Typography, Divider } from '@mui/material';
@@ -38,7 +38,7 @@ export default function StatCard({ color = 'primary', icon, title, count, subtit
 
   return (
     <Card sx={{ height: '100%', overflow: 'visible' }}>
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start" pt={1} px={2} sx={{ minHeight: 84 }}>
+      <Box display="flex" justifyContent="space-between" pt={1} px={2}>
         <Box
           sx={{
             background: gradient,
@@ -56,30 +56,23 @@ export default function StatCard({ color = 'primary', icon, title, count, subtit
         >
           {icon}
         </Box>
-        <Box textAlign="right" sx={{ minWidth: 0, flex: 1, pl: 1, pt: 0.5 }}>
+        <Box textAlign="right" lineHeight={1.25} sx={{ minWidth: 0 }}>
           <Typography
-            variant="caption"
+            variant="body2"
             color="text.secondary"
-            sx={{
-              fontWeight: 600,
-              display: 'block',
-              lineHeight: 1.4,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              wordBreak: 'break-word',
-            }}
+            sx={{ fontWeight: 500, display: 'block', lineHeight: 1.3 }}
           >
             {title}
           </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.75, lineHeight: 1.2 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5, lineHeight: 1.2 }}>
             {count}
           </Typography>
         </Box>
       </Box>
-      <Divider sx={{ mt: 1.5, mb: 1 }} />
+      <Divider sx={{ my: 1.5 }} />
       <Box pb={1.5} px={2}>
-        <Typography variant="caption" color={subtitleColor ?? 'text.secondary'} sx={{ fontWeight: 500 }}>
-          {subtitle ?? '\u00A0'}
+        <Typography variant="caption" color={subtitleColor ?? 'text.secondary'}>
+          {subtitle ?? ' '}
         </Typography>
       </Box>
     </Card>
