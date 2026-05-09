@@ -19,6 +19,9 @@ const muiTheme = createTheme({
     primary: {
       main: '#013494',
     },
+    background: {
+      default: '#f0f2f5',
+    },
   },
   typography: {
     fontFamily: "'Poppins', sans-serif",
@@ -45,8 +48,10 @@ const muiTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          // Prevent card overflow on very small screens
           minWidth: 0,
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+          overflow: 'visible',
         },
       },
     },
