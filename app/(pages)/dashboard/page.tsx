@@ -216,20 +216,19 @@ export default function Dashboard() {
         </Box>
       )}
 
-      {/* Charts */}
-      <Grid container spacing={3}>
+      {/* Charts — mt:4 gives room for the floating header to visually clear the section above */}
+      <Grid container spacing={3} sx={{ mt: 1 }}>
         {/* Line chart — Pendapatan */}
         <Grid item xs={12} lg={8}>
-          <Card sx={{ overflow: 'visible' }}>
-            {/* Floating chart area */}
+          <Card sx={{ overflow: 'visible', pt: 0 }}>
             <Box
               sx={{
                 background: 'linear-gradient(195deg, #49a3f1, #1A73E8)',
                 borderRadius: '12px',
                 mx: 2,
                 mt: -3,
-                p: 1.5,
-                height: 220,
+                p: 1,
+                height: 190,
                 boxShadow: '0 4px 20px 0 rgba(0,0,0,0.14), 0 7px 10px -5px rgba(26,115,232,0.4)',
               }}
             >
@@ -240,14 +239,14 @@ export default function Dashboard() {
                   </Typography>
                 </Box>
               ) : (
-                <DashboardLineChart data={konsumsiChartData} />
+                <DashboardLineChart data={konsumsiChartData} darkMode />
               )}
             </Box>
-            <Box px={2} pb={2} pt={2}>
+            <Box px={2.5} pb={2} pt={2}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Pendapatan Tagihan
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 6 bulan terakhir
               </Typography>
               <Divider sx={{ my: 1.5 }} />
@@ -267,8 +266,8 @@ export default function Dashboard() {
                 borderRadius: '12px',
                 mx: 2,
                 mt: -3,
-                p: 1.5,
-                height: 220,
+                p: 1,
+                height: 190,
                 boxShadow: '0 4px 20px 0 rgba(0,0,0,0.14), 0 7px 10px -5px rgba(25,25,25,0.4)',
               }}
             >
@@ -279,14 +278,14 @@ export default function Dashboard() {
                   </Typography>
                 </Box>
               ) : (
-                <DashboardPieChart data={distribusiChartData} />
+                <DashboardPieChart data={distribusiChartData} darkMode />
               )}
             </Box>
-            <Box px={2} pb={2} pt={2}>
+            <Box px={2.5} pb={2} pt={2}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Distribusi Kelompok Pelanggan
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                 Berdasarkan meteran terpasang
               </Typography>
               <Divider sx={{ my: 1.5 }} />

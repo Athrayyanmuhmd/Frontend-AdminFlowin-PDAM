@@ -58,9 +58,9 @@ export default function StatCard({ color = 'primary', icon, title, count, subtit
         </Box>
         <Box textAlign="right" lineHeight={1.25} sx={{ minWidth: 0 }}>
           <Typography
-            variant="caption"
+            variant="body2"
             color="text.secondary"
-            sx={{ fontWeight: 400, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}
+            sx={{ fontWeight: 500, display: 'block', lineHeight: 1.3 }}
           >
             {title}
           </Typography>
