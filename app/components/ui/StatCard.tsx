@@ -3,25 +3,10 @@
 import React from 'react';
 import { Card, Box, Typography, Divider } from '@mui/material';
 
-const COLOR_GRADIENT: Record<string, string> = {
-  primary: 'linear-gradient(195deg, #3b6fce, #013494)',
-  info:    'linear-gradient(195deg, #49a3f1, #1A73E8)',
-  success: 'linear-gradient(195deg, #66BB6A, #43A047)',
-  warning: 'linear-gradient(195deg, #FFA726, #FB8C00)',
-  error:   'linear-gradient(195deg, #EF5350, #E53935)',
-  dark:    'linear-gradient(195deg, #42424a, #191919)',
-};
+const ICON_BG = '#1A2E4A';
+const ICON_SHADOW = '0 4px 20px 0 rgba(0,0,0,0.12), 0 7px 10px -5px rgba(26,46,74,0.35)';
 
-const COLOR_SHADOW: Record<string, string> = {
-  primary: 'rgba(1,52,148,0.4)',
-  info:    'rgba(26,115,232,0.4)',
-  success: 'rgba(67,160,71,0.4)',
-  warning: 'rgba(251,140,0,0.4)',
-  error:   'rgba(229,57,53,0.4)',
-  dark:    'rgba(25,25,25,0.4)',
-};
-
-export type StatCardColor = keyof typeof COLOR_GRADIENT;
+export type StatCardColor = 'primary' | 'info' | 'success' | 'warning' | 'error' | 'dark';
 
 interface StatCardProps {
   color?: StatCardColor;
@@ -33,15 +18,12 @@ interface StatCardProps {
 }
 
 export default function StatCard({ color = 'primary', icon, title, count, subtitle, subtitleColor }: StatCardProps) {
-  const gradient = COLOR_GRADIENT[color] ?? COLOR_GRADIENT.primary;
-  const shadow = COLOR_SHADOW[color] ?? COLOR_SHADOW.primary;
-
   return (
     <Card sx={{ height: '100%', overflow: 'visible' }}>
       <Box display="flex" justifyContent="space-between" pt={1} px={2}>
         <Box
           sx={{
-            background: gradient,
+            backgroundColor: ICON_BG,
             borderRadius: '12px',
             display: 'flex',
             justifyContent: 'center',
@@ -50,7 +32,7 @@ export default function StatCard({ color = 'primary', icon, title, count, subtit
             height: '4rem',
             mt: -3,
             flexShrink: 0,
-            boxShadow: `0 4px 20px 0 rgba(0,0,0,0.14), 0 7px 10px -5px ${shadow}`,
+            boxShadow: ICON_SHADOW,
             color: '#fff',
           }}
         >
