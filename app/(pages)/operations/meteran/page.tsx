@@ -38,7 +38,6 @@ import {
 } from '@mui/material';
 import {
   Search,
-  Add,
   MoreVert,
   Edit,
   Delete,
@@ -241,13 +240,6 @@ export default function MeteranListPage() {
                 <Refresh />
               </IconButton>
             </Tooltip>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => router.push('/monitoring/smart-meters/register')}
-            >
-              Tambah Meteran
-            </Button>
           </Box>
         </Box>
 

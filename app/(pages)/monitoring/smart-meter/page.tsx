@@ -37,7 +37,6 @@ import {
   Refresh,
   WaterDrop,
   LocationOn,
-  Add,
   MonitorHeart,
   AttachMoney,
   OpenInNew,
@@ -210,13 +209,6 @@ export default function SmartMeterManagement() {
               disabled={loading}
             >
               Refresh
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => router.push('/monitoring/smart-meters/register')}
-            >
-              Registrasi Meteran
             </Button>
           </Box>
         </Box>
