@@ -3,8 +3,8 @@
 import React from 'react';
 import { Card, Box, Typography, Divider } from '@mui/material';
 
-const ICON_BG = '#1A2E4A';
-const ICON_SHADOW = '0 4px 20px 0 rgba(0,0,0,0.12), 0 7px 10px -5px rgba(26,46,74,0.35)';
+const ICON_BG = '#013494';
+const ICON_SHADOW = '0 4px 20px 0 rgba(0,0,0,0.12), 0 7px 10px -5px rgba(1,52,148,0.35)';
 
 export type StatCardColor = 'primary' | 'info' | 'success' | 'warning' | 'error' | 'dark';
 
