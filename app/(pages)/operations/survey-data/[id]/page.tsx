@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
 import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
+import { isPdfUrl, toPdfInlineUrl } from '../../../../utils/documentUrl';
 import {
   ArrowBack,
   LocationOn,
@@ -313,78 +314,32 @@ export default function SurveyDataDetailPage() {
                             Foto / Dokumen
                           </Typography>
                           <Grid container spacing={1}>
-                            {progres.posisiMeteran && (
-                              <Grid item xs={12} sm={6}>
-                                <Typography
-                                  variant='caption'
-                                  color='text.secondary'
-                                >
-                                  Posisi Meteran
-                                </Typography>
-                                <Box
-                                  component='img'
-                                  src={progres.posisiMeteran}
-                                  alt='Jaringan'
-                                  sx={{
-                                    width: '100%',
-                                    borderRadius: 1,
-                                    cursor: 'pointer',
-                                    mt: 0.5,
-                                  }}
-                                  onClick={() =>
-                                    window.open(progres.posisiMeteran, '_blank')
-                                  }
-                                />
+                            {[
+                              { label: 'Posisi Meteran', url: progres.posisiMeteran },
+                              { label: 'Jaringan',       url: progres.urlJaringan   },
+                              { label: 'Posisi Bak',     url: progres.urlPosisiBak  },
+                            ].filter(d => d.url).map(d => (
+                              <Grid item xs={12} sm={6} key={d.label}>
+                                <Typography variant='caption' color='text.secondary'>{d.label}</Typography>
+                                {isPdfUrl(d.url) ? (
+                                  <Button
+                                    size='small' variant='outlined' fullWidth
+                                    sx={{ mt: 0.5, justifyContent: 'flex-start' }}
+                                    onClick={() => window.open(toPdfInlineUrl(d.url), '_blank')}
+                                  >
+                                    Buka {d.label} (PDF)
+                                  </Button>
+                                ) : (
+                                  <Box
+                                    component='img'
+                                    src={d.url}
+                                    alt={d.label}
+                                    sx={{ width: '100%', borderRadius: 1, cursor: 'pointer', mt: 0.5 }}
+                                    onClick={() => window.open(d.url, '_blank')}
+                                  />
+                                )}
                               </Grid>
-                            )}
-                            {progres.urlJaringan && (
-                              <Grid item xs={12} sm={6}>
-                                <Typography
-                                  variant='caption'
-                                  color='text.secondary'
-                                >
-                                  Jaringan
-                                </Typography>
-                                <Box
-                                  component='img'
-                                  src={progres.urlJaringan}
-                                  alt='Jaringan'
-                                  sx={{
-                                    width: '100%',
-                                    borderRadius: 1,
-                                    cursor: 'pointer',
-                                    mt: 0.5,
-                                  }}
-                                  onClick={() =>
-                                    window.open(progres.urlJaringan, '_blank')
-                                  }
-                                />
-                              </Grid>
-                            )}
-                            {progres.urlPosisiBak && (
-                              <Grid item xs={12} sm={6}>
-                                <Typography
-                                  variant='caption'
-                                  color='text.secondary'
-                                >
-                                  Posisi Bak
-                                </Typography>
-                                <Box
-                                  component='img'
-                                  src={progres.urlPosisiBak}
-                                  alt='Posisi Bak'
-                                  sx={{
-                                    width: '100%',
-                                    borderRadius: 1,
-                                    cursor: 'pointer',
-                                    mt: 0.5,
-                                  }}
-                                  onClick={() =>
-                                    window.open(progres.urlPosisiBak, '_blank')
-                                  }
-                                />
-                              </Grid>
-                            )}
+                            ))}
                           </Grid>
                         </Box>
                       )}
