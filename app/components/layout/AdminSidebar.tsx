@@ -363,6 +363,7 @@ const adminMenuItems: MenuItem[] = [
         path: '/system/users',
         permission: 'users:read',
         roles: ['admin'],
+        hidden: true,
       },
       {
         id: 'permissions',
@@ -380,7 +381,6 @@ const adminMenuItems: MenuItem[] = [
         path: '/system/audit-logs',
         permission: 'system:execute',
         roles: ['admin'],
-        hidden: true,
       },
       {
         id: 'system-config',

@@ -54,6 +54,7 @@ import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billi
 import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
 import { GET_KONEKSI_DATA_BY_PELANGGAN } from '../../../../../lib/graphql/queries/connectionData';
 import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
+import { buildProxyUrl, getAdminToken, isPdfUrl } from '../../../../utils/documentUrl';
 
 const KONFIRMASI_PEMBAYARAN_LOKET = gql`
   mutation KonfirmasiPembayaranLoket($userId: ID!) {
@@ -552,7 +553,8 @@ export default function CustomerDetailPage() {
                             {koneksiData.NIK || '-'}
                           </Typography>
                           {koneksiData.NIKUrl && (
-                            <Button size='small' startIcon={<OpenInNew />} href={koneksiData.NIKUrl} target='_blank' sx={{ mt: 0.5, p: 0 }}>
+                            <Button size='small' startIcon={<OpenInNew />} sx={{ mt: 0.5, p: 0 }}
+                              onClick={() => { const t = getAdminToken(); window.open(t ? buildProxyUrl(koneksiData.NIKUrl, t, 'NIK', koneksiData?.id ?? customerId) : koneksiData.NIKUrl, '_blank'); }}>
                               Lihat Foto KTP
                             </Button>
                           )}
@@ -564,7 +566,8 @@ export default function CustomerDetailPage() {
                             {koneksiData.NoKK || '-'}
                           </Typography>
                           {koneksiData.KKUrl && (
-                            <Button size='small' startIcon={<OpenInNew />} href={koneksiData.KKUrl} target='_blank' sx={{ mt: 0.5, p: 0 }}>
+                            <Button size='small' startIcon={<OpenInNew />} sx={{ mt: 0.5, p: 0 }}
+                              onClick={() => { const t = getAdminToken(); window.open(t ? buildProxyUrl(koneksiData.KKUrl, t, 'KK', koneksiData?.id ?? customerId) : koneksiData.KKUrl, '_blank'); }}>
                               Lihat Foto KK
                             </Button>
                           )}
@@ -576,7 +579,8 @@ export default function CustomerDetailPage() {
                             {koneksiData.IMB || '-'}
                           </Typography>
                           {koneksiData.IMBUrl && (
-                            <Button size='small' startIcon={<OpenInNew />} href={koneksiData.IMBUrl} target='_blank' sx={{ mt: 0.5, p: 0 }}>
+                            <Button size='small' startIcon={<OpenInNew />} sx={{ mt: 0.5, p: 0 }}
+                              onClick={() => { const t = getAdminToken(); window.open(t ? buildProxyUrl(koneksiData.IMBUrl, t, 'IMB', koneksiData?.id ?? customerId) : koneksiData.IMBUrl, '_blank'); }}>
                               Lihat Dokumen IMB
                             </Button>
                           )}

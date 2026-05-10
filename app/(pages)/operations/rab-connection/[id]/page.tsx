@@ -13,6 +13,7 @@ import { ArrowBack, Receipt, Person, Engineering } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import PageBreadcrumb from '../../../../components/ui/PageBreadcrumb';
 import EmptyState from '../../../../components/ui/EmptyState';
+import { buildProxyUrl, getAdminToken, isPdfUrl } from '../../../../utils/documentUrl';
 
 const fmtDate = (v?: string) => {
   if (!v) return '-';
@@ -150,9 +151,9 @@ export default function RabDetailPage() {
                           <Typography variant='subtitle2' sx={{ mb: 1 }}>Dokumen RAB</Typography>
                           <Button
                             variant='outlined' size='small'
-                            onClick={() => window.open(progres.urlRab, '_blank')}
+                            onClick={() => { const t = getAdminToken(); window.open(t ? buildProxyUrl(progres.urlRab, t, 'RAB', id) : progres.urlRab, '_blank'); }}
                           >
-                            Buka Dokumen RAB
+                            Buka Dokumen RAB {isPdfUrl(progres.urlRab) ? '(PDF)' : ''}
                           </Button>
                         </Box>
                       )}

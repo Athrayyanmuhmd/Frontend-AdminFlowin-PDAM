@@ -33,6 +33,7 @@ import {
   REVIEW_PENGAWASAN_SETELAH_PEMASANGAN,
 } from '../../../../../lib/graphql/mutations/pemasangan';
 import { KONFIRMASI_PEMBAYARAN_RAB, TANDAI_LUNAS_RAB } from '../../../../../lib/graphql/mutations/survei';
+import { resolveDocumentUrl } from '../../../../utils/documentUrl';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -146,6 +147,7 @@ export default function ConnectionDataDetailPage() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImage, setViewerImage] = useState('');
   const [viewerTitle, setViewerTitle] = useState('');
+  const [viewerType, setViewerType] = useState<'pdf' | 'image'>('image');
   const [zoom, setZoom] = useState(100);
 
   // ─── Queries ─────────────────────────────────────────────────────────────
@@ -237,8 +239,11 @@ export default function ConnectionDataDetailPage() {
   const step9Done = step8Done && (localActivated || alreadyActivated);
 
   // ─── Dialog helpers ───────────────────────────────────────────────────────
-  const openDocumentViewer = (url: string, title: string) => {
-    setViewerImage(url); setViewerTitle(title); setZoom(100); setViewerOpen(true);
+  const openDocumentViewer = (url: string, title: string, docType = 'UNKNOWN') => {
+    const resolved = resolveDocumentUrl(url, docType, id);
+    setViewerImage(resolved?.src ?? url);
+    setViewerType(resolved?.type ?? (url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'));
+    setViewerTitle(title); setZoom(100); setViewerOpen(true);
   };
 
   const openWoReviewDialog = (type: string, approve: boolean, woId: string) => {
@@ -988,7 +993,7 @@ export default function ConnectionDataDetailPage() {
                             {['fotoRumah', 'fotoMeteran', 'fotoMeteranDanRumah'].map((key) =>
                               pemasangan[key] ? (
                                 <Button key={key} size="small" variant="outlined" startIcon={<ImageIcon />}
-                                  onClick={() => openDocumentViewer(pemasangan[key], key === 'fotoRumah' ? 'Foto Rumah' : key === 'fotoMeteran' ? 'Foto Meteran' : 'Foto Rumah & Meteran')}>
+                                  onClick={() => openDocumentViewer(pemasangan[key], key === 'fotoRumah' ? 'Foto Rumah' : key === 'fotoMeteran' ? 'Foto Meteran' : 'Foto Rumah & Meteran', 'SURVEI')}>
                                   {key === 'fotoRumah' ? 'Foto Rumah' : key === 'fotoMeteran' ? 'Foto Meteran' : 'Foto Rumah & Meteran'}
                                 </Button>
                               ) : null
@@ -1068,7 +1073,7 @@ export default function ConnectionDataDetailPage() {
                             <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
                               {pengawasan.urlGambar.map((url: string, i: number) => (
                                 <Button key={i} size="small" variant="outlined" startIcon={<ImageIcon />}
-                                  onClick={() => openDocumentViewer(url, `Foto Pengawasan ${i + 1}`)}>
+                                  onClick={() => openDocumentViewer(url, `Foto Pengawasan ${i + 1}`, 'SURVEI')}>
                                   Foto {i + 1}
                                 </Button>
                               ))}
@@ -1155,7 +1160,7 @@ export default function ConnectionDataDetailPage() {
                             <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
                               {pengawasanSetelah.urlGambar.map((url: string, i: number) => (
                                 <Button key={i} size="small" variant="outlined" startIcon={<ImageIcon />}
-                                  onClick={() => openDocumentViewer(url, `Foto Setelah Pemasangan ${i + 1}`)}>
+                                  onClick={() => openDocumentViewer(url, `Foto Setelah Pemasangan ${i + 1}`, 'SURVEI')}>
                                   Foto {i + 1}
                                 </Button>
                               ))}
@@ -1395,10 +1400,10 @@ export default function ConnectionDataDetailPage() {
             <SectionTitle icon={<Description />} title="Dokumen Pengajuan" />
             <Grid container spacing={2}>
               {[
-                { label: 'Foto KTP (NIK)', url: data.NIKUrl },
-                { label: 'Foto KK', url: data.KKUrl },
-                { label: 'Foto IMB', url: data.IMBUrl },
-              ].map((doc: { label: string; url: string }) => (
+                { label: 'Foto KTP (NIK)', url: data.NIKUrl, docType: 'NIK' },
+                { label: 'Foto KK', url: data.KKUrl, docType: 'KK' },
+                { label: 'Foto IMB', url: data.IMBUrl, docType: 'IMB' },
+              ].map((doc: { label: string; url: string; docType: string }) => (
                 <Grid item xs={12} sm={4} key={doc.label}>
                   <Box
                     sx={{
@@ -1413,7 +1418,7 @@ export default function ConnectionDataDetailPage() {
                         ? { borderColor: 'primary.main', bgcolor: 'action.hover', transform: 'translateY(-2px)', boxShadow: 2 }
                         : {},
                     }}
-                    onClick={() => doc.url && openDocumentViewer(doc.url, doc.label)}
+                    onClick={() => doc.url && openDocumentViewer(doc.url, doc.label, doc.docType)}
                   >
                     <Box sx={{
                       width: 52, height: 52, borderRadius: '50%', mx: 'auto', mb: 1.5,
@@ -1589,7 +1594,7 @@ export default function ConnectionDataDetailPage() {
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400, overflow: 'auto' }}>
-              {viewerImage.toLowerCase().includes('.pdf') || viewerImage.includes('/raw/upload/') ? (
+              {viewerType === 'pdf' ? (
                 <iframe src={viewerImage} title={viewerTitle}
                   style={{ width: `${zoom}%`, height: 600, border: 'none', transition: 'width 0.3s ease' }} />
               ) : (

@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
 import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
-import { isPdfUrl, toPdfInlineUrl } from '../../../../utils/documentUrl';
+import { isPdfUrl, buildProxyUrl, getAdminToken } from '../../../../utils/documentUrl';
 import {
   ArrowBack,
   LocationOn,
@@ -325,7 +325,7 @@ export default function SurveyDataDetailPage() {
                                   <Button
                                     size='small' variant='outlined' fullWidth
                                     sx={{ mt: 0.5, justifyContent: 'flex-start' }}
-                                    onClick={() => window.open(toPdfInlineUrl(d.url), '_blank')}
+                                    onClick={() => { const t = getAdminToken(); window.open(t ? buildProxyUrl(d.url, t, 'SURVEI', id) : d.url, '_blank'); }}
                                   >
                                     Buka {d.label} (PDF)
                                   </Button>
@@ -335,7 +335,7 @@ export default function SurveyDataDetailPage() {
                                     src={d.url}
                                     alt={d.label}
                                     sx={{ width: '100%', borderRadius: 1, cursor: 'pointer', mt: 0.5 }}
-                                    onClick={() => window.open(d.url, '_blank')}
+                                    onClick={() => { const t = getAdminToken(); window.open(t ? buildProxyUrl(d.url, t, 'SURVEI', id) : d.url, '_blank'); }}
                                   />
                                 )}
                               </Grid>
