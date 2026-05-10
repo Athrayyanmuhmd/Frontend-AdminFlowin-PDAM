@@ -1,7 +1,5 @@
 'use client';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL?.replace('/api', '') ?? 'http://localhost:5000';
-
 /**
  * Return true jika URL mengarah ke PDF.
  * Digunakan sebagai backward-compat check untuk data lama (JPG) vs baru (PDF).
@@ -12,9 +10,9 @@ export function isPdfUrl(url?: string | null): boolean {
 }
 
 /**
- * Build URL proxy backend untuk membuka dokumen dengan canary fingerprint.
- * Token dikirim via query param supaya bisa dipakai di <iframe src="...">
- * tanpa perlu set Authorization header.
+ * Build URL proxy dokumen — lewat Next.js API route /api/documents/view (same-origin).
+ * Same-origin relay menghindari X-Frame-Options / CSP cross-origin restrictions
+ * yang muncul saat iframe mencoba load URL dari domain backend langsung.
  *
  * @param cloudinaryUrl  - URL Cloudinary asli dari database
  * @param token          - admin_token dari localStorage
@@ -33,7 +31,7 @@ export function buildProxyUrl(
     docType,
     ownerId,
   });
-  return `${BASE_URL}/documents/view?${params.toString()}`;
+  return `/api/documents/view?${params.toString()}`;
 }
 
 /**

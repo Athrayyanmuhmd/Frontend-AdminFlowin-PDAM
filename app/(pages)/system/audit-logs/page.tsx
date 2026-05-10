@@ -128,8 +128,7 @@ export default function AuditLogsPage() {
       const token = localStorage.getItem('admin_token') ?? '';
       const formData = new FormData();
       formData.append('file', investigateFile);
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace('/api', '') ?? 'http://localhost:5000';
-      const res = await fetch(`${baseUrl}/documents/investigate`, {
+      const res = await fetch(`/api/documents/investigate`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
