@@ -26,10 +26,11 @@ export function buildProxyUrl(
   ownerId: string,
 ): string {
   const params = new URLSearchParams({
-    url:     cloudinaryUrl,
+    url:       cloudinaryUrl,
     token,
     docType,
     ownerId,
+    userAgent: getClientUserAgent(),
   });
   return `/api/documents/view?${params.toString()}`;
 }
@@ -41,6 +42,15 @@ export function buildProxyUrl(
 export function getAdminToken(): string {
   if (typeof window === 'undefined') return '';
   return localStorage.getItem('admin_token') ?? '';
+}
+
+/**
+ * Ambil user agent browser saat ini.
+ * Return string kosong jika tidak tersedia (SSR-safe).
+ */
+export function getClientUserAgent(): string {
+  if (typeof navigator === 'undefined') return '';
+  return navigator.userAgent;
 }
 
 /**
@@ -59,21 +69,23 @@ export function resolveDocumentUrl(
   cloudinaryUrl?: string | null,
   docType = 'UNKNOWN',
   ownerId = 'unknown',
-): { type: 'pdf' | 'image'; src: string } | null {
+): { type: 'pdf' | 'image'; src: string; clientIp: string; userAgent: string } | null {
   if (!cloudinaryUrl) return null;
 
   const token = getAdminToken();
+  const userAgent = getClientUserAgent();
 
   if (token) {
     // Proxy aktif — semua dokumen lewat backend (canary + access log)
-    const proxySrc = buildProxyUrl(cloudinaryUrl, token, docType, ownerId);
+    const params = new URLSearchParams({ url: cloudinaryUrl, token, docType, ownerId, userAgent });
+    const proxySrc = `/api/documents/view?${params.toString()}`;
     const type = isPdfUrl(cloudinaryUrl) ? 'pdf' : 'image';
-    return { type, src: proxySrc };
+    return { type, src: proxySrc, clientIp: '', userAgent };
   }
 
   // Fallback: tidak ada token (seharusnya tidak terjadi di halaman yang sudah auth)
   if (isPdfUrl(cloudinaryUrl)) {
-    return { type: 'pdf', src: toPdfInlineUrl(cloudinaryUrl) };
+    return { type: 'pdf', src: toPdfInlineUrl(cloudinaryUrl), clientIp: '', userAgent };
   }
-  return { type: 'image', src: cloudinaryUrl };
+  return { type: 'image', src: cloudinaryUrl, clientIp: '', userAgent };
 }
