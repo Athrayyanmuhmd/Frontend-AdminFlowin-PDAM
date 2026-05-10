@@ -40,8 +40,9 @@ import {
   Visibility,
   CheckCircle,
   Warning,
-  Error,
+  Error as ErrorIcon,
   Info,
+  Policy,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -112,6 +113,37 @@ export default function AuditLogsPage() {
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
+  // ── Investigasi Canary ──────────────────────────────────────────────────────
+  const [investigateFile, setInvestigateFile] = useState<File | null>(null);
+  const [investigateLoading, setInvestigateLoading] = useState(false);
+  const [investigateResult, setInvestigateResult] = useState<any>(null);
+  const [investigateError, setInvestigateError] = useState('');
+
+  const handleInvestigate = async () => {
+    if (!investigateFile) return;
+    setInvestigateLoading(true);
+    setInvestigateResult(null);
+    setInvestigateError('');
+    try {
+      const token = localStorage.getItem('admin_token') ?? '';
+      const formData = new FormData();
+      formData.append('file', investigateFile);
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace('/api', '') ?? 'http://localhost:5000';
+      const res = await fetch(`${baseUrl}/documents/investigate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.pesan ?? 'Gagal investigasi');
+      setInvestigateResult(json);
+    } catch (e: any) {
+      setInvestigateError(e.message ?? 'Terjadi kesalahan');
+    } finally {
+      setInvestigateLoading(false);
+    }
+  };
+
   const { data, loading, error, refetch } = useQuery(GET_AUDIT_LOGS, {
     variables: {
       limit: 500,
@@ -172,7 +204,7 @@ export default function AuditLogsPage() {
   const getActionIcon = (aksi: string) => {
     if (aksi.includes('CREATE')) return <CheckCircle />;
     if (aksi.includes('UPDATE') || aksi.includes('VERIFY')) return <Warning />;
-    if (aksi.includes('DELETE') || aksi.includes('UNASSIGN')) return <Error />;
+    if (aksi.includes('DELETE') || aksi.includes('UNASSIGN')) return <ErrorIcon />;
     if (aksi.includes('ASSIGN')) return <Info />;
     return <Info />;
   };
@@ -397,6 +429,80 @@ export default function AuditLogsPage() {
           <Button onClick={() => setDetailsDialogOpen(false)}>Tutup</Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Investigasi Canary Document ─────────────────────────────────── */}
+      <Box sx={{ mt: 5 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Investigasi Kebocoran Dokumen</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Upload file dokumen yang dicurigai bocor. Sistem akan membaca canary fingerprint
+          yang tertanam di dalam file dan mengidentifikasi admin yang terakhir mengaksesnya.
+        </Typography>
+
+        <Card sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 600 }}>
+            <Alert severity="info" icon={false} sx={{ py: 0.75 }}>
+              <Typography variant="caption">
+                Hanya file PDF dan gambar (JPG/PNG) yang didukung. Maksimum 10 MB.
+                Canary hanya ada pada dokumen yang diakses setelah fitur ini diaktifkan.
+              </Typography>
+            </Alert>
+
+            <Button
+              variant="outlined"
+              component="label"
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              {investigateFile ? investigateFile.name : 'Pilih File Dokumen'}
+              <input
+                type="file"
+                hidden
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                  setInvestigateFile(e.target.files?.[0] ?? null);
+                  setInvestigateResult(null);
+                  setInvestigateError('');
+                }}
+              />
+            </Button>
+
+            <Button
+              variant="contained"
+              disabled={!investigateFile || investigateLoading}
+              onClick={handleInvestigate}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              {investigateLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+              {investigateLoading ? 'Menganalisis...' : 'Mulai Investigasi'}
+            </Button>
+
+            {investigateError && (
+              <Alert severity="error">{investigateError}</Alert>
+            )}
+
+            {investigateResult && (
+              <Alert
+                severity={
+                  investigateResult.status === 'identified' ? 'error' :
+                  investigateResult.status === 'hash_found_no_log' ? 'warning' : 'success'
+                }
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                  {investigateResult.pesan}
+                </Typography>
+                {investigateResult.aksesLog && (
+                  <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                    <li><Typography variant="caption">Admin: <strong>{investigateResult.aksesLog.namaAdmin}</strong></Typography></li>
+                    <li><Typography variant="caption">Jenis Dokumen: <strong>{investigateResult.aksesLog.jenisDokumen}</strong></Typography></li>
+                    <li><Typography variant="caption">IP Address: <strong>{investigateResult.aksesLog.ipAddress}</strong></Typography></li>
+                    <li><Typography variant="caption">Waktu Akses: <strong>{new Date(investigateResult.aksesLog.waktuAkses).toLocaleString('id-ID')}</strong></Typography></li>
+                    <li><Typography variant="caption">Fingerprint Hash: <strong style={{ fontFamily: 'monospace', fontSize: 10 }}>{investigateResult.fingerprintHash}</strong></Typography></li>
+                  </Box>
+                )}
+              </Alert>
+            )}
+          </Box>
+        </Card>
+      </Box>
     </AdminLayout>
   );
 }
