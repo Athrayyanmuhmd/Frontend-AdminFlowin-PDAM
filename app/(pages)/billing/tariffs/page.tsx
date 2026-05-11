@@ -109,7 +109,6 @@ export default function TariffsPage() {
 
   const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
     refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
-    awaitRefetchQueries: true,
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil ditambahkan');
       setOpenDialog(false);
@@ -121,7 +120,6 @@ export default function TariffsPage() {
 
   const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
     refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
-    awaitRefetchQueries: true,
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil diperbarui');
       setOpenDialog(false);
@@ -133,7 +131,6 @@ export default function TariffsPage() {
 
   const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
     refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
-    awaitRefetchQueries: true,
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil dihapus');
       setOpenDeleteDialog(false);
