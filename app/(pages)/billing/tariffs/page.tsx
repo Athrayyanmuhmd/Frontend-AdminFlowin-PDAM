@@ -7,6 +7,7 @@ import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
+  CardContent,
   Typography,
   Box,
   Button,
@@ -26,6 +27,7 @@ import {
   CircularProgress,
   Snackbar,
   Tooltip,
+  Chip,
 } from '@mui/material';
 import {
   Add,
@@ -35,6 +37,7 @@ import {
   TrendingUp,
   CheckCircle,
   Refresh,
+  Close,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
 import StatCard from '../../../components/ui/StatCard';
@@ -69,6 +72,14 @@ const defaultForm: KelompokForm = {
   IsKesepakatan: false,
 };
 
+const KATEGORI_OPTIONS = [
+  { value: 'Sosial', label: 'Sosial' },
+  { value: 'Non Niaga', label: 'Non Niaga (Rumah Tangga)' },
+  { value: 'Niaga', label: 'Niaga (Komersial)' },
+  { value: 'Instansi Pemerintah', label: 'Instansi Pemerintah' },
+  { value: 'Khusus', label: 'Khusus' },
+];
+
 export default function TariffsPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
@@ -80,10 +91,13 @@ export default function TariffsPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null); // for delete preview
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<KelompokForm>(defaultForm);
   const [formError, setFormError] = useState('');
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({
     open: false, message: '', severity: 'success',
   });
 
@@ -91,21 +105,28 @@ export default function TariffsPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const [createKelompok, { loading: createLoading }] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
+  const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
     refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
   });
 
-  const [updateKelompok, { loading: updateLoading }] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
+  const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
     refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
   });
 
-  const [deleteKelompok, { loading: deleteLoading }] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
+  const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
     refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
   });
 
   const kelompokList = (data as any)?.getAllKelompokPelanggan || [];
-  const isMutating = createLoading || updateLoading;
 
+  // Helper: show snackbar dari manapun
+  const showSnack = (message: string, severity: 'success' | 'error' | 'warning' = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnack = () => setSnackbar(s => ({ ...s, open: false }));
+
+  // ─── Buka form tambah ────────────────────────────────────────────────────
   const handleOpenAdd = () => {
     setForm(defaultForm);
     setFormError('');
@@ -114,6 +135,7 @@ export default function TariffsPage() {
     setOpenDialog(true);
   };
 
+  // ─── Buka form edit ──────────────────────────────────────────────────────
   const handleOpenEdit = (k: any) => {
     setForm({
       KodeKelompok: k.KodeKelompok || '',
@@ -132,27 +154,34 @@ export default function TariffsPage() {
     setOpenDialog(true);
   };
 
-  const handleOpenDelete = (id: string) => {
-    setSelectedId(id);
+  // ─── Buka konfirmasi hapus ────────────────────────────────────────────────
+  const handleOpenDelete = (k: any) => {
+    setSelectedId(k._id);
+    setSelectedItem(k); // simpan untuk preview di dialog
     setOpenDeleteDialog(true);
   };
 
+  // ─── Validasi form ────────────────────────────────────────────────────────
   const validateForm = () => {
-    if (!form.KodeKelompok.trim()) return 'Kode kelompok wajib diisi';
+    if (!editMode && !form.KodeKelompok.trim()) return 'Kode kelompok wajib diisi';
     if (!form.NamaKelompok.trim()) return 'Nama kelompok wajib diisi';
     if (!form.Kategori.trim()) return 'Kategori wajib diisi';
     const tr = Number(form.TarifRendah);
     const tt = Number(form.TarifTinggi);
     const bb = Number(form.BiayaBeban);
-    if (isNaN(tr) || tr < 0) return 'Tarif di bawah 10m³ harus angka positif';
-    if (isNaN(tt) || tt < 0) return 'Tarif di atas 10m³ harus angka positif';
-    if (isNaN(bb) || bb < 0) return 'Biaya beban harus angka positif';
+    if (!form.TarifRendah || isNaN(tr) || tr < 0) return 'Tarif di bawah batas harus angka positif';
+    if (!form.TarifTinggi || isNaN(tt) || tt < 0) return 'Tarif di atas batas harus angka positif';
+    if (!form.BiayaBeban || isNaN(bb) || bb < 0) return 'Biaya beban harus angka positif';
     return '';
   };
 
+  // ─── Submit tambah/edit ──────────────────────────────────────────────────
   const handleSubmit = async () => {
     const err = validateForm();
     if (err) { setFormError(err); return; }
+
+    setFormError('');
+    setSubmitting(true);
 
     const input = {
       KodeKelompok: form.KodeKelompok.trim().toUpperCase(),
@@ -169,29 +198,37 @@ export default function TariffsPage() {
     try {
       if (editMode && selectedId) {
         await updateKelompok({ variables: { id: selectedId, input } });
-        setSnackbar({ open: true, message: 'Kelompok tarif berhasil diperbarui', severity: 'success' });
+        showSnack('Kelompok tarif berhasil diperbarui', 'success');
       } else {
         await createKelompok({ variables: { input } });
-        setSnackbar({ open: true, message: 'Kelompok tarif berhasil ditambahkan', severity: 'success' });
+        showSnack('Kelompok tarif berhasil ditambahkan', 'success');
       }
       setOpenDialog(false);
     } catch (e: any) {
-      setSnackbar({ open: true, message: e.message || 'Operasi gagal', severity: 'error' });
+      setFormError(e.message || 'Operasi gagal. Coba lagi.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  // ─── Konfirmasi hapus ────────────────────────────────────────────────────
   const handleConfirmDelete = async () => {
     if (!selectedId) return;
+    setDeleting(true);
     try {
       await deleteKelompok({ variables: { id: selectedId } });
-      setSnackbar({ open: true, message: 'Kelompok tarif berhasil dihapus', severity: 'success' });
+      showSnack('Kelompok tarif berhasil dihapus', 'success');
       setOpenDeleteDialog(false);
     } catch (e: any) {
-      setSnackbar({ open: true, message: e.message || 'Gagal menghapus', severity: 'error' });
+      showSnack(e.message || 'Gagal menghapus. Coba lagi.', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
   const formatRupiah = (val: number) => `Rp ${(val || 0).toLocaleString('id-ID')}`;
+
+  if (authLoading || !isAuthenticated) return null;
 
   if (loading) {
     return (
@@ -206,7 +243,9 @@ export default function TariffsPage() {
   if (error) {
     return (
       <AdminLayout title="Struktur Tarif">
-        <Alert severity="error" sx={{ mb: 2 }}>Gagal memuat data tarif: {error.message}</Alert>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Gagal memuat data tarif.
+        </Alert>
         <Button startIcon={<Refresh />} onClick={() => refetch()}>Coba Lagi</Button>
       </AdminLayout>
     );
@@ -216,11 +255,10 @@ export default function TariffsPage() {
     ? Math.min(...kelompokList.map((k: any) => k.TarifRendah || 0))
     : 0;
 
-  if (authLoading || !isAuthenticated) return null;
-
   return (
     <AdminLayout title="Struktur Tarif">
       <Box sx={{ mb: 3 }}>
+        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -242,7 +280,8 @@ export default function TariffsPage() {
 
         <Alert severity="info" sx={{ mb: 3, py: 0.75 }} icon={false}>
           <Typography variant="caption">
-            Tarif air menggunakan sistem dua tingkat: di bawah 10m³ dan di atas 10m³. Perubahan tarif akan langsung mempengaruhi perhitungan tagihan berikutnya.
+            Tarif air menggunakan sistem dua tingkat: di bawah dan di atas batas konsumsi (m³).
+            Perubahan tarif akan langsung mempengaruhi perhitungan tagihan berikutnya.
           </Typography>
         </Alert>
 
@@ -271,7 +310,7 @@ export default function TariffsPage() {
             <StatCard
               color="info"
               icon={<TrendingUp />}
-              title="Tarif Terendah (≤10m³)"
+              title="Tarif Terendah (≤Batas)"
               count={formatRupiah(minHarga)}
               subtitle="Per meter kubik"
             />
@@ -281,7 +320,7 @@ export default function TariffsPage() {
         {/* Tariff Table */}
         <Card>
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table sx={{ minWidth: 600 }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.50' }}>
                   <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Kode</TableCell>
@@ -314,9 +353,16 @@ export default function TariffsPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {k.Kategori ?? '-'}
-                        </Typography>
+                        <Chip
+                          label={k.Kategori ?? '-'}
+                          size="small"
+                          sx={{
+                            fontSize: '0.7rem',
+                            height: 22,
+                            bgcolor: k.Kategori === 'Sosial' ? 'success.50' : k.Kategori === 'Niaga' ? 'warning.50' : 'grey.100',
+                            color: k.Kategori === 'Sosial' ? 'success.dark' : k.Kategori === 'Niaga' ? 'warning.dark' : 'text.secondary',
+                          }}
+                        />
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -333,22 +379,15 @@ export default function TariffsPage() {
                           {formatRupiah(k.BiayaBeban)}
                         </Typography>
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="caption" color="text.secondary">
-                          {k.createdAt
-                            ? new Date(isNaN(Number(k.createdAt)) ? k.createdAt : Number(k.createdAt)).toLocaleDateString('id-ID')
-                            : '—'}
-                        </Typography>
-                      </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Edit">
                           <IconButton size="small" onClick={() => handleOpenEdit(k)} color="primary">
-                            <Edit />
+                            <Edit fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Hapus">
-                          <IconButton size="small" onClick={() => handleOpenDelete(k._id)} color="error">
-                            <Delete />
+                          <IconButton size="small" onClick={() => handleOpenDelete(k)} color="error">
+                            <Delete fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
@@ -361,12 +400,24 @@ export default function TariffsPage() {
         </Card>
       </Box>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editMode ? 'Edit Kelompok Tarif' : 'Tambah Kelompok Tarif Baru'}</DialogTitle>
-        <DialogContent>
-          {formError && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{formError}</Alert>}
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+      {/* ─── Add/Edit Dialog ────────────────────────────────────────────── */}
+      <Dialog open={openDialog} onClose={() => !submitting && setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" fontWeight={700}>
+            {editMode ? 'Edit Kelompok Tarif' : 'Tambah Kelompok Tarif Baru'}
+          </Typography>
+          <IconButton size="small" onClick={() => !submitting && setOpenDialog(false)} disabled={submitting}>
+            <Close fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {formError && (
+            <Alert severity="error" sx={{ mb: 2 }} icon={<Close />}>
+              {formError}
+            </Alert>
+          )}
+          <Grid container spacing={2} sx={{ mt: 0 }}>
+            {/* Kode Kelompok */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
@@ -374,10 +425,13 @@ export default function TariffsPage() {
                 value={form.KodeKelompok}
                 onChange={(e) => setForm(f => ({ ...f, KodeKelompok: e.target.value }))}
                 placeholder="Contoh: RT01"
-                disabled={editMode}
+                disabled={editMode || submitting}
+                error={!!formError && !editMode && !form.KodeKelompok.trim()}
                 helperText={editMode ? 'Kode tidak bisa diubah' : 'Contoh: RT01, KOM1'}
+                inputProps={{ style: { textTransform: 'uppercase' } }}
               />
             </Grid>
+            {/* Nama Kelompok */}
             <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
@@ -385,8 +439,10 @@ export default function TariffsPage() {
                 value={form.NamaKelompok}
                 onChange={(e) => setForm(f => ({ ...f, NamaKelompok: e.target.value }))}
                 placeholder="Contoh: Rumah Tangga A"
+                disabled={submitting}
               />
             </Grid>
+            {/* Kategori */}
             <Grid item xs={12} md={6}>
               <TextField
                 select
@@ -395,14 +451,14 @@ export default function TariffsPage() {
                 value={form.Kategori}
                 onChange={(e) => setForm(f => ({ ...f, Kategori: e.target.value }))}
                 SelectProps={{ native: true }}
+                disabled={submitting}
               >
-                <option value="Sosial">Sosial</option>
-                <option value="Non Niaga">Non Niaga (Rumah Tangga)</option>
-                <option value="Niaga">Niaga (Komersial)</option>
-                <option value="Instansi Pemerintah">Instansi Pemerintah</option>
-                <option value="Khusus">Khusus</option>
+                {KATEGORI_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </TextField>
             </Grid>
+            {/* Batas m³ */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -411,9 +467,11 @@ export default function TariffsPage() {
                 value={form.BatasRendah}
                 onChange={(e) => setForm(f => ({ ...f, BatasRendah: e.target.value }))}
                 inputProps={{ min: 0 }}
-                helperText="Batas m³ bawah (kosongkan jika tidak ada)"
+                disabled={submitting}
+                helperText="Batas bawah konsumsi (kosongkan = default 10)"
               />
             </Grid>
+            {/* Deskripsi */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -423,28 +481,34 @@ export default function TariffsPage() {
                 multiline
                 rows={2}
                 placeholder="Deskripsi tambahan (opsional)"
+                disabled={submitting}
               />
             </Grid>
+            {/* Tarif di bawah batas */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Tarif di bawah Batas (Rp/m³)"
+                label="Tarif ≤ Batas (Rp/m³)"
                 type="number"
                 value={form.TarifRendah}
                 onChange={(e) => setForm(f => ({ ...f, TarifRendah: e.target.value }))}
                 inputProps={{ min: 0 }}
+                disabled={submitting}
               />
             </Grid>
+            {/* Tarif di atas batas */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Tarif di atas Batas (Rp/m³)"
+                label="Tarif > Batas (Rp/m³)"
                 type="number"
                 value={form.TarifTinggi}
                 onChange={(e) => setForm(f => ({ ...f, TarifTinggi: e.target.value }))}
                 inputProps={{ min: 0 }}
+                disabled={submitting}
               />
             </Grid>
+            {/* Biaya Beban */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
@@ -453,41 +517,97 @@ export default function TariffsPage() {
                 value={form.BiayaBeban}
                 onChange={(e) => setForm(f => ({ ...f, BiayaBeban: e.target.value }))}
                 inputProps={{ min: 0 }}
+                disabled={submitting}
               />
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)} disabled={isMutating}>Batal</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={isMutating}>
-            {isMutating ? <CircularProgress size={20} /> : editMode ? 'Simpan Perubahan' : 'Tambah Kelompok'}
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOpenDialog(false)} disabled={submitting} color="inherit">
+            Batal
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={submitting}
+            sx={{ minWidth: 160 }}
+          >
+            {submitting ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+                <span>{editMode ? 'Menyimpan...' : 'Menambahkan...'}</span>
+              </Box>
+            ) : (
+              editMode ? 'Simpan Perubahan' : 'Tambah Kelompok'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Konfirmasi Hapus</DialogTitle>
+      {/* ─── Delete Confirmation Dialog ─────────────────────────────────── */}
+      <Dialog open={openDeleteDialog} onClose={() => !deleting && setOpenDeleteDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{
+            width: 40, height: 40, borderRadius: '50%',
+            bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Delete sx={{ color: 'error.dark', fontSize: 22 }} />
+          </Box>
+          Konfirmasi Hapus
+        </DialogTitle>
         <DialogContent>
-          <Alert severity="warning">
-            Menghapus kelompok tarif akan mempengaruhi meteran yang terhubung. Pastikan tidak ada meteran aktif yang menggunakan kelompok ini.
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Tindakan ini tidak dapat dibatalkan.
           </Alert>
+          {selectedItem && (
+            <Card variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'grey.50' }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                {selectedItem.NamaKelompok}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Kode: {selectedItem.KodeKelompok} &nbsp;·&nbsp; Kategori: {selectedItem.Kategori}
+              </Typography>
+            </Card>
+          )}
+          <Typography variant="body2" color="text.secondary">
+            Menghapus kelompok tarif dapat mempengaruhi meteran yang terhubung. Pastikan tidak ada meteran aktif yang menggunakan kelompok ini.
+          </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleteLoading}>Batal</Button>
-          <Button variant="contained" color="error" onClick={handleConfirmDelete} disabled={deleteLoading}>
-            {deleteLoading ? <CircularProgress size={20} /> : 'Hapus'}
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting} color="inherit">
+            Batal
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={deleting}
+            sx={{ minWidth: 120 }}
+          >
+            {deleting ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+                <span>Menghapus...</span>
+              </Box>
+            ) : 'Ya, Hapus'}
           </Button>
         </DialogActions>
       </Dialog>
 
+      {/* ─── Snackbar Notification ─────────────────────────────────────── */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
-        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        onClose={handleCloseSnack}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ mb: 2 }}
       >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+        <Alert
+          severity={snackbar.severity}
+          onClose={handleCloseSnack}
+          variant="filled"
+          sx={{ minWidth: 280, boxShadow: 3 }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
