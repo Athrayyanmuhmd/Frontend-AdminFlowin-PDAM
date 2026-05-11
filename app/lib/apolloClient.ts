@@ -69,6 +69,12 @@ function isSessionInvalidError(graphQLErrors: any, networkError: any): boolean {
   return false;
 }
 
+function isMutationOperation(operation: any): boolean {
+  return (operation?.query?.definitions ?? []).some((definition: any) =>
+    definition?.kind === 'OperationDefinition' && definition?.operation === 'mutation'
+  );
+}
+
 // Global error handler — handle sesi expired, log error lain
 const errorLink = onError((err: any) => {
   const { graphQLErrors, networkError, operation } = err;
@@ -98,8 +104,9 @@ const retryLink = new RetryLink({
   },
   attempts: {
     max: 2, // max 2 retries (3 total attempts) — lebih sedikit untuk kurangi burst
-    retryIf: (error) => {
+    retryIf: (error, operation) => {
       if (!error) return false;
+      if (isMutationOperation(operation)) return false;
       const err = error as any;
       // Cek semua kemungkinan lokasi status code — Vercel 403 HTML body bikin
       // Apollo gagal parse JSON sehingga status tersimpan di serverParseError.statusCode
