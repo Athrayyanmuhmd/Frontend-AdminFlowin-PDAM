@@ -60,7 +60,7 @@ interface KelompokForm {
 const defaultForm: KelompokForm = {
   KodeKelompok: '',
   NamaKelompok: '',
-  Kategori: 'Rumah Tangga',
+  Kategori: 'Non Niaga',
   Deskripsi: '',
   BatasRendah: '',
   TarifRendah: '',
@@ -118,7 +118,7 @@ export default function TariffsPage() {
     setForm({
       KodeKelompok: k.KodeKelompok || '',
       NamaKelompok: k.NamaKelompok || '',
-      Kategori: k.Kategori || 'Rumah Tangga',
+      Kategori: k.Kategori || 'Non Niaga',
       Deskripsi: k.Deskripsi || '',
       BatasRendah: k.BatasRendah != null ? String(k.BatasRendah) : '',
       TarifRendah: String(k.TarifRendah ?? ''),
@@ -396,11 +396,11 @@ export default function TariffsPage() {
                 onChange={(e) => setForm(f => ({ ...f, Kategori: e.target.value }))}
                 SelectProps={{ native: true }}
               >
-                <option value="Rumah Tangga">Rumah Tangga</option>
-                <option value="Komersial">Komersial</option>
-                <option value="Industri">Industri</option>
-                <option value="Pemerintah">Pemerintah</option>
-                <option value="Lainnya">Lainnya</option>
+                <option value="Sosial">Sosial</option>
+                <option value="Non Niaga">Non Niaga (Rumah Tangga)</option>
+                <option value="Niaga">Niaga (Komersial)</option>
+                <option value="Instansi Pemerintah">Instansi Pemerintah</option>
+                <option value="Khusus">Khusus</option>
               </TextField>
             </Grid>
             <Grid item xs={12} md={6}>
