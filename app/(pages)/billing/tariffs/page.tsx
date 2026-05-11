@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   Grid,
   Card,
-  CardContent,
   Typography,
   Box,
   Button,
@@ -91,52 +90,93 @@ export default function TariffsPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<any>(null); // for delete preview
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<KelompokForm>(defaultForm);
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'warning' }>({
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
 
+  // Query untuk baca data
   const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
     fetchPolicy: 'cache-and-network',
   });
 
+  // ─── Mutations dengan manual cache update (no refetch) ─────────────────────
+
   const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    update(cache, { data: mutationData }) {
+      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
+      if (!existing) return;
+      const newItem = (mutationData as any)?.createKelompokPelanggan;
+      if (newItem) {
+        cache.writeQuery({
+          query: GET_ALL_KELOMPOK_PELANGGAN,
+          data: {
+            getAllKelompokPelanggan: [...existing.getAllKelompokPelanggan, newItem],
+          },
+        });
+      }
+    },
   });
 
   const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    update(cache, { data: mutationData }) {
+      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
+      if (!existing) return;
+      const updated = (mutationData as any)?.updateKelompokPelanggan;
+      if (updated) {
+        cache.writeQuery({
+          query: GET_ALL_KELOMPOK_PELANGGAN,
+          data: {
+            getAllKelompokPelanggan: existing.getAllKelompokPelanggan.map((k: any) =>
+              k._id === updated._id ? updated : k
+            ),
+          },
+        });
+      }
+    },
   });
 
   const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    update(cache, { data: mutationData }) {
+      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
+      if (!existing) return;
+      if ((mutationData as any)?.deleteKelompokPelanggan?.success) {
+        cache.writeQuery({
+          query: GET_ALL_KELOMPOK_PELANGGAN,
+          data: {
+            getAllKelompokPelanggan: existing.getAllKelompokPelanggan.filter(
+              (k: any) => k._id !== selectedId
+            ),
+          },
+        });
+      }
+    },
   });
 
-  const kelompokList = (data as any)?.getAllKelompokPelanggan || [];
+  // ─── Helper ────────────────────────────────────────────────────────────────
 
-  // Helper: show snackbar dari manapun
-  const showSnack = (message: string, severity: 'success' | 'error' | 'warning' = 'success') => {
+  const showSnack = (message: string, severity: 'success' | 'error' = 'success') => {
     setSnackbar({ open: true, message, severity });
   };
 
   const handleCloseSnack = () => setSnackbar(s => ({ ...s, open: false }));
 
-  // ─── Buka form tambah ────────────────────────────────────────────────────
-  const handleOpenAdd = () => {
+  // ─── Form handlers ─────────────────────────────────────────────────────────
+
+  const handleOpenAdd = useCallback(() => {
     setForm(defaultForm);
     setFormError('');
     setEditMode(false);
     setSelectedId(null);
     setOpenDialog(true);
-  };
+  }, []);
 
-  // ─── Buka form edit ──────────────────────────────────────────────────────
-  const handleOpenEdit = (k: any) => {
+  const handleOpenEdit = useCallback((k: any) => {
     setForm({
       KodeKelompok: k.KodeKelompok || '',
       NamaKelompok: k.NamaKelompok || '',
@@ -152,16 +192,14 @@ export default function TariffsPage() {
     setEditMode(true);
     setSelectedId(k._id);
     setOpenDialog(true);
-  };
+  }, []);
 
-  // ─── Buka konfirmasi hapus ────────────────────────────────────────────────
-  const handleOpenDelete = (k: any) => {
+  const handleOpenDelete = useCallback((k: any) => {
     setSelectedId(k._id);
-    setSelectedItem(k); // simpan untuk preview di dialog
+    setSelectedItem(k);
     setOpenDeleteDialog(true);
-  };
+  }, []);
 
-  // ─── Validasi form ────────────────────────────────────────────────────────
   const validateForm = () => {
     if (!editMode && !form.KodeKelompok.trim()) return 'Kode kelompok wajib diisi';
     if (!form.NamaKelompok.trim()) return 'Nama kelompok wajib diisi';
@@ -175,7 +213,8 @@ export default function TariffsPage() {
     return '';
   };
 
-  // ─── Submit tambah/edit ──────────────────────────────────────────────────
+  // ─── Submit ───────────────────────────────────────────────────────────────
+
   const handleSubmit = async () => {
     const err = validateForm();
     if (err) { setFormError(err); return; }
@@ -198,10 +237,10 @@ export default function TariffsPage() {
     try {
       if (editMode && selectedId) {
         await updateKelompok({ variables: { id: selectedId, input } });
-        showSnack('Kelompok tarif berhasil diperbarui', 'success');
+        showSnack('Kelompok tarif berhasil diperbarui');
       } else {
         await createKelompok({ variables: { input } });
-        showSnack('Kelompok tarif berhasil ditambahkan', 'success');
+        showSnack('Kelompok tarif berhasil ditambahkan');
       }
       setOpenDialog(false);
     } catch (e: any) {
@@ -211,13 +250,14 @@ export default function TariffsPage() {
     }
   };
 
-  // ─── Konfirmasi hapus ────────────────────────────────────────────────────
+  // ─── Delete ───────────────────────────────────────────────────────────────
+
   const handleConfirmDelete = async () => {
     if (!selectedId) return;
     setDeleting(true);
     try {
       await deleteKelompok({ variables: { id: selectedId } });
-      showSnack('Kelompok tarif berhasil dihapus', 'success');
+      showSnack('Kelompok tarif berhasil dihapus');
       setOpenDeleteDialog(false);
     } catch (e: any) {
       showSnack(e.message || 'Gagal menghapus. Coba lagi.', 'error');
@@ -251,6 +291,7 @@ export default function TariffsPage() {
     );
   }
 
+  const kelompokList = (data as any)?.getAllKelompokPelanggan || [];
   const minHarga = kelompokList.length > 0
     ? Math.min(...kelompokList.map((k: any) => k.TarifRendah || 0))
     : 0;
@@ -261,9 +302,7 @@ export default function TariffsPage() {
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Struktur Tarif Air
-            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Struktur Tarif Air</Typography>
             <Typography variant="body2" color="text.secondary">
               Kelompok pelanggan dan tarif berdasarkan ERD sistem Aqualink
             </Typography>
@@ -288,36 +327,17 @@ export default function TariffsPage() {
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 5 }}>
           <Grid item xs={12} sm={6} md={4}>
-            <StatCard
-              color="primary"
-              icon={<AttachMoney />}
-              title="Total Kelompok Tarif"
-              count={kelompokList.length}
-              subtitle="Kelompok terdaftar"
-            />
+            <StatCard color="primary" icon={<AttachMoney />} title="Total Kelompok" count={kelompokList.length} subtitle="Kelompok terdaftar" />
           </Grid>
           <Grid item xs={12} sm={6} md={4}>
-            <StatCard
-              color="success"
-              icon={<CheckCircle />}
-              title="Kelompok Aktif"
-              count={kelompokList.length}
-              subtitle="Status normal"
-              subtitleColor="success.main"
-            />
+            <StatCard color="success" icon={<CheckCircle />} title="Kelompok Aktif" count={kelompokList.length} subtitle="Status normal" subtitleColor="success.main" />
           </Grid>
           <Grid item xs={12} sm={6} md={4}>
-            <StatCard
-              color="info"
-              icon={<TrendingUp />}
-              title="Tarif Terendah (≤Batas)"
-              count={formatRupiah(minHarga)}
-              subtitle="Per meter kubik"
-            />
+            <StatCard color="info" icon={<TrendingUp />} title="Tarif Terendah (≤Batas)" count={formatRupiah(minHarga)} subtitle="Per meter kubik" />
           </Grid>
         </Grid>
 
-        {/* Tariff Table */}
+        {/* Table */}
         <Card>
           <TableContainer sx={{ overflowX: 'auto' }}>
             <Table sx={{ minWidth: 700 }}>
@@ -348,9 +368,7 @@ export default function TariffsPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {k.NamaKelompok}
-                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{k.NamaKelompok}</Typography>
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -364,21 +382,9 @@ export default function TariffsPage() {
                           }}
                         />
                       </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatRupiah(k.TarifRendah)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatRupiah(k.TarifTinggi)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2">
-                          {formatRupiah(k.BiayaBeban)}
-                        </Typography>
-                      </TableCell>
+                      <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 600 }}>{formatRupiah(k.TarifRendah)}</Typography></TableCell>
+                      <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 600 }}>{formatRupiah(k.TarifTinggi)}</Typography></TableCell>
+                      <TableCell align="right"><Typography variant="body2">{formatRupiah(k.BiayaBeban)}</Typography></TableCell>
                       <TableCell align="center">
                         <Tooltip title="Edit">
                           <IconButton size="small" onClick={() => handleOpenEdit(k)} color="primary">
@@ -400,7 +406,7 @@ export default function TariffsPage() {
         </Card>
       </Box>
 
-      {/* ─── Add/Edit Dialog ────────────────────────────────────────────── */}
+      {/* ─── Add/Edit Dialog ──────────────────────────────────────────────── */}
       <Dialog open={openDialog} onClose={() => !submitting && setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" fontWeight={700}>
@@ -417,172 +423,111 @@ export default function TariffsPage() {
             </Alert>
           )}
           <Grid container spacing={2} sx={{ mt: 0 }}>
-            {/* Kode Kelompok */}
             <Grid item xs={12} md={4}>
               <TextField
-                fullWidth
-                label="Kode Kelompok"
-                value={form.KodeKelompok}
+                fullWidth label="Kode Kelompok" value={form.KodeKelompok}
                 onChange={(e) => setForm(f => ({ ...f, KodeKelompok: e.target.value }))}
-                placeholder="Contoh: RT01"
-                disabled={editMode || submitting}
-                error={!!formError && !editMode && !form.KodeKelompok.trim()}
+                placeholder="Contoh: RT01" disabled={editMode || submitting}
                 helperText={editMode ? 'Kode tidak bisa diubah' : 'Contoh: RT01, KOM1'}
                 inputProps={{ style: { textTransform: 'uppercase' } }}
               />
             </Grid>
-            {/* Nama Kelompok */}
             <Grid item xs={12} md={8}>
               <TextField
-                fullWidth
-                label="Nama Kelompok"
-                value={form.NamaKelompok}
+                fullWidth label="Nama Kelompok" value={form.NamaKelompok}
                 onChange={(e) => setForm(f => ({ ...f, NamaKelompok: e.target.value }))}
-                placeholder="Contoh: Rumah Tangga A"
-                disabled={submitting}
+                placeholder="Contoh: Rumah Tangga A" disabled={submitting}
               />
             </Grid>
-            {/* Kategori */}
             <Grid item xs={12} md={6}>
               <TextField
-                select
-                fullWidth
-                label="Kategori"
-                value={form.Kategori}
+                select fullWidth label="Kategori" value={form.Kategori}
                 onChange={(e) => setForm(f => ({ ...f, Kategori: e.target.value }))}
-                SelectProps={{ native: true }}
-                disabled={submitting}
+                SelectProps={{ native: true }} disabled={submitting}
               >
                 {KATEGORI_OPTIONS.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </TextField>
             </Grid>
-            {/* Batas m³ */}
             <Grid item xs={12} md={6}>
               <TextField
-                fullWidth
-                label="Batas m³ (BatasRendah)"
-                type="number"
-                value={form.BatasRendah}
+                fullWidth label="Batas m³" type="number" value={form.BatasRendah}
                 onChange={(e) => setForm(f => ({ ...f, BatasRendah: e.target.value }))}
-                inputProps={{ min: 0 }}
-                disabled={submitting}
-                helperText="Batas bawah konsumsi (kosongkan = default 10)"
+                inputProps={{ min: 0 }} disabled={submitting}
+                helperText="Batas bawah konsumsi (kosongkan = 10)"
               />
             </Grid>
-            {/* Deskripsi */}
             <Grid item xs={12}>
               <TextField
-                fullWidth
-                label="Deskripsi"
-                value={form.Deskripsi}
+                fullWidth label="Deskripsi" value={form.Deskripsi}
                 onChange={(e) => setForm(f => ({ ...f, Deskripsi: e.target.value }))}
-                multiline
-                rows={2}
-                placeholder="Deskripsi tambahan (opsional)"
-                disabled={submitting}
+                multiline rows={2} placeholder="Deskripsi tambahan (opsional)" disabled={submitting}
               />
             </Grid>
-            {/* Tarif di bawah batas */}
             <Grid item xs={12} md={4}>
               <TextField
-                fullWidth
-                label="Tarif ≤ Batas (Rp/m³)"
-                type="number"
-                value={form.TarifRendah}
+                fullWidth label="Tarif ≤ Batas (Rp/m³)" type="number" value={form.TarifRendah}
                 onChange={(e) => setForm(f => ({ ...f, TarifRendah: e.target.value }))}
-                inputProps={{ min: 0 }}
-                disabled={submitting}
+                inputProps={{ min: 0 }} disabled={submitting}
               />
             </Grid>
-            {/* Tarif di atas batas */}
             <Grid item xs={12} md={4}>
               <TextField
-                fullWidth
-                label="Tarif > Batas (Rp/m³)"
-                type="number"
-                value={form.TarifTinggi}
+                fullWidth label="Tarif > Batas (Rp/m³)" type="number" value={form.TarifTinggi}
                 onChange={(e) => setForm(f => ({ ...f, TarifTinggi: e.target.value }))}
-                inputProps={{ min: 0 }}
-                disabled={submitting}
+                inputProps={{ min: 0 }} disabled={submitting}
               />
             </Grid>
-            {/* Biaya Beban */}
             <Grid item xs={12} md={4}>
               <TextField
-                fullWidth
-                label="Biaya Beban (Rp/bulan)"
-                type="number"
-                value={form.BiayaBeban}
+                fullWidth label="Biaya Beban (Rp/bulan)" type="number" value={form.BiayaBeban}
                 onChange={(e) => setForm(f => ({ ...f, BiayaBeban: e.target.value }))}
-                inputProps={{ min: 0 }}
-                disabled={submitting}
+                inputProps={{ min: 0 }} disabled={submitting}
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setOpenDialog(false)} disabled={submitting} color="inherit">
-            Batal
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-            disabled={submitting}
-            sx={{ minWidth: 160 }}
-          >
+          <Button onClick={() => setOpenDialog(false)} disabled={submitting} color="inherit">Batal</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={submitting} sx={{ minWidth: 160 }}>
             {submitting ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CircularProgress size={16} color="inherit" />
                 <span>{editMode ? 'Menyimpan...' : 'Menambahkan...'}</span>
               </Box>
-            ) : (
-              editMode ? 'Simpan Perubahan' : 'Tambah Kelompok'
-            )}
+            ) : editMode ? 'Simpan Perubahan' : 'Tambah Kelompok'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ─── Delete Confirmation Dialog ─────────────────────────────────── */}
+      {/* ─── Delete Confirmation Dialog ──────────────────────────────────── */}
       <Dialog open={openDeleteDialog} onClose={() => !deleting && setOpenDeleteDialog(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{
-            width: 40, height: 40, borderRadius: '50%',
-            bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Delete sx={{ color: 'error.dark', fontSize: 22 }} />
           </Box>
           Konfirmasi Hapus
         </DialogTitle>
         <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            Tindakan ini tidak dapat dibatalkan.
-          </Alert>
+          <Alert severity="warning" sx={{ mb: 2 }}>Tindakan ini tidak dapat dibatalkan.</Alert>
           {selectedItem && (
             <Card variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'grey.50' }}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {selectedItem.NamaKelompok}
-              </Typography>
+              <Typography variant="body2" fontWeight={700}>{selectedItem.NamaKelompok}</Typography>
               <Typography variant="caption" color="text.secondary">
                 Kode: {selectedItem.KodeKelompok} &nbsp;·&nbsp; Kategori: {selectedItem.Kategori}
               </Typography>
             </Card>
           )}
           <Typography variant="body2" color="text.secondary">
-            Menghapus kelompok tarif dapat mempengaruhi meteran yang terhubung. Pastikan tidak ada meteran aktif yang menggunakan kelompok ini.
+            Menghapus kelompok tarif dapat mempengaruhi meteran yang terhubung.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting} color="inherit">
-            Batal
-          </Button>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting} color="inherit">Batal</Button>
           <Button
-            variant="contained"
-            color="error"
-            onClick={handleConfirmDelete}
-            disabled={deleting}
-            sx={{ minWidth: 120 }}
+            variant="contained" color="error" onClick={handleConfirmDelete}
+            disabled={deleting} sx={{ minWidth: 120 }}
           >
             {deleting ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -594,7 +539,7 @@ export default function TariffsPage() {
         </DialogActions>
       </Dialog>
 
-      {/* ─── Snackbar Notification ─────────────────────────────────────── */}
+      {/* ─── Snackbar ──────────────────────────────────────────────────── */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -602,12 +547,7 @@ export default function TariffsPage() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         sx={{ mb: 2 }}
       >
-        <Alert
-          severity={snackbar.severity}
-          onClose={handleCloseSnack}
-          variant="filled"
-          sx={{ minWidth: 280, boxShadow: 3 }}
-        >
+        <Alert severity={snackbar.severity} onClose={handleCloseSnack} variant="filled" sx={{ minWidth: 280, boxShadow: 3 }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
