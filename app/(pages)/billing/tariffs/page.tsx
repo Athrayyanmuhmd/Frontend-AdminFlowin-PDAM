@@ -105,56 +105,43 @@ export default function TariffsPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // ─── Mutations dengan manual cache update (no refetch) ─────────────────────
+  // ─── Mutations dengan refetch agar UI selalu sinkron ─────────────────────
 
   const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
-    update(cache, { data: mutationData }) {
-      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
-      if (!existing) return;
-      const newItem = (mutationData as any)?.createKelompokPelanggan;
-      if (newItem) {
-        cache.writeQuery({
-          query: GET_ALL_KELOMPOK_PELANGGAN,
-          data: {
-            getAllKelompokPelanggan: [...existing.getAllKelompokPelanggan, newItem],
-          },
-        });
-      }
+    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    awaitRefetchQueries: true,
+    onCompleted: () => {
+      showSnack('Kelompok tarif berhasil ditambahkan');
+      setOpenDialog(false);
+    },
+    onError: (err) => {
+      setFormError(err.message || 'Operasi gagal. Coba lagi.');
     },
   });
 
   const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
-    update(cache, { data: mutationData }) {
-      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
-      if (!existing) return;
-      const updated = (mutationData as any)?.updateKelompokPelanggan;
-      if (updated) {
-        cache.writeQuery({
-          query: GET_ALL_KELOMPOK_PELANGGAN,
-          data: {
-            getAllKelompokPelanggan: existing.getAllKelompokPelanggan.map((k: any) =>
-              k._id === updated._id ? updated : k
-            ),
-          },
-        });
-      }
+    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    awaitRefetchQueries: true,
+    onCompleted: () => {
+      showSnack('Kelompok tarif berhasil diperbarui');
+      setOpenDialog(false);
+    },
+    onError: (err) => {
+      setFormError(err.message || 'Operasi gagal. Coba lagi.');
     },
   });
 
   const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
-    update(cache, { data: mutationData }) {
-      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
-      if (!existing) return;
-      if ((mutationData as any)?.deleteKelompokPelanggan?.success) {
-        cache.writeQuery({
-          query: GET_ALL_KELOMPOK_PELANGGAN,
-          data: {
-            getAllKelompokPelanggan: existing.getAllKelompokPelanggan.filter(
-              (k: any) => k._id !== selectedId
-            ),
-          },
-        });
-      }
+    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    awaitRefetchQueries: true,
+    onCompleted: () => {
+      showSnack('Kelompok tarif berhasil dihapus');
+      setOpenDeleteDialog(false);
+      setSelectedId(null);
+      setSelectedItem(null);
+    },
+    onError: (err) => {
+      showSnack(err.message || 'Gagal menghapus. Coba lagi.', 'error');
     },
   });
 
@@ -237,12 +224,9 @@ export default function TariffsPage() {
     try {
       if (editMode && selectedId) {
         await updateKelompok({ variables: { id: selectedId, input } });
-        showSnack('Kelompok tarif berhasil diperbarui');
       } else {
         await createKelompok({ variables: { input } });
-        showSnack('Kelompok tarif berhasil ditambahkan');
       }
-      setOpenDialog(false);
     } catch (e: any) {
       setFormError(e.message || 'Operasi gagal. Coba lagi.');
     } finally {
@@ -257,8 +241,6 @@ export default function TariffsPage() {
     setDeleting(true);
     try {
       await deleteKelompok({ variables: { id: selectedId } });
-      showSnack('Kelompok tarif berhasil dihapus');
-      setOpenDeleteDialog(false);
     } catch (e: any) {
       showSnack(e.message || 'Gagal menghapus. Coba lagi.', 'error');
     } finally {
