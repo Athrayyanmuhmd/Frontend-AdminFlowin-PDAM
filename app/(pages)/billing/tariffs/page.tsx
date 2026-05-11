@@ -46,17 +46,27 @@ import {
 } from '@/lib/graphql/queries/kelompokPelanggan';
 
 interface KelompokForm {
+  KodeKelompok: string;
   NamaKelompok: string;
+  Kategori: string;
+  Deskripsi: string;
+  BatasRendah: string;
   TarifRendah: string;
   TarifTinggi: string;
   BiayaBeban: string;
+  IsKesepakatan: boolean;
 }
 
 const defaultForm: KelompokForm = {
+  KodeKelompok: '',
   NamaKelompok: '',
+  Kategori: 'Rumah Tangga',
+  Deskripsi: '',
+  BatasRendah: '',
   TarifRendah: '',
   TarifTinggi: '',
   BiayaBeban: '',
+  IsKesepakatan: false,
 };
 
 export default function TariffsPage() {
@@ -106,10 +116,15 @@ export default function TariffsPage() {
 
   const handleOpenEdit = (k: any) => {
     setForm({
+      KodeKelompok: k.KodeKelompok || '',
       NamaKelompok: k.NamaKelompok || '',
-      TarifRendah: String(k.TarifRendah || ''),
-      TarifTinggi: String(k.TarifTinggi || ''),
-      BiayaBeban: String(k.BiayaBeban || ''),
+      Kategori: k.Kategori || 'Rumah Tangga',
+      Deskripsi: k.Deskripsi || '',
+      BatasRendah: k.BatasRendah != null ? String(k.BatasRendah) : '',
+      TarifRendah: String(k.TarifRendah ?? ''),
+      TarifTinggi: String(k.TarifTinggi ?? ''),
+      BiayaBeban: String(k.BiayaBeban ?? ''),
+      IsKesepakatan: k.IsKesepakatan ?? false,
     });
     setFormError('');
     setEditMode(true);
@@ -123,10 +138,15 @@ export default function TariffsPage() {
   };
 
   const validateForm = () => {
+    if (!form.KodeKelompok.trim()) return 'Kode kelompok wajib diisi';
     if (!form.NamaKelompok.trim()) return 'Nama kelompok wajib diisi';
-    if (!form.TarifRendah || isNaN(Number(form.TarifRendah))) return 'Harga di bawah 10m³ tidak valid';
-    if (!form.TarifTinggi || isNaN(Number(form.TarifTinggi))) return 'Harga di atas 10m³ tidak valid';
-    if (!form.BiayaBeban || isNaN(Number(form.BiayaBeban))) return 'Biaya beban tidak valid';
+    if (!form.Kategori.trim()) return 'Kategori wajib diisi';
+    const tr = Number(form.TarifRendah);
+    const tt = Number(form.TarifTinggi);
+    const bb = Number(form.BiayaBeban);
+    if (isNaN(tr) || tr < 0) return 'Tarif di bawah 10m³ harus angka positif';
+    if (isNaN(tt) || tt < 0) return 'Tarif di atas 10m³ harus angka positif';
+    if (isNaN(bb) || bb < 0) return 'Biaya beban harus angka positif';
     return '';
   };
 
@@ -135,10 +155,15 @@ export default function TariffsPage() {
     if (err) { setFormError(err); return; }
 
     const input = {
+      KodeKelompok: form.KodeKelompok.trim().toUpperCase(),
       NamaKelompok: form.NamaKelompok.trim(),
+      Kategori: form.Kategori.trim(),
+      Deskripsi: form.Deskripsi.trim(),
+      BatasRendah: form.BatasRendah ? Number(form.BatasRendah) : null,
       TarifRendah: Number(form.TarifRendah),
       TarifTinggi: Number(form.TarifTinggi),
       BiayaBeban: Number(form.BiayaBeban),
+      IsKesepakatan: form.IsKesepakatan,
     };
 
     try {
@@ -259,18 +284,19 @@ export default function TariffsPage() {
             <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Kode</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Nama Kelompok</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif ≤ 10m³</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif &gt; 10m³</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Kategori</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif ≤ Batas</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif &gt; Batas</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Biaya Beban</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Dibuat</TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="center">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {kelompokList.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                       <Typography color="text.secondary">Belum ada kelompok tarif. Tambahkan yang pertama.</Typography>
                     </TableCell>
                   </TableRow>
@@ -278,12 +304,19 @@ export default function TariffsPage() {
                   kelompokList.map((k: any) => (
                     <TableRow key={k._id} hover>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#013494', flexShrink: 0 }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {k.NamaKelompok}
-                          </Typography>
-                        </Box>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'primary.main' }}>
+                          {k.KodeKelompok ?? '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {k.NamaKelompok}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {k.Kategori ?? '-'}
+                        </Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -334,36 +367,85 @@ export default function TariffsPage() {
         <DialogContent>
           {formError && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{formError}</Alert>}
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Kode Kelompok"
+                value={form.KodeKelompok}
+                onChange={(e) => setForm(f => ({ ...f, KodeKelompok: e.target.value }))}
+                placeholder="Contoh: RT01"
+                disabled={editMode}
+                helperText={editMode ? 'Kode tidak bisa diubah' : 'Contoh: RT01, KOM1'}
+              />
+            </Grid>
+            <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
                 label="Nama Kelompok"
                 value={form.NamaKelompok}
                 onChange={(e) => setForm(f => ({ ...f, NamaKelompok: e.target.value }))}
-                placeholder="Contoh: Rumah Tangga, Komersial, Industri"
+                placeholder="Contoh: Rumah Tangga A"
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
+                select
                 fullWidth
-                label="Harga di bawah 10m³ (Rp/m³)"
+                label="Kategori"
+                value={form.Kategori}
+                onChange={(e) => setForm(f => ({ ...f, Kategori: e.target.value }))}
+                SelectProps={{ native: true }}
+              >
+                <option value="Rumah Tangga">Rumah Tangga</option>
+                <option value="Komersial">Komersial</option>
+                <option value="Industri">Industri</option>
+                <option value="Pemerintah">Pemerintah</option>
+                <option value="Lainnya">Lainnya</option>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Batas m³ (BatasRendah)"
+                type="number"
+                value={form.BatasRendah}
+                onChange={(e) => setForm(f => ({ ...f, BatasRendah: e.target.value }))}
+                inputProps={{ min: 0 }}
+                helperText="Batas m³ bawah (kosongkan jika tidak ada)"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Deskripsi"
+                value={form.Deskripsi}
+                onChange={(e) => setForm(f => ({ ...f, Deskripsi: e.target.value }))}
+                multiline
+                rows={2}
+                placeholder="Deskripsi tambahan (opsional)"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Tarif di bawah Batas (Rp/m³)"
                 type="number"
                 value={form.TarifRendah}
                 onChange={(e) => setForm(f => ({ ...f, TarifRendah: e.target.value }))}
                 inputProps={{ min: 0 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Harga di atas 10m³ (Rp/m³)"
+                label="Tarif di atas Batas (Rp/m³)"
                 type="number"
                 value={form.TarifTinggi}
                 onChange={(e) => setForm(f => ({ ...f, TarifTinggi: e.target.value }))}
                 inputProps={{ min: 0 }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 label="Biaya Beban (Rp/bulan)"
@@ -371,7 +453,6 @@ export default function TariffsPage() {
                 value={form.BiayaBeban}
                 onChange={(e) => setForm(f => ({ ...f, BiayaBeban: e.target.value }))}
                 inputProps={{ min: 0 }}
-                helperText="Biaya tetap per bulan di luar pemakaian air"
               />
             </Grid>
           </Grid>
