@@ -7,51 +7,13 @@ import { RetryLink } from '@apollo/client/link/retry';
 
 const GRAPHQL_URI = process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql';
 
-/** Gabungkan signal Apollo (dedupe / unmount) + timeout — jangan ganti signal Apollo semata. */
-function graphqlFetch(uri: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const parentSignal = init?.signal;
-  const combined = new AbortController();
-  const timeoutId = setTimeout(() => {
-    try {
-      combined.abort();
-    } catch {
-      /* noop */
-    }
-  }, 30000);
-
-  const onParentAbort = () => {
-    clearTimeout(timeoutId);
-    try {
-      combined.abort(parentSignal?.reason);
-    } catch {
-      try {
-        combined.abort();
-      } catch {
-        /* noop */
-      }
-    }
-  };
-
-  if (parentSignal) {
-    if (parentSignal.aborted) {
-      clearTimeout(timeoutId);
-      return Promise.reject(
-        parentSignal.reason ?? new DOMException('The user aborted a request.', 'AbortError')
-      );
-    }
-    parentSignal.addEventListener('abort', onParentAbort, { once: true });
-  }
-
-  return fetch(uri, { ...init, signal: combined.signal }).finally(() => {
-    clearTimeout(timeoutId);
-    if (parentSignal) parentSignal.removeEventListener('abort', onParentAbort);
-  });
-}
+// Pakai fetch bawaan browser (tanpa AbortController + timeout 30s).
+// Timeout client keras ~30s membuat GraphQL tampil "canceled" / "signal is aborted without reason"
+// saat backend lambat (cold start Vercel, jaringan), padahal server tetap menyelesaikan mutasi.
 
 const sharedHttpConfig = {
   uri: GRAPHQL_URI,
   credentials: 'include' as const,
-  fetch: graphqlFetch,
 };
 
 // Mutasi lewat HttpLink (satu operasi = satu request) — BatchHttpLink + signal lama
