@@ -1,12 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+/**
+ * Master data Kelompok Pelanggan — perilaku & UI diselaraskan dengan /billing/tariffs
+ * (cache-first, refetch setelah mutasi, form ERD lengkap: kode, kategori, batas, tarif).
+ */
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { useAdmin } from '../../../layouts/AdminProvider';
 import {
-  Box,
+  Grid,
   Card,
-  CardContent,
   Typography,
+  Box,
   Button,
   Table,
   TableBody,
@@ -14,575 +20,514 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
   IconButton,
-  Chip,
-  Alert,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  InputAdornment,
+  Alert,
+  CircularProgress,
+  Snackbar,
+  Tooltip,
+  Chip,
 } from '@mui/material';
 import {
   Add,
   Edit,
   Delete,
-  Group,
-  MonetizationOn,
-  WaterDrop,
+  AttachMoney,
+  TrendingUp,
+  CheckCircle,
+  Refresh,
+  Close,
 } from '@mui/icons-material';
-import { useQuery, useMutation } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { useAdmin } from '../../../layouts/AdminProvider';
-import { GET_ALL_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/kelompokPelanggan';
+import StatCard from '../../../components/ui/StatCard';
 import {
+  GET_ALL_KELOMPOK_PELANGGAN,
   CREATE_KELOMPOK_PELANGGAN,
   UPDATE_KELOMPOK_PELANGGAN,
-  DELETE_KELOMPOK_PELANGGAN
-} from '@/lib/graphql/mutations/kelompokPelanggan';
+  DELETE_KELOMPOK_PELANGGAN,
+} from '@/lib/graphql/queries/kelompokPelanggan';
 
-interface KelompokPelanggan {
-  _id: string;
+interface KelompokForm {
+  KodeKelompok: string;
   NamaKelompok: string;
-  TarifRendah: number;
-  TarifTinggi: number;
-  BiayaBeban: number;
-  createdAt: string;
-  updatedAt: string;
+  Kategori: string;
+  Deskripsi: string;
+  BatasRendah: string;
+  TarifRendah: string;
+  TarifTinggi: string;
+  BiayaBeban: string;
+  IsKesepakatan: boolean;
 }
+
+const defaultForm: KelompokForm = {
+  KodeKelompok: '',
+  NamaKelompok: '',
+  Kategori: 'Non Niaga',
+  Deskripsi: '',
+  BatasRendah: '',
+  TarifRendah: '',
+  TarifTinggi: '',
+  BiayaBeban: '',
+  IsKesepakatan: false,
+};
+
+const KATEGORI_OPTIONS = [
+  { value: 'Sosial', label: 'Sosial' },
+  { value: 'Non Niaga', label: 'Non Niaga (Rumah Tangga)' },
+  { value: 'Niaga', label: 'Niaga (Komersial)' },
+  { value: 'Instansi Pemerintah', label: 'Instansi Pemerintah' },
+  { value: 'Khusus', label: 'Khusus' },
+];
+
+const LAYOUT_TITLE = 'Kelompok Pelanggan';
 
 export default function KelompokPelangganPage() {
   const router = useRouter();
-  const { userRole, isAuthenticated, isLoading: authLoading } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  // Dialog states
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  // Form states
-  const [namaKelompok, setNamaKelompok] = useState('');
-  const [hargaDibawah10, setHargaDibawah10] = useState('');
-  const [hargaDiatas10, setHargaDiatas10] = useState('');
-  const [biayaBeban, setBiayaBeban] = useState('');
-
-  // Delete confirmation
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  // ✅ GraphQL Query - Replace REST API
-  const { loading, error: graphqlError, data, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
-    fetchPolicy: 'cache-and-network',
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState<KelompokForm>(defaultForm);
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false, message: '', severity: 'success',
   });
 
-  const kelompokList = (data as any)?.getAllKelompokPelanggan || [];
+  const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
+    fetchPolicy: 'cache-first',
+    nextFetchPolicy: 'cache-first',
+  });
 
-  // Handle query errors
-  useEffect(() => {
-    if (graphqlError) {
-      console.error('GraphQL Error:', graphqlError);
-      setError('Gagal memuat data: ' + graphqlError.message);
+  const refetchListSafe = async () => {
+    try {
+      await refetch();
+    } catch {
+      /* refetch terkadang abort */
     }
-  }, [graphqlError]);
+  };
 
-  // ✅ GraphQL Mutations
-  const [createKelompokPelanggan, { loading: createLoading }] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
-    onCompleted: () => {
-      setSuccess('Kelompok pelanggan berhasil ditambahkan');
-      closeDialog();
+  const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
+    onCompleted: async () => {
+      showSnack('Kelompok pelanggan berhasil ditambahkan');
+      setOpenDialog(false);
+      await refetchListSafe();
     },
     onError: (err) => {
-      setError('Gagal menambahkan: ' + err.message);
-    }
+      setFormError(err.message || 'Operasi gagal. Coba lagi.');
+    },
   });
 
-  const [updateKelompokPelanggan, { loading: updateLoading }] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
-    onCompleted: () => {
-      setSuccess('Kelompok pelanggan berhasil diupdate');
-      closeDialog();
+  const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
+    onCompleted: async () => {
+      showSnack('Kelompok pelanggan berhasil diperbarui');
+      setOpenDialog(false);
+      await refetchListSafe();
     },
     onError: (err) => {
-      setError('Gagal mengupdate: ' + err.message);
-    }
+      setFormError(err.message || 'Operasi gagal. Coba lagi.');
+    },
   });
 
-  const [deleteKelompokPelanggan, { loading: deleteLoading }] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
-    onCompleted: () => {
-      setSuccess('Kelompok pelanggan berhasil dihapus');
-      setDeleteDialogOpen(false);
-      setDeletingId(null);
+  const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
+    onCompleted: async () => {
+      showSnack('Kelompok pelanggan berhasil dihapus');
+      setOpenDeleteDialog(false);
+      setSelectedId(null);
+      setSelectedItem(null);
+      await refetchListSafe();
     },
     onError: (err) => {
-      setError('Gagal menghapus: ' + err.message);
-    }
+      showSnack(err.message || 'Gagal menghapus. Coba lagi.', 'error');
+    },
   });
 
-  const submitting = createLoading || updateLoading || deleteLoading;
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const showSnack = (message: string, severity: 'success' | 'error' = 'success') => {
+    setSnackbar({ open: true, message, severity });
   };
 
-  const formatCurrencyInput = (value: string) => {
-    // Remove non-digits
-    const digits = value.replace(/\D/g, '');
-    // Format with dots
-    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  };
+  const handleCloseSnack = () => setSnackbar(s => ({ ...s, open: false }));
 
-  const parseCurrency = (value: string): number => {
-    return parseInt(value.replace(/\./g, ''), 10) || 0;
-  };
+  const handleOpenAdd = useCallback(() => {
+    setForm(defaultForm);
+    setFormError('');
+    setEditMode(false);
+    setSelectedId(null);
+    setOpenDialog(true);
+  }, []);
 
-  const handleOpenDialog = (
-    mode: 'create' | 'edit',
-    kelompok?: KelompokPelanggan
-  ) => {
-    setDialogMode(mode);
-    if (mode === 'edit' && kelompok) {
-      setEditingId(kelompok._id);
-      setNamaKelompok(kelompok.NamaKelompok);
-      setHargaDibawah10(
-        formatCurrencyInput(kelompok.TarifRendah.toString())
-      );
-      setHargaDiatas10(
-        formatCurrencyInput(kelompok.TarifTinggi.toString())
-      );
-      setBiayaBeban(formatCurrencyInput(kelompok.BiayaBeban.toString()));
-    } else {
-      resetForm();
-    }
-    setDialogOpen(true);
-  };
+  const handleOpenEdit = useCallback((k: any) => {
+    setForm({
+      KodeKelompok: k.KodeKelompok || '',
+      NamaKelompok: k.NamaKelompok || '',
+      Kategori: k.Kategori || 'Non Niaga',
+      Deskripsi: k.Deskripsi || '',
+      BatasRendah: k.BatasRendah != null ? String(k.BatasRendah) : '',
+      TarifRendah: String(k.TarifRendah ?? ''),
+      TarifTinggi: String(k.TarifTinggi ?? ''),
+      BiayaBeban: String(k.BiayaBeban ?? ''),
+      IsKesepakatan: k.IsKesepakatan ?? false,
+    });
+    setFormError('');
+    setEditMode(true);
+    setSelectedId(k._id);
+    setOpenDialog(true);
+  }, []);
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    resetForm();
-  };
+  const handleOpenDelete = useCallback((k: any) => {
+    setSelectedId(k._id);
+    setSelectedItem(k);
+    setOpenDeleteDialog(true);
+  }, []);
 
-  const resetForm = () => {
-    setNamaKelompok('');
-    setHargaDibawah10('');
-    setHargaDiatas10('');
-    setBiayaBeban('');
-    setEditingId(null);
-  };
-
-  const closeDialog = () => {
-    setDialogOpen(false);
-    resetForm();
+  const validateForm = () => {
+    if (!editMode && !form.KodeKelompok.trim()) return 'Kode kelompok wajib diisi';
+    if (!form.NamaKelompok.trim()) return 'Nama kelompok wajib diisi';
+    if (!form.Kategori.trim()) return 'Kategori wajib diisi';
+    const tr = Number(form.TarifRendah);
+    const tt = Number(form.TarifTinggi);
+    const bb = Number(form.BiayaBeban);
+    if (!form.TarifRendah || isNaN(tr) || tr < 0) return 'Tarif di bawah batas harus angka positif';
+    if (!form.TarifTinggi || isNaN(tt) || tt < 0) return 'Tarif di atas batas harus angka positif';
+    if (!form.BiayaBeban || isNaN(bb) || bb < 0) return 'Biaya beban harus angka positif';
+    return '';
   };
 
   const handleSubmit = async () => {
-    setError('');
-    setSuccess('');
+    const err = validateForm();
+    if (err) { setFormError(err); return; }
+
+    setFormError('');
+    setSubmitting(true);
+
+    const input = {
+      KodeKelompok: form.KodeKelompok.trim().toUpperCase(),
+      NamaKelompok: form.NamaKelompok.trim(),
+      Kategori: form.Kategori.trim(),
+      Deskripsi: form.Deskripsi.trim(),
+      BatasRendah: form.BatasRendah ? Number(form.BatasRendah) : null,
+      TarifRendah: Number(form.TarifRendah),
+      TarifTinggi: Number(form.TarifTinggi),
+      BiayaBeban: Number(form.BiayaBeban),
+      IsKesepakatan: form.IsKesepakatan,
+    };
 
     try {
-      // Validation
-      if (!namaKelompok) {
-        setError('Nama kelompok wajib diisi');
-        return;
-      }
-
-      const hargaDibawah10Num = parseCurrency(hargaDibawah10);
-      const hargaDiatas10Num = parseCurrency(hargaDiatas10);
-
-      if (hargaDibawah10Num <= 0) {
-        setError('Harga pemakaian dibawah 10m³ harus lebih dari 0');
-        return;
-      }
-
-      if (hargaDiatas10Num <= 0) {
-        setError('Harga pemakaian diatas 10m³ harus lebih dari 0');
-        return;
-      }
-
-      const submitData = {
-        NamaKelompok: namaKelompok,
-        TarifRendah: hargaDibawah10Num,
-        TarifTinggi: hargaDiatas10Num,
-        BiayaBeban: parseCurrency(biayaBeban) || 0,
-      };
-
-      // ✅ GraphQL Mutation - Replace REST API
-      if (dialogMode === 'create') {
-        await createKelompokPelanggan({ variables: { input: submitData } });
+      if (editMode && selectedId) {
+        await updateKelompok({ variables: { id: selectedId, input } });
       } else {
-        await updateKelompokPelanggan({
-          variables: {
-            id: editingId,
-            input: submitData
-          }
-        });
+        await createKelompok({ variables: { input } });
       }
-    } catch (err: any) {
-      console.error('Error saving kelompok pelanggan:', err);
-      // Error already handled in mutation onError
+    } catch (e: any) {
+      setFormError(e.message || 'Operasi gagal. Coba lagi.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleOpenDeleteDialog = (id: string) => {
-    setDeletingId(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleCloseDeleteDialog = () => {
-    setDeleteDialogOpen(false);
-    setDeletingId(null);
-  };
-
-  const handleDelete = async () => {
-    if (!deletingId) return;
-
-    setError('');
-    setSuccess('');
-
+  const handleConfirmDelete = async () => {
+    if (!selectedId) return;
+    setDeleting(true);
     try {
-      // ✅ GraphQL Mutation - Replace REST API
-      await deleteKelompokPelanggan({
-        variables: { id: deletingId }
-      });
-    } catch (err: any) {
-      console.error('Error deleting kelompok pelanggan:', err);
-      // Error already handled in mutation onError
+      await deleteKelompok({ variables: { id: selectedId } });
+    } catch (e: any) {
+      showSnack(e.message || 'Gagal menghapus. Coba lagi.', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
+
+  const formatRupiah = (val: number) => `Rp ${(val || 0).toLocaleString('id-ID')}`;
+
+  if (authLoading || !isAuthenticated) return null;
 
   if (loading) {
     return (
-      <AdminLayout>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '60vh',
-          }}
-        >
+      <AdminLayout title={LAYOUT_TITLE}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
           <CircularProgress />
         </Box>
       </AdminLayout>
     );
   }
 
+  if (error) {
+    return (
+      <AdminLayout title={LAYOUT_TITLE}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Gagal memuat data kelompok pelanggan.
+        </Alert>
+        <Button startIcon={<Refresh />} onClick={() => refetch()}>Coba Lagi</Button>
+      </AdminLayout>
+    );
+  }
+
+  const kelompokList = (data as any)?.getAllKelompokPelanggan || [];
+  const minHarga = kelompokList.length > 0
+    ? Math.min(...kelompokList.map((k: any) => k.TarifRendah || 0))
+    : 0;
+
   return (
-    <AdminLayout>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-          <Group sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant='h4'>Kelompok Pelanggan</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Manage tarif kelompok pelanggan untuk billing
+    <AdminLayout title={LAYOUT_TITLE}>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Kelompok Pelanggan</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Kelola tarif kelompok pelanggan untuk billing (master data)
             </Typography>
           </Box>
-          <Button
-            variant='contained'
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog('create')}
-          >
-            Tambah Kelompok
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Tooltip title="Refresh">
+              <IconButton onClick={() => refetch()}><Refresh /></IconButton>
+            </Tooltip>
+            <Button variant="contained" startIcon={<Add />} onClick={handleOpenAdd}>
+              Tambah Kelompok Pelanggan
+            </Button>
+          </Box>
         </Box>
 
-        {/* Alerts */}
-        {error && (
-          <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert
-            severity='success'
-            sx={{ mb: 2 }}
-            onClose={() => setSuccess('')}
-          >
-            {success}
-          </Alert>
-        )}
+        <Alert severity="info" sx={{ mb: 3, py: 0.75 }} icon={false}>
+          <Typography variant="caption">
+            Sama dengan Struktur Tarif: tarif dua tingkat (≤ batas m³ dan &gt; batas), kode, kategori, dan biaya beban.
+            Perubahan memengaruhi perhitungan tagihan.
+          </Typography>
+        </Alert>
 
-        {/* Table */}
+        <Grid container spacing={3} sx={{ mb: 5 }}>
+          <Grid item xs={12} sm={6} md={4}>
+            <StatCard color="primary" icon={<AttachMoney />} title="Total Kelompok" count={kelompokList.length} subtitle="Kelompok terdaftar" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <StatCard color="success" icon={<CheckCircle />} title="Kelompok Aktif" count={kelompokList.length} subtitle="Status normal" subtitleColor="success.main" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <StatCard color="info" icon={<TrendingUp />} title="Tarif Terendah (≤Batas)" count={formatRupiah(minHarga)} subtitle="Per meter kubik" />
+          </Grid>
+        </Grid>
+
         <Card>
-          <CardContent>
-            <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
-              <Table sx={{ minWidth: 600 }}>
-                <TableHead>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 700 }}>
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Kode</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Nama Kelompok</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>Kategori</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif ≤ Batas</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Tarif &gt; Batas</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="right">Biaya Beban</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }} align="center">Aksi</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {kelompokList.length === 0 ? (
                   <TableRow>
-                    <TableCell>
-                      <strong>Nama Kelompok</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Tarif {'<'} 10m³</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Tarif {'>'} 10m³</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Biaya Beban</strong>
-                    </TableCell>
-                    <TableCell align='center'>
-                      <strong>Aksi</strong>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                      <Typography color="text.secondary">Belum ada kelompok pelanggan. Tambahkan yang pertama.</Typography>
                     </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {kelompokList.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align='center'>
-                        <Typography variant='body2' color='text.secondary'>
-                          Belum ada kelompok pelanggan
+                ) : (
+                  kelompokList.map((k: any) => (
+                    <TableRow key={k._id} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'primary.main' }}>
+                          {k.KodeKelompok ?? '-'}
                         </Typography>
                       </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{k.NamaKelompok}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={k.Kategori ?? '-'}
+                          size="small"
+                          sx={{
+                            fontSize: '0.7rem',
+                            height: 22,
+                            bgcolor: k.Kategori === 'Sosial' ? 'success.50' : k.Kategori === 'Niaga' ? 'warning.50' : 'grey.100',
+                            color: k.Kategori === 'Sosial' ? 'success.dark' : k.Kategori === 'Niaga' ? 'warning.dark' : 'text.secondary',
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 600 }}>{formatRupiah(k.TarifRendah)}</Typography></TableCell>
+                      <TableCell align="right"><Typography variant="body2" sx={{ fontWeight: 600 }}>{formatRupiah(k.TarifTinggi)}</Typography></TableCell>
+                      <TableCell align="right"><Typography variant="body2">{formatRupiah(k.BiayaBeban)}</Typography></TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Edit">
+                          <IconButton size="small" onClick={() => handleOpenEdit(k)} color="primary">
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Hapus">
+                          <IconButton size="small" onClick={() => handleOpenDelete(k)} color="error">
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
                     </TableRow>
-                  ) : (
-                    kelompokList.map((kelompok: any) => (
-                      <TableRow key={kelompok._id} hover>
-                        <TableCell>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <WaterDrop color='primary' />
-                            <Typography fontWeight='bold'>
-                              {kelompok.NamaKelompok}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={
-                              formatCurrency(
-                                kelompok.TarifRendah
-                              ) + '/m³'
-                            }
-                            color='success'
-                            size='small'
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={
-                              formatCurrency(kelompok.TarifTinggi) +
-                              '/m³'
-                            }
-                            color='warning'
-                            size='small'
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {kelompok.BiayaBeban > 0 ? (
-                            <Chip
-                              label={formatCurrency(kelompok.BiayaBeban)}
-                              color='info'
-                              size='small'
-                            />
-                          ) : (
-                            <Typography variant='body2' color='text.secondary'>
-                              -
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align='center'>
-                          <IconButton
-                            size='small'
-                            color='primary'
-                            onClick={() => handleOpenDialog('edit', kelompok)}
-                          >
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            size='small'
-                            color='error'
-                            onClick={() => handleOpenDeleteDialog(kelompok._id)}
-                          >
-                            <Delete />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Card>
-
-        {/* Create/Edit Dialog */}
-        <Dialog
-          open={dialogOpen}
-          onClose={handleCloseDialog}
-          maxWidth='sm'
-          fullWidth
-        >
-          <DialogTitle>
-            {dialogMode === 'create'
-              ? 'Tambah Kelompok Pelanggan'
-              : 'Edit Kelompok Pelanggan'}
-          </DialogTitle>
-          <DialogContent>
-            <Box
-              sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}
-            >
-              <TextField
-                fullWidth
-                label='Nama Kelompok'
-                value={namaKelompok}
-                onChange={e => setNamaKelompok(e.target.value)}
-                placeholder='Contoh: Rumah Tangga, Komersial, Industri'
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <Group />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <TextField
-                fullWidth
-                label='Harga Pemakaian Dibawah 10m³'
-                value={hargaDibawah10}
-                onChange={e =>
-                  setHargaDibawah10(formatCurrencyInput(e.target.value))
-                }
-                placeholder='0'
-                required
-                helperText='Tarif per m³ untuk pemakaian < 10m³'
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <Typography>Rp</Typography>
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <Typography variant='body2' color='text.secondary'>
-                        /m³
-                      </Typography>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <TextField
-                fullWidth
-                label='Harga Pemakaian Diatas 10m³'
-                value={hargaDiatas10}
-                onChange={e =>
-                  setHargaDiatas10(formatCurrencyInput(e.target.value))
-                }
-                placeholder='0'
-                required
-                helperText='Tarif per m³ untuk pemakaian >= 10m³'
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <Typography>Rp</Typography>
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <Typography variant='body2' color='text.secondary'>
-                        /m³
-                      </Typography>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <TextField
-                fullWidth
-                label='Biaya Beban (Opsional)'
-                value={biayaBeban}
-                onChange={e =>
-                  setBiayaBeban(formatCurrencyInput(e.target.value))
-                }
-                placeholder='0'
-                helperText='Biaya tetap bulanan (jika ada)'
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position='start'>
-                      <Typography>Rp</Typography>
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <Typography variant='body2' color='text.secondary'>
-                        /bulan
-                      </Typography>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog} disabled={submitting}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              variant='contained'
-              disabled={submitting}
-              startIcon={submitting ? <CircularProgress size={20} /> : null}
-            >
-              {submitting ? 'Menyimpan...' : 'Simpan'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
-          <DialogTitle>Konfirmasi Hapus</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Apakah Anda yakin ingin menghapus kelompok pelanggan ini?
-            </Typography>
-            <Alert severity='warning' sx={{ mt: 2 }}>
-              Perhatian: Kelompok yang sudah digunakan di meteran tidak bisa
-              dihapus
-            </Alert>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDeleteDialog} disabled={submitting}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleDelete}
-              variant='contained'
-              color='error'
-              disabled={submitting}
-              startIcon={
-                submitting ? <CircularProgress size={20} /> : <Delete />
-              }
-            >
-              {submitting ? 'Menghapus...' : 'Hapus'}
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
+
+      <Dialog open={openDialog} onClose={() => !submitting && setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" fontWeight={700}>
+            {editMode ? 'Edit Kelompok Pelanggan' : 'Tambah Kelompok Pelanggan Baru'}
+          </Typography>
+          <IconButton size="small" onClick={() => !submitting && setOpenDialog(false)} disabled={submitting}>
+            <Close fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {formError && (
+            <Alert severity="error" sx={{ mb: 2 }} icon={<Close />}>
+              {formError}
+            </Alert>
+          )}
+          <Grid container spacing={2} sx={{ mt: 0 }}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth label="Kode Kelompok" value={form.KodeKelompok}
+                onChange={(e) => setForm(f => ({ ...f, KodeKelompok: e.target.value }))}
+                placeholder="Contoh: RT01" disabled={editMode || submitting}
+                helperText={editMode ? 'Kode tidak bisa diubah' : 'Contoh: RT01, KOM1'}
+                inputProps={{ style: { textTransform: 'uppercase' } }}
+              />
+            </Grid>
+            <Grid item xs={12} md={8}>
+              <TextField
+                fullWidth label="Nama Kelompok" value={form.NamaKelompok}
+                onChange={(e) => setForm(f => ({ ...f, NamaKelompok: e.target.value }))}
+                placeholder="Contoh: Rumah Tangga A" disabled={submitting}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                select fullWidth label="Kategori" value={form.Kategori}
+                onChange={(e) => setForm(f => ({ ...f, Kategori: e.target.value }))}
+                SelectProps={{ native: true }} disabled={submitting}
+              >
+                {KATEGORI_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="Batas m³" type="number" value={form.BatasRendah}
+                onChange={(e) => setForm(f => ({ ...f, BatasRendah: e.target.value }))}
+                inputProps={{ min: 0 }} disabled={submitting}
+                helperText="Batas bawah konsumsi (kosongkan = 10)"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth label="Deskripsi" value={form.Deskripsi}
+                onChange={(e) => setForm(f => ({ ...f, Deskripsi: e.target.value }))}
+                multiline rows={2} placeholder="Deskripsi tambahan (opsional)" disabled={submitting}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth label="Tarif ≤ Batas (Rp/m³)" type="number" value={form.TarifRendah}
+                onChange={(e) => setForm(f => ({ ...f, TarifRendah: e.target.value }))}
+                inputProps={{ min: 0 }} disabled={submitting}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth label="Tarif > Batas (Rp/m³)" type="number" value={form.TarifTinggi}
+                onChange={(e) => setForm(f => ({ ...f, TarifTinggi: e.target.value }))}
+                inputProps={{ min: 0 }} disabled={submitting}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth label="Biaya Beban (Rp/bulan)" type="number" value={form.BiayaBeban}
+                onChange={(e) => setForm(f => ({ ...f, BiayaBeban: e.target.value }))}
+                inputProps={{ min: 0 }} disabled={submitting}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOpenDialog(false)} disabled={submitting} color="inherit">Batal</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={submitting} sx={{ minWidth: 160 }}>
+            {submitting ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+                <span>{editMode ? 'Menyimpan...' : 'Menambahkan...'}</span>
+              </Box>
+            ) : editMode ? 'Simpan Perubahan' : 'Tambah Kelompok'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openDeleteDialog} onClose={() => !deleting && setOpenDeleteDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'error.light', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Delete sx={{ color: 'error.dark', fontSize: 22 }} />
+          </Box>
+          Konfirmasi Hapus
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>Tindakan ini tidak dapat dibatalkan.</Alert>
+          {selectedItem && (
+            <Card variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'grey.50' }}>
+              <Typography variant="body2" fontWeight={700}>{selectedItem.NamaKelompok}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Kode: {selectedItem.KodeKelompok} &nbsp;·&nbsp; Kategori: {selectedItem.Kategori}
+              </Typography>
+            </Card>
+          )}
+          <Typography variant="body2" color="text.secondary">
+            Menghapus kelompok pelanggan dapat mempengaruhi meteran yang terhubung.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting} color="inherit">Batal</Button>
+          <Button
+            variant="contained" color="error" onClick={handleConfirmDelete}
+            disabled={deleting} sx={{ minWidth: 120 }}
+          >
+            {deleting ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+                <span>Menghapus...</span>
+              </Box>
+            ) : 'Ya, Hapus'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnack}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ mb: 2 }}
+      >
+        <Alert severity={snackbar.severity} onClose={handleCloseSnack} variant="filled" sx={{ minWidth: 280, boxShadow: 3 }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </AdminLayout>
   );
 }
