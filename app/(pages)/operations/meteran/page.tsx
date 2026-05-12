@@ -345,7 +345,13 @@ export default function MeteranListPage() {
                   <TableCell>Nomor Meteran / Akun</TableCell>
                   <TableCell>Pelanggan</TableCell>
                   <TableCell>Kelompok Tarif</TableCell>
-                  <TableCell align="right">Total Pemakaian</TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Total pemakaian kumulatif sejak meteran aktif, bukan hanya bulan ini" arrow placement="top">
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, cursor: 'default', borderBottom: '1px dashed', borderColor: 'text.secondary' }}>
+                        Total Pemakaian (Kumulatif)
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell align="right">Belum Terbayar</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="right">Aksi</TableCell>
