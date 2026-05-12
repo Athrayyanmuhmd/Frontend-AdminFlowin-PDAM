@@ -31,8 +31,6 @@ import {
   InputAdornment,
   Divider,
   Stack,
-  Badge,
-  LinearProgress,
   Fade,
 } from '@mui/material';
 import {
@@ -46,12 +44,10 @@ import {
   Refresh,
   Close,
   Search,
-  ShowChart,
   WaterDrop,
   Category,
   LocalOffer,
 } from '@mui/icons-material';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import AdminLayout from '../../../layouts/AdminLayout';
 import {
   GET_ALL_KELOMPOK_PELANGGAN,
@@ -264,23 +260,6 @@ export default function TariffsPage() {
     });
   }, [kelompokList, searchQuery, filterKategori]);
 
-  // Data untuk chart
-  const chartData = useMemo(() => {
-    const kategoriGroups: Record<string, { count: number; avgTarif: number }> = {};
-    kelompokList.forEach((k: any) => {
-      const kat = k.Kategori || 'Lainnya';
-      if (!kategoriGroups[kat]) kategoriGroups[kat] = { count: 0, avgTarif: 0 };
-      kategoriGroups[kat].count++;
-      kategoriGroups[kat].avgTarif += (k.TarifRendah || 0);
-    });
-    return Object.entries(kategoriGroups).map(([kategori, data]) => ({
-      kategori,
-      jumlah: data.count,
-      avgTarif: Math.round(data.avgTarif / data.count),
-      color: KATEGORI_COLORS[kategori] || '#9e9e9e',
-    }));
-  }, [kelompokList]);
-
   // Stats
   const stats = useMemo(() => {
     const totalKelompok = kelompokList.length;
@@ -475,46 +454,13 @@ export default function TariffsPage() {
                       bgcolor: 'rgba(255,255,255,0.15)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
-                      <ShowChart sx={{ fontSize: 24 }} />
+                      <TrendingUp sx={{ fontSize: 24 }} />
                     </Box>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
           </Grid>
-
-          {/* ─── Chart Section ───────────────────────────────────────────── */}
-          {chartData.length > 0 && (
-            <Card sx={{ mb: 4, borderRadius: 2, overflow: 'hidden' }}>
-              <Box sx={{ p: 3, pb: 0 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ShowChart fontSize="small" />
-                  Distribusi Tarif per Kategori
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Perbandingan rata-rata tarif per kategori kelompok pelanggan
-                </Typography>
-              </Box>
-              <Box sx={{ height: 280, p: 2 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <RechartsTooltip
-                      formatter={(value: number, name: string) => {
-                        if (name === 'avgTarif') return [formatRupiah(value), 'Tarif Rata-rata'];
-                        return [value, name];
-                      }}
-                      labelFormatter={(label: string) => `Kategori: ${label}`}
-                    />
-                    <Bar dataKey="avgTarif" name="Tarif Rata-rata" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                      {chartData.map((entry: { color: string }, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </Card>
-          )}
 
           {/* ─── Search & Filter ─────────────────────────────────────────── */}
           <Card sx={{ mb: 3, borderRadius: 2 }}>
