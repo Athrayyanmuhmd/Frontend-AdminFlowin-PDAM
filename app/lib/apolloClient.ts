@@ -1,23 +1,87 @@
-import { ApolloClient, InMemoryCache, from } from '@apollo/client';
+import { ApolloClient, InMemoryCache, from, ApolloLink } from '@apollo/client';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
+import { HttpLink } from '@apollo/client/link/http';
 import { onError } from '@apollo/client/link/error';
 import { setContext } from '@apollo/client/link/context';
 import { RetryLink } from '@apollo/client/link/retry';
 
-// BatchHttpLink — kumpulkan semua query yang fire dalam 50ms jadi 1 HTTP request
-// Mencegah burst request (3-4 query sekaligus) yang trigger Vercel DDoS mitigation
+const GRAPHQL_URI = process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql';
+
+/** Gabungkan signal Apollo (dedupe / unmount) + timeout — jangan ganti signal Apollo semata. */
+function graphqlFetch(uri: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const parentSignal = init?.signal;
+  const combined = new AbortController();
+  const timeoutId = setTimeout(() => {
+    try {
+      combined.abort();
+    } catch {
+      /* noop */
+    }
+  }, 30000);
+
+  const onParentAbort = () => {
+    clearTimeout(timeoutId);
+    try {
+      combined.abort(parentSignal?.reason);
+    } catch {
+      try {
+        combined.abort();
+      } catch {
+        /* noop */
+      }
+    }
+  };
+
+  if (parentSignal) {
+    if (parentSignal.aborted) {
+      clearTimeout(timeoutId);
+      return Promise.reject(
+        parentSignal.reason ?? new DOMException('The user aborted a request.', 'AbortError')
+      );
+    }
+    parentSignal.addEventListener('abort', onParentAbort, { once: true });
+  }
+
+  return fetch(uri, { ...init, signal: combined.signal }).finally(() => {
+    clearTimeout(timeoutId);
+    if (parentSignal) parentSignal.removeEventListener('abort', onParentAbort);
+  });
+}
+
+const sharedHttpConfig = {
+  uri: GRAPHQL_URI,
+  credentials: 'include' as const,
+  fetch: graphqlFetch,
+};
+
+// Mutasi lewat HttpLink (satu operasi = satu request) — BatchHttpLink + signal lama
+// sering memicu "signal is aborted without reason" padahal server sudah sukses.
+const mutationHttpLink = new HttpLink(sharedHttpConfig);
+
+// BatchHttpLink — kumpulkan query yang fire dalam 50ms jadi 1 HTTP request
 const batchLink = new BatchHttpLink({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql',
-  batchMax: 5,        // maks 5 operasi per batch
-  batchInterval: 50,  // tunggu 50ms — cukup untuk React multi render cycles
-  credentials: 'include',
-  fetch: (uri, options) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    return fetch(uri as RequestInfo, { ...options, signal: controller.signal })
-      .finally(() => clearTimeout(timeoutId));
-  },
+  ...sharedHttpConfig,
+  batchMax: 5,
+  batchInterval: 50,
 });
+
+function isMutationOperation(operation: { query: { definitions: readonly unknown[] } }): boolean {
+  return operation.query.definitions.some(
+    (definition) =>
+      typeof definition === 'object' &&
+      definition !== null &&
+      'kind' in definition &&
+      (definition as { kind: string }).kind === 'OperationDefinition' &&
+      'operation' in definition &&
+      (definition as { operation?: string }).operation === 'mutation'
+  );
+}
+
+const splitMutationLink = ApolloLink.split(
+  (operation) => isMutationOperation(operation),
+  mutationHttpLink,
+  batchLink
+);
 
 // Auth link to add token + Vercel bypass header
 const authLink = setContext((_, { headers }) => {
@@ -69,12 +133,6 @@ function isSessionInvalidError(graphQLErrors: any, networkError: any): boolean {
   return false;
 }
 
-function isMutationOperation(operation: any): boolean {
-  return (operation?.query?.definitions ?? []).some((definition: any) =>
-    definition?.kind === 'OperationDefinition' && definition?.operation === 'mutation'
-  );
-}
-
 // Global error handler — handle sesi expired, log error lain
 const errorLink = onError((err: any) => {
   const { graphQLErrors, networkError, operation } = err;
@@ -124,7 +182,7 @@ const retryLink = new RetryLink({
 
 // Create Apollo Client instance
 const apolloClient = new ApolloClient({
-  link: from([errorLink, retryLink, authLink, batchLink]),
+  link: from([errorLink, retryLink, authLink, splitMutationLink]),
   cache: new InMemoryCache({
     typePolicies: {
       Meteran: { keyFields: ['_id'] },
