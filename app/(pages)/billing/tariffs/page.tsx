@@ -100,34 +100,27 @@ export default function TariffsPage() {
     open: false, message: '', severity: 'success',
   });
 
-  // Query untuk baca data — cache-first + refetch on demand (via refresh button)
-  const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN);
+  // cache-first: hindari network background dari cache-and-network yang bentrok dengan mutasi.
+  // Daftar diperbarui lewat refetch() setelah mutasi sukses (bukan cache.update): readQuery/writeQuery
+  // yang melempar membuat Apollo menganggap mutasi gagal padahal server sudah berhasil.
+  const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
+    fetchPolicy: 'cache-first',
+    nextFetchPolicy: 'cache-first',
+  });
 
-  // ─── Mutations: sinkronisasi list lewat cache (tanpa refetchQueries) ───
+  const refetchListSafe = async () => {
+    try {
+      await refetch();
+    } catch {
+      /* refetch terkadang abort (jaringan/dedupe); data di server tetap valid */
+    }
+  };
 
-  // Tanpa refetchQueries: query yang sama sedang aktif di useQuery (cache-and-network) +
-  // BatchHttpLink sering membatalkan fetch refetch → "signal is aborted without reason"
-  // meski mutasi di server sudah sukses. Sinkronisasi UI lewat cache.update saja.
   const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
-    update(cache, res, { variables }) {
-      const created = (res.data as { createKelompokPelanggan?: Record<string, unknown> } | undefined)
-        ?.createKelompokPelanggan;
-      if (!created) return;
-      const existing = cache.readQuery<{ getAllKelompokPelanggan: Record<string, unknown>[] }>({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-      });
-      const list = existing?.getAllKelompokPelanggan ?? [];
-      const deskripsi = (variables?.input as { Deskripsi?: string } | undefined)?.Deskripsi ?? '';
-      cache.writeQuery({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-        data: {
-          getAllKelompokPelanggan: [...list, { ...created, Deskripsi: deskripsi }],
-        },
-      });
-    },
-    onCompleted: () => {
+    onCompleted: async () => {
       showSnack('Kelompok tarif berhasil ditambahkan');
       setOpenDialog(false);
+      await refetchListSafe();
     },
     onError: (err) => {
       setFormError(err.message || 'Operasi gagal. Coba lagi.');
@@ -135,26 +128,10 @@ export default function TariffsPage() {
   });
 
   const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
-    update(cache, res) {
-      const updated = (res.data as { updateKelompokPelanggan?: Record<string, unknown> } | undefined)
-        ?.updateKelompokPelanggan;
-      if (!updated) return;
-      const existing = cache.readQuery<{ getAllKelompokPelanggan: Record<string, unknown>[] }>({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-      });
-      if (!existing?.getAllKelompokPelanggan) return;
-      cache.writeQuery({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-        data: {
-          getAllKelompokPelanggan: existing.getAllKelompokPelanggan.map((k) =>
-            k._id === updated._id ? { ...k, ...updated } : k
-          ),
-        },
-      });
-    },
-    onCompleted: () => {
+    onCompleted: async () => {
       showSnack('Kelompok tarif berhasil diperbarui');
       setOpenDialog(false);
+      await refetchListSafe();
     },
     onError: (err) => {
       setFormError(err.message || 'Operasi gagal. Coba lagi.');
@@ -162,25 +139,12 @@ export default function TariffsPage() {
   });
 
   const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
-    update(cache, _, { variables }) {
-      const id = variables?.id as string | undefined;
-      if (!id) return;
-      const existing = cache.readQuery<{ getAllKelompokPelanggan: Record<string, unknown>[] }>({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-      });
-      if (!existing?.getAllKelompokPelanggan) return;
-      cache.writeQuery({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-        data: {
-          getAllKelompokPelanggan: existing.getAllKelompokPelanggan.filter((k) => k._id !== id),
-        },
-      });
-    },
-    onCompleted: () => {
+    onCompleted: async () => {
       showSnack('Kelompok tarif berhasil dihapus');
       setOpenDeleteDialog(false);
       setSelectedId(null);
       setSelectedItem(null);
+      await refetchListSafe();
     },
     onError: (err) => {
       showSnack(err.message || 'Gagal menghapus. Coba lagi.', 'error');
