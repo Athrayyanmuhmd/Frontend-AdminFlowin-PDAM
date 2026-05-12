@@ -346,7 +346,7 @@ export default function SmartMeterManagement() {
                         Total Pemakaian
                       </Typography>
                       <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {(totalPemakaianBelumTerbayar / 1000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} m³
+                        {totalPemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 1 })} m³
                       </Typography>
                       <Typography variant="caption" sx={{ opacity: 0.75 }}>
                         Belum terbayar
@@ -463,7 +463,7 @@ export default function SmartMeterManagement() {
                                 fontWeight={600}
                                 color={meter.pemakaianBelumTerbayar > 20 ? 'error.main' : 'text.primary'}
                               >
-                                {(meter.pemakaianBelumTerbayar / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
+                                {meter.pemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
                               </Typography>
                             </TableCell>
                             <TableCell align="center">
@@ -779,7 +779,7 @@ export default function SmartMeterManagement() {
                           <Typography variant="body2" color="text.secondary">Pemakaian Belum Terbayar</Typography>
                         </Box>
                         <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {(monitoringData.estimasiBiayaBulanIni.pemakaianBelumTerbayar / 1000).toLocaleString('id-ID', { maximumFractionDigits: 3 })} m³
+                          {monitoringData.estimasiBiayaBulanIni.pemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 3 })} m³
                         </Typography>
                       </CardContent>
                     </Card>
