@@ -103,10 +103,28 @@ export default function TariffsPage() {
   // Query untuk baca data — cache-first + refetch on demand (via refresh button)
   const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN);
 
-  // ─── Mutations: update cache langsung (optimistic) + refetchQueries (sinkronisasi) ───
+  // ─── Mutations: sinkronisasi list lewat cache (tanpa refetchQueries) ───
 
+  // Tanpa refetchQueries: query yang sama sedang aktif di useQuery (cache-and-network) +
+  // BatchHttpLink sering membatalkan fetch refetch → "signal is aborted without reason"
+  // meski mutasi di server sudah sukses. Sinkronisasi UI lewat cache.update saja.
   const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    update(cache, res, { variables }) {
+      const created = (res.data as { createKelompokPelanggan?: Record<string, unknown> } | undefined)
+        ?.createKelompokPelanggan;
+      if (!created) return;
+      const existing = cache.readQuery<{ getAllKelompokPelanggan: Record<string, unknown>[] }>({
+        query: GET_ALL_KELOMPOK_PELANGGAN,
+      });
+      const list = existing?.getAllKelompokPelanggan ?? [];
+      const deskripsi = (variables?.input as { Deskripsi?: string } | undefined)?.Deskripsi ?? '';
+      cache.writeQuery({
+        query: GET_ALL_KELOMPOK_PELANGGAN,
+        data: {
+          getAllKelompokPelanggan: [...list, { ...created, Deskripsi: deskripsi }],
+        },
+      });
+    },
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil ditambahkan');
       setOpenDialog(false);
@@ -117,7 +135,23 @@ export default function TariffsPage() {
   });
 
   const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    update(cache, res) {
+      const updated = (res.data as { updateKelompokPelanggan?: Record<string, unknown> } | undefined)
+        ?.updateKelompokPelanggan;
+      if (!updated) return;
+      const existing = cache.readQuery<{ getAllKelompokPelanggan: Record<string, unknown>[] }>({
+        query: GET_ALL_KELOMPOK_PELANGGAN,
+      });
+      if (!existing?.getAllKelompokPelanggan) return;
+      cache.writeQuery({
+        query: GET_ALL_KELOMPOK_PELANGGAN,
+        data: {
+          getAllKelompokPelanggan: existing.getAllKelompokPelanggan.map((k) =>
+            k._id === updated._id ? { ...k, ...updated } : k
+          ),
+        },
+      });
+    },
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil diperbarui');
       setOpenDialog(false);
@@ -128,7 +162,20 @@ export default function TariffsPage() {
   });
 
   const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
-    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
+    update(cache, _, { variables }) {
+      const id = variables?.id as string | undefined;
+      if (!id) return;
+      const existing = cache.readQuery<{ getAllKelompokPelanggan: Record<string, unknown>[] }>({
+        query: GET_ALL_KELOMPOK_PELANGGAN,
+      });
+      if (!existing?.getAllKelompokPelanggan) return;
+      cache.writeQuery({
+        query: GET_ALL_KELOMPOK_PELANGGAN,
+        data: {
+          getAllKelompokPelanggan: existing.getAllKelompokPelanggan.filter((k) => k._id !== id),
+        },
+      });
+    },
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil dihapus');
       setOpenDeleteDialog(false);
