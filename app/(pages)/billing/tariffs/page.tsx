@@ -100,26 +100,13 @@ export default function TariffsPage() {
     open: false, message: '', severity: 'success',
   });
 
-  // Query untuk baca data — network-only untuk evit race condition dengan refetchQueries
-  const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN, {
-    fetchPolicy: 'network-only',
-  });
+  // Query untuk baca data — cache-first + refetch on demand (via refresh button)
+  const { data, loading, error, refetch } = useQuery(GET_ALL_KELOMPOK_PELANGGAN);
 
-  // ─── Mutations dengan update callback (cache langsung, tidak perlu refetch) ───
+  // ─── Mutations: update cache langsung (optimistic) + refetchQueries (sinkronisasi) ───
 
   const [createKelompok] = useMutation(CREATE_KELOMPOK_PELANGGAN, {
-    update: (cache, { data: mutationData }) => {
-      const md = mutationData as any;
-      if (!md?.createKelompokPelanggan) return;
-      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
-      if (!existing) return;
-      cache.writeQuery({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-        data: {
-          getAllKelompokPelanggan: [...existing.getAllKelompokPelanggan, md.createKelompokPelanggan],
-        },
-      });
-    },
+    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil ditambahkan');
       setOpenDialog(false);
@@ -130,20 +117,7 @@ export default function TariffsPage() {
   });
 
   const [updateKelompok] = useMutation(UPDATE_KELOMPOK_PELANGGAN, {
-    update: (cache, { data: mutationData }) => {
-      const md = mutationData as any;
-      if (!md?.updateKelompokPelanggan) return;
-      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
-      if (!existing) return;
-      cache.writeQuery({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-        data: {
-          getAllKelompokPelanggan: existing.getAllKelompokPelanggan.map((k: any) =>
-            k._id === md.updateKelompokPelanggan._id ? md.updateKelompokPelanggan : k
-          ),
-        },
-      });
-    },
+    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil diperbarui');
       setOpenDialog(false);
@@ -154,18 +128,7 @@ export default function TariffsPage() {
   });
 
   const [deleteKelompok] = useMutation(DELETE_KELOMPOK_PELANGGAN, {
-    update: (cache, { data: mutationData }) => {
-      const md = mutationData as any;
-      if (!md?.deleteKelompokPelanggan?.success) return;
-      const existing = cache.readQuery<any>({ query: GET_ALL_KELOMPOK_PELANGGAN });
-      if (!existing) return;
-      cache.writeQuery({
-        query: GET_ALL_KELOMPOK_PELANGGAN,
-        data: {
-          getAllKelompokPelanggan: existing.getAllKelompokPelanggan.filter((k: any) => k._id !== selectedId),
-        },
-      });
-    },
+    refetchQueries: [{ query: GET_ALL_KELOMPOK_PELANGGAN }],
     onCompleted: () => {
       showSnack('Kelompok tarif berhasil dihapus');
       setOpenDeleteDialog(false);
