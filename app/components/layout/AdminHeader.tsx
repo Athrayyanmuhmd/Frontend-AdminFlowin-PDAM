@@ -56,8 +56,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/reports/financial': 'Laporan Keuangan',
   '/reports/compliance': 'Laporan Kepatuhan',
   '/reports/custom': 'Laporan Kustom',
-  '/system/config': 'Konfigurasi Sistem',
-  '/system/permissions': 'Manajemen Izin',
   '/system/users': 'Akun Pengguna',
   '/system/audit-logs': 'Audit Log',
   '/notifications': 'Notifikasi',
@@ -233,10 +231,6 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
           <MenuItem onClick={() => { router.push('/system/users'); handleMenuClose(); }}>
             <AccountCircle sx={{ mr: 1 }} />
             Profil
-          </MenuItem>
-          <MenuItem onClick={() => { router.push('/system/config'); handleMenuClose(); }}>
-            <Settings sx={{ mr: 1 }} />
-            Pengaturan
           </MenuItem>
           <MenuItem onClick={handleLogout}>
             <Logout sx={{ mr: 1 }} />
