@@ -49,6 +49,8 @@ import {
   Phone,
   CheckCircle,
   Warning,
+  Block,
+  VerifiedUser,
 } from '@mui/icons-material';
 import { useQuery, useMutation } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
@@ -57,6 +59,7 @@ import {
   CREATE_ADMIN,
   UPDATE_ADMIN,
   DELETE_ADMIN,
+  TOGGLE_ADMIN_ACTIVE,
 } from '../../../../lib/graphql/queries/admin';
 
 export default function UsersPage() {
@@ -75,6 +78,7 @@ export default function UsersPage() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openResetPasswordDialog, setOpenResetPasswordDialog] = useState(false);
+  const [openToggleDialog, setOpenToggleDialog] = useState(false);
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
   const [alertMsg, setAlertMsg] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -95,8 +99,11 @@ export default function UsersPage() {
   const [createAdmin, { loading: creating }] = useMutation(CREATE_ADMIN, { onCompleted: () => { refetch(); setOpenAddDialog(false); setAddForm({ NIP: '', namaLengkap: '', email: '', noHP: '', password: '', confirmPassword: '' }); showAlert('success', 'Admin berhasil ditambahkan'); }, onError: (e) => setAddFormError(e.message) });
   const [updateAdmin, { loading: updating }] = useMutation(UPDATE_ADMIN, { onCompleted: () => { refetch(); setOpenEditDialog(false); showAlert('success', 'Data admin berhasil diperbarui'); }, onError: (e) => showAlert('error', e.message) });
   const [deleteAdmin, { loading: deleting }] = useMutation(DELETE_ADMIN, { onCompleted: () => { refetch(); setOpenDeleteDialog(false); showAlert('success', 'Admin berhasil dihapus'); }, onError: (e) => showAlert('error', e.message) });
+  const [toggleAdminActive, { loading: toggling }] = useMutation(TOGGLE_ADMIN_ACTIVE, { onCompleted: () => { refetch(); setOpenToggleDialog(false); showAlert('success', `Admin berhasil ${selectedAdmin?.isActive ? 'dinonaktifkan' : 'diaktifkan'}`); }, onError: (e) => showAlert('error', e.message) });
 
   const admins = (data as any)?.getAllAdmins || [];
+  const activeAdmins = admins.filter((a: any) => a.isActive !== false);
+  const inactiveAdmins = admins.filter((a: any) => a.isActive === false);
 
   const showAlert = (type: 'success' | 'error', msg: string) => {
     setAlertMsg({ type, msg });
@@ -131,6 +138,8 @@ export default function UsersPage() {
   };
   const handleOpenDelete = () => { setOpenDeleteDialog(true); handleMenuClose(); };
   const handleOpenReset = () => { setResetForm({ password: '', confirmPassword: '' }); setResetFormError(''); setOpenResetPasswordDialog(true); handleMenuClose(); };
+  const handleOpenToggle = () => { setOpenToggleDialog(true); handleMenuClose(); };
+  const handleToggleConfirm = async () => { await toggleAdminActive({ variables: { id: selectedAdmin._id } }); };
 
   const handleAddSubmit = async () => {
     setAddFormError('');
@@ -216,7 +225,7 @@ export default function UsersPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'success.main' }}><CheckCircle /></Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{admins.length}</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{activeAdmins.length}</Typography>
                     <Typography variant="body2" color="text.secondary">Admin Aktif</Typography>
                   </Box>
                 </Box>
@@ -242,7 +251,7 @@ export default function UsersPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'warning.main' }}><Warning /></Avatar>
                   <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 600 }}>0</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 600 }}>{inactiveAdmins.length}</Typography>
                     <Typography variant="body2" color="text.secondary">Non-Aktif</Typography>
                   </Box>
                 </Box>
@@ -274,6 +283,7 @@ export default function UsersPage() {
                   <TableCell>Kontak</TableCell>
                   <TableCell>NIP</TableCell>
                   <TableCell>Role</TableCell>
+                  <TableCell>Status</TableCell>
                   <TableCell>Dibuat</TableCell>
                   <TableCell align="right">Aksi</TableCell>
                 </TableRow>
@@ -281,7 +291,7 @@ export default function UsersPage() {
               <TableBody>
                 {paginatedAdmins.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       <Typography color="text.secondary" sx={{ py: 4 }}>
                         {searchTerm ? 'Tidak ada admin yang cocok dengan pencarian' : 'Belum ada data admin'}
                       </Typography>
@@ -315,6 +325,14 @@ export default function UsersPage() {
                       <Chip icon={<Shield />} label="Administrator" size="small" color="primary" />
                     </TableCell>
                     <TableCell>
+                      <Chip
+                        icon={admin.isActive !== false ? <CheckCircle /> : <Block />}
+                        label={admin.isActive !== false ? 'Aktif' : 'Non-Aktif'}
+                        size="small"
+                        color={admin.isActive !== false ? 'success' : 'default'}
+                      />
+                    </TableCell>
+                    <TableCell>
                       <Typography variant="body2">{formatDate(admin.createdAt)}</Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -341,6 +359,12 @@ export default function UsersPage() {
         <MenuItem onClick={handleViewDetails}><Visibility sx={{ mr: 1 }} />Lihat Detail</MenuItem>
         <MenuItem onClick={handleOpenEdit}><Edit sx={{ mr: 1 }} />Edit</MenuItem>
         <MenuItem onClick={handleOpenReset}><LockReset sx={{ mr: 1 }} />Reset Password</MenuItem>
+        <MenuItem onClick={handleOpenToggle} sx={{ color: selectedAdmin?.isActive !== false ? 'warning.main' : 'success.main' }}>
+          {selectedAdmin?.isActive !== false
+            ? <><Block sx={{ mr: 1 }} />Non-aktifkan</>
+            : <><VerifiedUser sx={{ mr: 1 }} />Aktifkan</>
+          }
+        </MenuItem>
         <MenuItem onClick={handleOpenDelete} sx={{ color: 'error.main' }}><Delete sx={{ mr: 1 }} />Hapus</MenuItem>
       </Menu>
 
@@ -371,6 +395,17 @@ export default function UsersPage() {
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>{value}</Typography>
                 </Grid>
               ))}
+              <Grid item xs={12}>
+                <Typography variant="caption" color="text.secondary">Status</Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <Chip
+                    icon={selectedAdmin.isActive !== false ? <CheckCircle /> : <Block />}
+                    label={selectedAdmin.isActive !== false ? 'Aktif' : 'Non-Aktif'}
+                    size="small"
+                    color={selectedAdmin.isActive !== false ? 'success' : 'default'}
+                  />
+                </Box>
+              </Grid>
             </Grid>
           )}
         </DialogContent>
@@ -453,6 +488,31 @@ export default function UsersPage() {
           <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting}>Batal</Button>
           <Button variant="contained" color="error" onClick={handleDeleteConfirm} disabled={deleting} startIcon={deleting ? <CircularProgress size={16} /> : <Delete />}>
             {deleting ? 'Menghapus...' : 'Hapus'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Toggle Active Dialog */}
+      <Dialog open={openToggleDialog} onClose={() => setOpenToggleDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{selectedAdmin?.isActive !== false ? 'Non-aktifkan Admin' : 'Aktifkan Admin'}</DialogTitle>
+        <DialogContent>
+          <Alert severity={selectedAdmin?.isActive !== false ? 'warning' : 'info'} sx={{ mt: 1 }}>
+            {selectedAdmin?.isActive !== false
+              ? <>Admin <strong>{selectedAdmin?.namaLengkap}</strong> akan dinonaktifkan dan tidak bisa login.</>
+              : <>Admin <strong>{selectedAdmin?.namaLengkap}</strong> akan diaktifkan kembali.</>
+            }
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenToggleDialog(false)} disabled={toggling}>Batal</Button>
+          <Button
+            variant="contained"
+            color={selectedAdmin?.isActive !== false ? 'warning' : 'success'}
+            onClick={handleToggleConfirm}
+            disabled={toggling}
+            startIcon={toggling ? <CircularProgress size={16} /> : selectedAdmin?.isActive !== false ? <Block /> : <VerifiedUser />}
+          >
+            {toggling ? 'Memproses...' : selectedAdmin?.isActive !== false ? 'Non-aktifkan' : 'Aktifkan'}
           </Button>
         </DialogActions>
       </Dialog>

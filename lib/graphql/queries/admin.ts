@@ -13,6 +13,7 @@ export const GET_ALL_ADMINS = gql`
       namaLengkap
       email
       noHP
+      isActive
       createdAt
       updatedAt
     }
@@ -27,6 +28,7 @@ export const GET_ADMIN_BY_ID = gql`
       namaLengkap
       email
       noHP
+      isActive
       createdAt
       updatedAt
     }
@@ -41,6 +43,7 @@ export const CREATE_ADMIN = gql`
       namaLengkap
       email
       noHP
+      isActive
       createdAt
     }
   }
@@ -54,6 +57,7 @@ export const UPDATE_ADMIN = gql`
       namaLengkap
       email
       noHP
+      isActive
       updatedAt
     }
   }
@@ -64,6 +68,16 @@ export const DELETE_ADMIN = gql`
     deleteAdmin(id: $id) {
       success
       message
+    }
+  }
+`;
+
+export const TOGGLE_ADMIN_ACTIVE = gql`
+  mutation ToggleAdminActive($id: ID!) {
+    toggleAdminActive(id: $id) {
+      _id
+      namaLengkap
+      isActive
     }
   }
 `;
