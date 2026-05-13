@@ -162,7 +162,9 @@ export default function UsersPage() {
 
   const formatDate = (ts: string) => {
     if (!ts) return '-';
-    return new Date(parseInt(ts) || ts).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   if (loading) return (
