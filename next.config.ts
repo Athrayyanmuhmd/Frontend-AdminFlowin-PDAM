@@ -33,9 +33,18 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      // Cache favicon 24 jam di browser. Tanpa ini, browser meminta /favicon.ico
-      // pada setiap hard page load — 10 dari 24 denied di Vercel Firewall log
-      // adalah favicon request dari IP yang sama dalam satu jam.
+      // Security headers — berlaku untuk semua halaman
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+        ],
+      },
+      // Cache favicon 24 jam di browser.
       {
         source: '/favicon.ico',
         headers: [
