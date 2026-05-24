@@ -74,7 +74,6 @@ import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   GET_ALL_METERAN,
   GET_RIWAYAT_PENGGUNAAN_BULANAN,
-  GET_RIWAYAT_PENGGUNAAN,
   GET_ESTIMASI_BIAYA,
   GET_MONITORING_DASHBOARD,
 } from '@/lib/graphql/queries/meteran';
@@ -169,11 +168,9 @@ export default function SmartMeterManagement() {
   });
 
   const [fetchBulanan, { data: bulananDataRaw, loading: bulananLoading }] = useLazyQuery(GET_RIWAYAT_PENGGUNAAN_BULANAN);
-  const [fetchRiwayat, { data: riwayatDataRaw, loading: riwayatLoading }] = useLazyQuery(GET_RIWAYAT_PENGGUNAAN);
   const [fetchEstimasi, { data: estimasiDataRaw, loading: estimasiLoading }] = useLazyQuery(GET_ESTIMASI_BIAYA);
   const [fetchMonitoring, { data: monitoringDataRaw, loading: monitoringLoading }] = useLazyQuery(GET_MONITORING_DASHBOARD, { fetchPolicy: 'network-only' });
   const bulananData = bulananDataRaw as any;
-  const riwayatData = riwayatDataRaw as any;
   const estimasiData = estimasiDataRaw as any;
   const monitoringData = (monitoringDataRaw as any)?.getMonitoringDashboard;
 
@@ -187,7 +184,6 @@ export default function SmartMeterManagement() {
   useEffect(() => {
     if (selectedMeteranId) {
       fetchBulanan({ variables: { meteranId: selectedMeteranId } });
-      fetchRiwayat({ variables: { meteranId: selectedMeteranId, limit: 30 } });
       fetchEstimasi({ variables: { meteranId: selectedMeteranId } });
       fetchMonitoring({ variables: { meteranId: selectedMeteranId, periode: selectedPeriode } });
     }
@@ -945,67 +941,6 @@ export default function SmartMeterManagement() {
                   </Grid>
                 </Grid>
 
-                {/* IoT Records Table */}
-                <Card sx={{ mt: 3, borderRadius: 2 }}>
-                  <Box sx={{ p: 3, pb: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <MonitorHeart fontSize="small" color="primary" />
-                      30 Pencatatan IoT Terakhir
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Data real-time dari perangkat IoT
-                    </Typography>
-                  </Box>
-                  {riwayatLoading ? (
-                    <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
-                      <CircularProgress />
-                    </Box>
-                  ) : (riwayatData?.getRiwayatPenggunaan?.length ?? 0) === 0 ? (
-                    <Box sx={{ p: 3 }}>
-                      <Alert severity="info">Belum ada data pencatatan IoT untuk meteran ini.</Alert>
-                    </Box>
-                  ) : (
-                    <TableContainer sx={{ maxHeight: 360 }}>
-                      <Table size="small" stickyHeader>
-                        <TableHead>
-                          <TableRow sx={{ bgcolor: 'grey.100' }}>
-                            <TableCell sx={{ fontWeight: 600, width: 60 }}>#</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>Waktu Pencatatan</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }} align="right">Pemakaian (L/detik)</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }} align="right">Volume (m³)</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {(riwayatData?.getRiwayatPenggunaan || []).map((r: any, idx: number) => (
-                            <TableRow key={r._id} hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
-                              <TableCell sx={{ color: 'text.secondary', fontSize: 13 }}>{idx + 1}</TableCell>
-                              <TableCell>
-                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                  {r.createdAt ? new Date(r.createdAt).toLocaleString('id-ID', {
-                                    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-                                    hour: '2-digit', minute: '2-digit'
-                                  }) : '-'}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Chip
-                                  label={`${r.penggunaanAir?.toLocaleString('id-ID', { maximumFractionDigits: 3 })} L/s`}
-                                  size="small"
-                                  sx={{ fontFamily: 'monospace', fontWeight: 600 }}
-                                />
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                                  {r.penggunaanAir ? (r.penggunaanAir / 1000).toFixed(6) : '0'} m³
-                                </Typography>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </Card>
               </>
             )}
 
