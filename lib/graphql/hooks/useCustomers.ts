@@ -36,7 +36,8 @@ export function useGetAllCustomers(options?: { skip?: boolean }) {
 export function useGetCustomer(id: string) {
   const { data, loading, error } = useQuery(GET_CUSTOMER, {
     variables: { id },
-    skip: !id, // Skip query if no ID provided
+    skip: !id,
+    fetchPolicy: 'cache-and-network',
   });
 
   return {
