@@ -164,7 +164,7 @@ export default function CustomerDetailPage() {
       gender: c.gender || '-',
       birthDate: c.birthDate || '-',
       occupation: c.occupation || '-',
-      accountStatus: c.accountStatus || 'active',
+      accountStatus: c.accountStatus || 'inactive',
       isVerified: c.isVerified,
       registrationDate: new Date(c.createdAt),
     };
@@ -326,7 +326,7 @@ export default function CustomerDetailPage() {
                         color={customer.accountStatus === 'active' ? 'success' : 'default'}
                       />
                       {customer.isVerified && (
-                        <Chip icon={<CheckCircle />} label='Terverifikasi' color='info' size='small' />
+                        <Chip icon={<CheckCircle />} label='Identitas Diverifikasi' color='info' size='small' />
                       )}
                     </Box>
                     <Grid container spacing={2}>
@@ -670,7 +670,7 @@ export default function CustomerDetailPage() {
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant='body2' color='text.secondary'>Verifikasi</Typography>
                         <Chip
-                          label={customer.isVerified ? 'Terverifikasi' : 'Belum Verifikasi'}
+                          label={customer.isVerified ? 'Identitas Diverifikasi' : 'Belum Diverifikasi'}
                           color={customer.isVerified ? 'info' : 'default'}
                           size='small'
                         />
