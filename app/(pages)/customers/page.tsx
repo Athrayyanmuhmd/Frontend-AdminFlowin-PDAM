@@ -92,7 +92,7 @@ export default function CustomerManagement() {
     loading: loadingCustomers,
     error: customerError,
     refetch: refetchCustomers,
-  } = useGetAllCustomers();
+  } = useGetAllCustomers({ skip: !isAuthenticated });
 
   const { deleteCustomer: deleteCustomerMutation } = useDeleteCustomer();
   const { deactivateCustomer: deactivateCustomerMutation } = useDeactivateCustomer();
@@ -535,7 +535,7 @@ export default function CustomerManagement() {
                         .length.toLocaleString('id-ID')}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Terverifikasi PDAM
+                      Identitas Diverifikasi
                     </Typography>
                   </Box>
                 </Box>
@@ -682,7 +682,7 @@ export default function CustomerManagement() {
                   <TableCell>Kontak</TableCell>
                   <TableCell>Jenis</TableCell>
                   <TableCell>Status Akun</TableCell>
-                  <TableCell>Status PDAM</TableCell>
+                  <TableCell>Verifikasi Identitas</TableCell>
                   <TableCell>Tanggal Daftar</TableCell>
                   <TableCell align='right'>Aksi</TableCell>
                 </TableRow>
@@ -775,7 +775,7 @@ export default function CustomerManagement() {
                     <TableCell>
                       <Chip
                         icon={customer.isVerified ? <VerifiedUser /> : <Warning />}
-                        label={customer.isVerified ? 'Terverifikasi' : 'Belum Terverifikasi'}
+                        label={customer.isVerified ? 'Identitas Diverifikasi' : 'Belum Diverifikasi'}
                         size='small'
                         color={customer.isVerified ? 'info' : 'default'}
                         variant={customer.isVerified ? 'filled' : 'outlined'}

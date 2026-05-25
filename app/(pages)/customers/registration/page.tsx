@@ -113,7 +113,7 @@ function CustomerRegistrationInner() {
     phone: '',
     customerType: 'rumah_tangga',
     birthDate: '',
-    accountStatus: 'active',
+    accountStatus: 'inactive',
   });
 
   // Step 2: Data Sambungan
@@ -137,7 +137,7 @@ function CustomerRegistrationInner() {
       phone: graphqlCustomer.noHP || '',
       customerType: graphqlCustomer.customerType || 'rumah_tangga',
       birthDate: graphqlCustomer.birthDate ? graphqlCustomer.birthDate.split('T')[0] : '',
-      accountStatus: graphqlCustomer.accountStatus || 'active',
+      accountStatus: graphqlCustomer.accountStatus || 'inactive',
     });
     if (koneksiDataFallback) {
       setSambunganForm(prev => ({
