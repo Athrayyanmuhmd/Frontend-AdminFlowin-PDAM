@@ -75,14 +75,17 @@ export default function Dashboard() {
 
   const { loading, error: graphqlError, data, refetch } = useQuery(GET_DASHBOARD_STATS, {
     fetchPolicy: 'cache-and-network',
+    skip: !isAuthenticated,
   });
 
-  const { data: chartKonsumsiData, refetch: refetchKonsumsi } = useQuery(GET_CHART_KONSUMSI_PER_BULAN, {
+  const { data: chartKonsumsiData, error: chartKonsumsiError, refetch: refetchKonsumsi } = useQuery(GET_CHART_KONSUMSI_PER_BULAN, {
     fetchPolicy: 'cache-and-network',
+    skip: !isAuthenticated,
   });
 
-  const { data: distribusiData, refetch: refetchDistribusi } = useQuery(GET_DISTRIBUSI_KELOMPOK_PELANGGAN, {
+  const { data: distribusiData, error: distribusiError, refetch: refetchDistribusi } = useQuery(GET_DISTRIBUSI_KELOMPOK_PELANGGAN, {
     fetchPolicy: 'cache-and-network',
+    skip: !isAuthenticated,
   });
 
   useEffect(() => {
@@ -123,6 +126,8 @@ export default function Dashboard() {
     })
   );
 
+  if (authLoading || !isAuthenticated) return null;
+
   if (loading && kpis.length === 0) {
     return (
       <AdminLayout title="Dashboard Eksekutif">
@@ -132,8 +137,6 @@ export default function Dashboard() {
       </AdminLayout>
     );
   }
-
-  if (authLoading || !isAuthenticated) return null;
 
   return (
     <AdminLayout title="Dashboard Eksekutif">
@@ -254,7 +257,14 @@ export default function Dashboard() {
 
             {/* Chart area */}
             <Box sx={{ flex: 1, px: 1, py: 1.5, minHeight: 260 }}>
-              {konsumsiChartData.length === 0 ? (
+              {chartKonsumsiError ? (
+                <Box sx={{ height: 260, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                  <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Receipt sx={{ color: 'error.main', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="body2" color="error.main">Gagal memuat data grafik</Typography>
+                </Box>
+              ) : konsumsiChartData.length === 0 ? (
                 <Box sx={{ height: 260, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                   <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Receipt sx={{ color: 'text.disabled', fontSize: 24 }} />
@@ -316,7 +326,14 @@ export default function Dashboard() {
 
             {/* Chart area */}
             <Box sx={{ flex: 1, px: 1, py: 1, minHeight: 220 }}>
-              {distribusiChartData.length === 0 ? (
+              {distribusiError ? (
+                <Box sx={{ height: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                  <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <People sx={{ color: 'error.main', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="body2" color="error.main">Gagal memuat data grafik</Typography>
+                </Box>
+              ) : distribusiChartData.length === 0 ? (
                 <Box sx={{ height: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                   <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <People sx={{ color: 'text.disabled', fontSize: 24 }} />

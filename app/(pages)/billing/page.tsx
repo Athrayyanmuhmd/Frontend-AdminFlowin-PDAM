@@ -146,13 +146,13 @@ export default function BillingManagement() {
       nomorAkun.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = filterStatus === 'all' || bill.StatusPembayaran === filterStatus;
 
-    // Filter berdasarkan TenggatWaktu (lebih reliable dari Periode string)
+    // Filter berdasarkan Periode "YYYY-MM" — mencerminkan bulan tagihan, bukan jatuh tempo
     let matchPeriod = true;
-    if (filterPeriod !== 'all' && bill.TenggatWaktu) {
-      const tenggatDate = new Date(isNaN(Number(bill.TenggatWaktu)) ? bill.TenggatWaktu : Number(bill.TenggatWaktu));
-      if (!isNaN(tenggatDate.getTime())) {
-        const billYear = tenggatDate.getFullYear();
-        const billMonth = tenggatDate.getMonth();
+    if (filterPeriod !== 'all' && bill.Periode) {
+      const parts = (bill.Periode as string).split('-');
+      if (parts.length === 2) {
+        const billYear = parseInt(parts[0], 10);
+        const billMonth = parseInt(parts[1], 10) - 1; // konversi ke 0-indexed
         if (filterPeriod === 'current') {
           matchPeriod = billYear === currentYear && billMonth === currentMonth;
         } else if (filterPeriod === 'last') {

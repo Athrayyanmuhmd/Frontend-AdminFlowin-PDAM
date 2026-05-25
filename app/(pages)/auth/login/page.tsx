@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
@@ -27,8 +27,12 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const role: 'admin' | 'technician' = 'admin';
-  const { login, isLoading } = useAdmin();
+  const { login, isLoading, isAuthenticated } = useAdmin();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) router.replace('/dashboard');
+  }, [isLoading, isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
