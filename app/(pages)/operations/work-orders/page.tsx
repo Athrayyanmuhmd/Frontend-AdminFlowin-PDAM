@@ -382,6 +382,7 @@ export default function WorkOrderManagement() {
   const filtered = allWO.filter(wo => {
     const pelangganName = (
       wo.koneksiData?.pelanggan?.namaLengkap ||
+      wo.pelangganLaporan?.namaLengkap ||
       (wo.idLaporan && laporanById[wo.idLaporan]?.idPengguna?.namaLengkap) ||
       ''
     ).toLowerCase();
@@ -1062,6 +1063,7 @@ export default function WorkOrderManagement() {
                             <TableCell>
                               {(() => {
                                 const nama = wo.koneksiData?.pelanggan?.namaLengkap
+                                  || wo.pelangganLaporan?.namaLengkap
                                   || (wo.idLaporan && laporanById[wo.idLaporan]?.idPengguna?.namaLengkap)
                                   || null;
                                 if (nama) {
