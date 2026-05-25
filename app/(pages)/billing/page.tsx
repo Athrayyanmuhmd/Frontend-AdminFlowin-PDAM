@@ -288,7 +288,7 @@ export default function BillingManagement() {
 
   const handleProcessPayment = () => {
     setOpenPaymentDialog(true);
-    handleMenuClose();
+    closeMenuOnly();
   };
 
   const handleConfirmPayment = async () => {

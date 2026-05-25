@@ -862,6 +862,7 @@ export default function WorkOrderManagement() {
                     <MenuItem value='pengawasan_pemasangan'>Pengawasan Pasang</MenuItem>
                     <MenuItem value='pengawasan_setelah_pemasangan'>Pengawasan Setelah</MenuItem>
                     <MenuItem value='penyelesaian_laporan'>Penyelesaian Laporan</MenuItem>
+                    <MenuItem value='maintenance'>Maintenance</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -887,7 +888,7 @@ export default function WorkOrderManagement() {
                   <Select value={filterRespon} onChange={e => { setFilterRespon(e.target.value); setPage(1); }} label='Respon'>
                     <MenuItem value='all'>Semua Respon</MenuItem>
                     <Divider />
-                    <MenuItem value='menunggu'>Menunggu</MenuItem>
+                    <MenuItem value='belum_direspon'>Menunggu</MenuItem>
                     <MenuItem value='diterima'>Diterima</MenuItem>
                     <MenuItem value='penolakan_diajukan'>Penolakan Diajukan</MenuItem>
                     <MenuItem value='penolakan_diterima'>Penolakan Diterima</MenuItem>
