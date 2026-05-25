@@ -201,10 +201,10 @@ function woActions(wo: any) {
     needsTim: wo.statusTim === 'diajukan',
     needsPenolakan: wo.statusRespon === 'penolakan_diajukan',
     needsHasil: wo.status === 'dikirim',
-    // Penolakan sudah diterima tapi belum ada teknisi pengganti
+    // Penolakan diterima admin — WO ini dibatalkan, perlu teknisi pengganti
     canBuatPengganti:
       wo.statusRespon === 'penolakan_diterima' &&
-      wo.status !== 'selesai',
+      wo.status === 'dibatalkan',
   };
 }
 
@@ -509,15 +509,16 @@ export default function WorkOrderManagement() {
       const res2 = await srvBuatWorkOrder(token, newInput);
       if (res2.errors?.length) throw new Error(res2.errors[0].message);
       const r2 = (res2.data as any)?.buatWorkOrder;
-      if (r2?.success === false) throw new Error(r2.message || 'Gagal membuat WO baru');
-
-      // Step 3: Batalkan WO lama agar list tidak kotor
-      await srvBatalkan(token, selectedWO.id, 'Penolakan diterima — ditugaskan ke teknisi pengganti').catch(() => {});
+      if (r2?.success === false) throw new Error(
+        'Penolakan telah diterima dan WO lama sudah ditutup otomatis. ' +
+        'Namun gagal membuat WO baru: ' + (r2.message || 'error tidak diketahui') +
+        '. Silakan buat WO baru untuk teknisi pengganti secara manual.'
+      );
 
       setDlgPenolakan(false);
       setCatatan('');
       setReassignTeknisiId('');
-      toast('Penolakan diterima, WO lama dibatalkan & WO baru dibuat untuk teknisi pengganti');
+      toast('Penolakan diterima. WO baru telah dibuat untuk teknisi pengganti');
       fetchData();
     } catch (e: any) {
       toast(e.message || 'Gagal', false);
@@ -587,12 +588,9 @@ export default function WorkOrderManagement() {
       const r = (res.data as any)?.buatWorkOrder;
       if (r?.success === false) throw new Error(r.message || 'Gagal membuat WO pengganti');
 
-      // Batalkan WO lama yang sudah penolakan_diterima
-      await srvBatalkan(token, selectedWO.id, 'Digantikan oleh WO baru setelah penolakan diterima').catch(() => {});
-
       setDlgBuatPengganti(false);
       setReassignTeknisiId('');
-      toast('WO pengganti berhasil dibuat & WO lama dibatalkan');
+      toast('WO pengganti berhasil dibuat');
       fetchData();
     } catch (e: any) {
       toast(e.message || 'Gagal', false);
