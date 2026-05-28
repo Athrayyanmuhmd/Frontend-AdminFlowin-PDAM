@@ -174,7 +174,7 @@ export default function AuditLogsPage() {
 
   const formatDate = (ts: string): { date: string; time: string } => {
     if (!ts) return { date: '-', time: '' };
-    const d = new Date(parseInt(ts) || ts);
+    const d = new Date(ts);
     return { date: d.toLocaleDateString('id-ID'), time: d.toLocaleTimeString('id-ID') };
   };
 
