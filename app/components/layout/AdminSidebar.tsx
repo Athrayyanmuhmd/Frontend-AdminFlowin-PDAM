@@ -317,6 +317,7 @@ const adminMenuItems: MenuItem[] = [
     title: 'Laporan & Analitik',
     icon: <Assessment />,
     roles: ['admin'],
+    hidden: true,
     children: [
       {
         id: 'operational-reports',
