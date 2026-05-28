@@ -19,6 +19,7 @@ import { useDebounce } from '../../../hooks/useDebounce';
 const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
   dikirim: { label: 'Dikirim', color: 'info' },
   selesai: { label: 'Selesai', color: 'success' },
+  revisi: { label: 'Revisi', color: 'warning' },
 };
 
 const fmtDate = (v: string) => {
@@ -52,7 +53,7 @@ export default function PemasanganPage() {
       const res = await getWorkOrdersByJenis(token, 'pemasangan');
       if (res.errors?.length) { setError(res.errors[0].message); return; }
       const all: any[] = (res.data as any)?.workOrders?.data ?? [];
-      setData(all.filter(wo => wo.status === 'dikirim' || wo.status === 'selesai'));
+      setData(all.filter(wo => wo.status === 'dikirim' || wo.status === 'selesai' || wo.status === 'revisi'));
     } catch (err: any) {
       setError(err.message ?? 'Gagal memuat data');
     } finally {

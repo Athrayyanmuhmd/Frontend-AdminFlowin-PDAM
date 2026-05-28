@@ -237,15 +237,15 @@ export default function PaymentsPage() {
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'warning.main' }}>
-                    <Warning />
+                  <Avatar sx={{ bgcolor: 'success.main' }}>
+                    <CheckCircle />
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 600 }}>
-                      {filteredPayments.filter((p: any) => p.status === 'pending').length}
+                      {filteredPayments.length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Menunggu Konfirmasi
+                      Transaksi Berhasil
                     </Typography>
                   </Box>
                 </Box>
@@ -304,8 +304,6 @@ export default function PaymentsPage() {
                   >
                     <MenuItem value="all">Semua</MenuItem>
                     <MenuItem value="success">Berhasil</MenuItem>
-                    <MenuItem value="pending">Menunggu</MenuItem>
-                    <MenuItem value="failed">Gagal</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

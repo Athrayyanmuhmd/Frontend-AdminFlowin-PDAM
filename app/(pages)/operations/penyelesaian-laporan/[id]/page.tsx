@@ -39,6 +39,14 @@ const JENIS_LAPORAN: Record<string, string> = {
   KENDALA_LAINNYA: 'Kendala Lainnya',
 };
 
+const STATUS_RESPON: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
+  belum_direspon:     { label: 'Belum Direspon',    color: 'default'  },
+  diterima:           { label: 'Diterima',           color: 'success'  },
+  penolakan_diajukan: { label: 'Penolakan Diajukan', color: 'warning'  },
+  penolakan_diterima: { label: 'Penolakan Diterima', color: 'error'    },
+  penolakan_ditolak:  { label: 'Penolakan Ditolak',  color: 'warning'  },
+};
+
 const STATUS_LAPORAN: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
   DITUNDA: { label: 'Ditunda', color: 'warning' },
   DITUGASKAN: { label: 'Ditugaskan', color: 'info' },
@@ -152,7 +160,16 @@ export default function PenyelesaianLaporanDetailPage() {
                   <Divider sx={{ mb: 2 }} />
                   <Row label='ID Work Order' value={<Typography variant='caption' sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{wo.id}</Typography>} />
                   <Row label='Jenis Pekerjaan' value='Penyelesaian Laporan' />
-                  <Row label='Status Respon' value={wo.statusRespon} />
+                  <Row label='Status Respon' value={
+                    wo.statusRespon
+                      ? <Chip
+                          label={STATUS_RESPON[wo.statusRespon]?.label ?? wo.statusRespon}
+                          color={STATUS_RESPON[wo.statusRespon]?.color ?? 'default'}
+                          size='small'
+                          variant='outlined'
+                        />
+                      : '-'
+                  } />
                   {wo.alasanPenolakan && <Row label='Alasan Penolakan' value={wo.alasanPenolakan} />}
                   <Divider sx={{ my: 2 }} />
                   <Row label='Teknisi PJ' value={wo.teknisiPenanggungJawab?.namaLengkap} />

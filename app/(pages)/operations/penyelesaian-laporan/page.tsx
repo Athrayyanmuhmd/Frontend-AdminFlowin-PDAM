@@ -31,9 +31,11 @@ const STATUS_WO: Record<string, { label: string; color: 'info' | 'success' | 'wa
 };
 
 const STATUS_RESPON: Record<string, { label: string; color: 'info' | 'success' | 'warning' | 'error' | 'default' }> = {
-  menunggu: { label: 'Menunggu', color: 'default' },
-  diterima: { label: 'Diterima', color: 'success' },
-  ditolak: { label: 'Ditolak', color: 'error' },
+  belum_direspon:     { label: 'Belum Direspon',    color: 'default'  },
+  diterima:           { label: 'Diterima',           color: 'success'  },
+  penolakan_diajukan: { label: 'Penolakan Diajukan', color: 'warning'  },
+  penolakan_diterima: { label: 'Penolakan Diterima', color: 'error'    },
+  penolakan_ditolak:  { label: 'Penolakan Ditolak',  color: 'warning'  },
 };
 
 const fmtDate = (v: string) => {
