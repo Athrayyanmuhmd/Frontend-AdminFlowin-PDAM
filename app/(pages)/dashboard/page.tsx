@@ -24,7 +24,6 @@ import {
   Engineering,
   Receipt,
   Warning,
-  Cable,
 } from '@mui/icons-material';
 import nextDynamic from 'next/dynamic';
 import { Skeleton } from '@mui/material';
@@ -57,9 +56,7 @@ const KPI_CONFIG: Record<string, KpiConfig> = {
   '1': { icon: <People />,       color: 'info' },
   '2': { icon: <Speed />,        color: 'success' },
   '3': { icon: <Engineering />,  color: 'warning' },
-  '4': { icon: <Receipt />,      color: 'primary', format: (v) => `Rp ${v.toLocaleString('id-ID')}` },
   '5': { icon: <Warning />,      color: 'error' },
-  '6': { icon: <Cable />,        color: 'dark' },
 };
 
 export default function Dashboard() {
@@ -105,9 +102,7 @@ export default function Dashboard() {
       { id: '1', name: 'Total Pelanggan',        value: stats.totalPelanggan || 0,         unit: '',   trend: 'up',   status: 'good',    lastUpdated: new Date() },
       { id: '2', name: 'Total Meteran Terpasang', value: stats.totalMeteran || 0,           unit: '',   trend: 'up',   status: 'good',    lastUpdated: new Date() },
       { id: '3', name: 'Work Orders Aktif',       value: stats.activeWorkOrders || 0,       unit: '',   trend: stats.activeWorkOrders > 0 ? 'up' : 'down', status: stats.activeWorkOrders > 30 ? 'warning' : 'good', lastUpdated: new Date() },
-      { id: '4', name: 'Tagihan Bulan Ini',       value: stats.totalTagihanBulanIni || 0,   unit: 'Rp', trend: 'up',   status: 'good',    lastUpdated: new Date() },
       { id: '5', name: 'Tunggakan Aktif',         value: stats.tunggakanAktif || 0,         unit: '',   trend: stats.tunggakanAktif > 0 ? 'up' : 'down', status: stats.tunggakanAktif > 100 ? 'warning' : 'good', lastUpdated: new Date() },
-      { id: '6', name: 'Pending Koneksi',         value: stats.pendingKoneksi || 0,         unit: '',   trend: stats.pendingKoneksi > 0 ? 'up' : 'down', status: stats.pendingKoneksi > 20 ? 'warning' : 'good', lastUpdated: new Date() },
     ];
     setKpis(realKPIs);
   };
@@ -163,7 +158,7 @@ export default function Dashboard() {
         {kpis.map((kpi) => {
           const cfg = KPI_CONFIG[kpi.id];
           return (
-            <Grid item xs={12} sm={6} md={4} lg={2} key={kpi.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={kpi.id}>
               <StatCard
                 color={cfg.color}
                 icon={cfg.icon}
