@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import { useQuery } from '@apollo/client/react';
 import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
+import { getLaporan } from '@/lib/graphql/teknisiServer';
 import {
   Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -67,8 +68,40 @@ export default function PenyelesaianLaporanPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const data: any[] = (queryData as any)?.workOrders?.data ?? [];
+  const rawData: any[] = (queryData as any)?.workOrders?.data ?? [];
   const error = queryError?.message ?? '';
+
+  // Map: woId → pelangganLaporan (enriched dari Rafli jika backend tidak bisa)
+  const [pelangganMap, setPelangganMap] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    if (!token || rawData.length === 0) return;
+    const needEnrich = rawData.filter(
+      (wo: any) => wo.jenisPekerjaan === 'penyelesaian_laporan' && !wo.pelangganLaporan?.namaLengkap && wo.idLaporan
+    );
+    if (needEnrich.length === 0) return;
+    Promise.all(
+      needEnrich.map(async (wo: any) => {
+        try {
+          const res = await getLaporan(token, wo.idLaporan);
+          const p = (res.data as any)?.laporan?.pengguna;
+          if (p?.namaLengkap) return { id: wo.id, pengguna: p };
+        } catch { /* ignore */ }
+        return null;
+      })
+    ).then(results => {
+      const map: Record<string, any> = {};
+      results.forEach(r => { if (r) map[r.id] = r.pengguna; });
+      if (Object.keys(map).length > 0) setPelangganMap(prev => ({ ...prev, ...map }));
+    });
+  }, [rawData]);
+
+  const data = rawData.map((wo: any) => {
+    const enriched = pelangganMap[wo.id];
+    if (!enriched || wo.pelangganLaporan?.namaLengkap) return wo;
+    return { ...wo, pelangganLaporan: { ...enriched } };
+  });
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

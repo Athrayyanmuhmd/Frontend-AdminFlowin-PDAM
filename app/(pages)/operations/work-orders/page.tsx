@@ -220,6 +220,7 @@ export default function WorkOrderManagement() {
 
   // ─── State ───────────────────────────────────────────────────────────────
   const [allWO, setAllWO] = useState<any[]>([]);
+  const [pelangganMap, setPelangganMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -327,6 +328,30 @@ export default function WorkOrderManagement() {
     if (isAuthenticated) fetchData();
   }, [isAuthenticated, fetchData]);
 
+  // ─── Client-side enrichment: pelangganLaporan via Rafli laporan(id) ──────
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    if (!token || allWO.length === 0) return;
+    const needEnrich = allWO.filter(
+      (wo: any) => wo.jenisPekerjaan === 'penyelesaian_laporan' && !wo.koneksiData?.pelanggan?.namaLengkap && wo.idLaporan
+    );
+    if (needEnrich.length === 0) return;
+    Promise.all(
+      needEnrich.map(async (wo: any) => {
+        try {
+          const res = await getLaporan(token, wo.idLaporan);
+          const p = (res.data as any)?.laporan?.pengguna;
+          if (p?.namaLengkap) return { id: wo.id, pengguna: p };
+        } catch { /* ignore */ }
+        return null;
+      })
+    ).then(results => {
+      const map: Record<string, any> = {};
+      results.forEach((r: any) => { if (r) map[r.id] = r.pengguna; });
+      if (Object.keys(map).length > 0) setPelangganMap(prev => ({ ...prev, ...map }));
+    });
+  }, [allWO]);
+
   // ─── Fetch Detail ────────────────────────────────────────────────────────
   const fetchDetail = useCallback(
     async (woId: string, idKoneksiData: string) => {
@@ -378,8 +403,15 @@ export default function WorkOrderManagement() {
     }
   };
 
+  // ─── Merge pelangganMap ke allWO ─────────────────────────────────────────
+  const enrichedWO = allWO.map((wo: any) => {
+    const enriched = pelangganMap[wo.id];
+    if (!enriched || wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap) return wo;
+    return { ...wo, pelangganLaporan: { ...enriched } };
+  });
+
   // ─── Filter ──────────────────────────────────────────────────────────────
-  const filtered = allWO.filter(wo => {
+  const filtered = enrichedWO.filter(wo => {
     const pelangganName = (
       wo.koneksiData?.pelanggan?.namaLengkap ||
       wo.pelangganLaporan?.namaLengkap ||

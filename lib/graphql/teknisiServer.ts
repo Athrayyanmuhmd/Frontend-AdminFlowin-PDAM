@@ -163,7 +163,7 @@ export async function getWorkOrders(
     `query GetWorkOrders($pagination: PaginationInput, $filter: WorkOrderFilterInput) {
       workOrders(pagination: $pagination, filter: $filter) {
         data {
-          id idKoneksiData jenisPekerjaan status statusRespon statusTim catatanTim
+          id idKoneksiData idLaporan jenisPekerjaan status statusRespon statusTim catatanTim
           alasanPenolakan catatanReviewPenolakan catatanReview createdAt updatedAt
           koneksiData {
             id alamat statusPengajuan
