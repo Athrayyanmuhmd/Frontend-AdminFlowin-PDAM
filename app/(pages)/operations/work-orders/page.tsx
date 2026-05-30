@@ -197,15 +197,29 @@ function getStatusIcon(s: string) {
   return <Warning fontSize='small' />;
 }
 
-function woActions(wo: any) {
+function woActions(wo: any, allWOs: any[] = []) {
+  // WO pengganti sudah ada jika ada WO lain yang aktif (bukan dibatalkan)
+  // dengan jenis + referensi yang sama → tombol RE-ASSIGN disembunyikan
+  const sudahDiReassign =
+    wo.statusRespon === 'penolakan_diterima' &&
+    wo.status === 'dibatalkan' &&
+    allWOs.some((other: any) => {
+      if (other.id === wo.id || other.status === 'dibatalkan') return false;
+      if (other.jenisPekerjaan !== wo.jenisPekerjaan) return false;
+      if (wo.jenisPekerjaan === 'penyelesaian_laporan') {
+        return wo.idLaporan && other.idLaporan === wo.idLaporan;
+      }
+      return wo.idKoneksiData && other.idKoneksiData === wo.idKoneksiData;
+    });
+
   return {
     needsTim: wo.statusTim === 'diajukan',
     needsPenolakan: wo.statusRespon === 'penolakan_diajukan',
     needsHasil: wo.status === 'dikirim',
-    // Penolakan diterima admin — WO ini dibatalkan, perlu teknisi pengganti
     canBuatPengganti:
       wo.statusRespon === 'penolakan_diterima' &&
-      wo.status === 'dibatalkan',
+      wo.status === 'dibatalkan' &&
+      !sudahDiReassign,
   };
 }
 
@@ -751,7 +765,7 @@ export default function WorkOrderManagement() {
   };
 
   const acts = selectedWO
-    ? woActions(selectedWO)
+    ? woActions(selectedWO, enrichedWO)
     : { needsTim: false, needsPenolakan: false, needsHasil: false, canBuatPengganti: false };
 
   if (authLoading || !isAuthenticated) return null;
@@ -1064,7 +1078,7 @@ export default function WorkOrderManagement() {
                     ) : (
                       rows.map((wo, idx) => {
                         const { needsTim, needsPenolakan, needsHasil, canBuatPengganti } =
-                          woActions(wo);
+                          woActions(wo, enrichedWO);
                         const needsAction =
                           needsTim || needsPenolakan || needsHasil || canBuatPengganti;
                         const hasPenolakan =
@@ -1515,7 +1529,7 @@ export default function WorkOrderManagement() {
             detailWO &&
             (() => {
               const { needsTim, needsPenolakan, needsHasil } =
-                woActions(detailWO);
+                woActions(detailWO, enrichedWO);
               return (
                 <Box
                   sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
@@ -2502,7 +2516,7 @@ export default function WorkOrderManagement() {
         </DialogContent>
         <DialogActions sx={{ gap: 1 }}>
           <Button size='small' onClick={() => setDlgAlasan('')}>Tutup</Button>
-          {selectedWO && woActions(selectedWO).needsPenolakan && (
+          {selectedWO && woActions(selectedWO, enrichedWO).needsPenolakan && (
             <Button
               size='small'
               variant='contained'
