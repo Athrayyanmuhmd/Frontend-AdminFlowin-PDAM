@@ -93,6 +93,33 @@ async function teknisiGql<T = Record<string, unknown>>(
   }
 }
 
+// ─── Aqualink Backend Helper (untuk query yang butuh enrichment pelanggan) ────
+const AQUALINK_GRAPHQL_URL =
+  process.env.NEXT_PUBLIC_GRAPHQL_URL ??
+  process.env.GRAPHQL_URL ??
+  'http://localhost:5000/graphql';
+
+async function aqualinkGql<T = Record<string, unknown>>(
+  query: string,
+  variables?: Record<string, unknown>,
+  token?: string
+): Promise<GqlResult<T>> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(AQUALINK_GRAPHQL_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ query, variables }),
+      cache: 'no-store',
+    });
+    const json = await res.json();
+    return { data: json.data ?? null, errors: json.errors ?? null };
+  } catch (e: any) {
+    return { data: null, errors: [{ message: e?.message ?? 'Gagal terhubung ke backend Aqualink' }] };
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // QUERIES — token = admin_token dari localStorage (terintegrasi antar backend)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -270,6 +297,25 @@ export async function getWorkOrdersByJenis(
     }`,
     { filter: { jenisPekerjaan }, pagination: { limit, page: 1 } },
     { token }
+  );
+}
+
+export async function getWorkOrdersPenyelesaianLaporan(token: string, limit = 500) {
+  return aqualinkGql(
+    `query GetPenyelesaianLaporan($pagination: PaginationInput, $filter: WorkOrderFilterInput) {
+      workOrders(pagination: $pagination, filter: $filter) {
+        data {
+          id idKoneksiData idLaporan jenisPekerjaan status statusRespon catatanReview createdAt updatedAt
+          koneksiData { id alamat statusPengajuan kelurahan kecamatan pelanggan { id namaLengkap noHp email } }
+          pelangganLaporan { id namaLengkap noHp email }
+          teknisiPenanggungJawab { id namaLengkap nip divisi }
+          tim { id namaLengkap nip divisi }
+        }
+        pagination { total page limit totalPages }
+      }
+    }`,
+    { filter: { jenisPekerjaan: 'penyelesaian_laporan' }, pagination: { limit, page: 1 } },
+    token
   );
 }
 

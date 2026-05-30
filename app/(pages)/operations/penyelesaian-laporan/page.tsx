@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
-import { getWorkOrdersByJenis } from '@/lib/graphql/teknisiServer';
+import { getWorkOrdersPenyelesaianLaporan } from '@/lib/graphql/teknisiServer';
 import {
   Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -69,7 +69,7 @@ export default function PenyelesaianLaporanPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await getWorkOrdersByJenis(token, 'penyelesaian_laporan');
+      const res = await getWorkOrdersPenyelesaianLaporan(token);
       if (res.errors?.length) { setError(res.errors[0].message); return; }
       setData((res.data as any)?.workOrders?.data ?? []);
     } catch (err: any) {
@@ -101,8 +101,9 @@ export default function PenyelesaianLaporanPage() {
   const filtered = useMemo(() => {
     return data.filter(wo => {
       const q = debouncedSearch.toLowerCase();
+      const pelangganName = (wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || '').toLowerCase();
       const matchSearch = !debouncedSearch.trim() ||
-        wo.koneksiData?.pelanggan?.namaLengkap?.toLowerCase().includes(q) ||
+        pelangganName.includes(q) ||
         wo.koneksiData?.alamat?.toLowerCase().includes(q) ||
         wo.teknisiPenanggungJawab?.namaLengkap?.toLowerCase().includes(q) ||
         wo.idLaporan?.toLowerCase().includes(q);
@@ -257,19 +258,24 @@ export default function PenyelesaianLaporanPage() {
                           <TableRow key={wo.id} hover onClick={() => router.push(`/operations/penyelesaian-laporan/${wo.id}`)} sx={{ cursor: 'pointer' }}>
                             <TableCell>{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                             <TableCell>
-                              {wo.koneksiData?.pelanggan?.namaLengkap ? (
-                                <>
-                                  <Typography variant='body2' fontWeight={600}>{wo.koneksiData.pelanggan.namaLengkap}</Typography>
-                                  <Typography variant='caption' color='text.secondary'>{wo.koneksiData.alamat || ''}</Typography>
-                                </>
-                              ) : (
-                                <>
-                                  <Typography variant='caption' color='text.secondary'>Laporan:</Typography>
-                                  <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: 11 }}>
-                                    {wo.idLaporan ? `…${wo.idLaporan.slice(-10)}` : '-'}
-                                  </Typography>
-                                </>
-                              )}
+                              {(() => {
+                                const nama = wo.koneksiData?.pelanggan?.namaLengkap || wo.pelangganLaporan?.namaLengkap || null;
+                                const alamat = wo.koneksiData?.alamat || null;
+                                if (nama) return (
+                                  <>
+                                    <Typography variant='body2' fontWeight={600}>{nama}</Typography>
+                                    {alamat && <Typography variant='caption' color='text.secondary'>{alamat}</Typography>}
+                                  </>
+                                );
+                                return (
+                                  <>
+                                    <Typography variant='caption' color='text.secondary'>Laporan:</Typography>
+                                    <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: 11 }}>
+                                      {wo.idLaporan ? `…${wo.idLaporan.slice(-10)}` : '-'}
+                                    </Typography>
+                                  </>
+                                );
+                              })()}
                             </TableCell>
                             <TableCell>
                               <Typography variant='body2' fontWeight={600}>{wo.teknisiPenanggungJawab?.namaLengkap || '-'}</Typography>
