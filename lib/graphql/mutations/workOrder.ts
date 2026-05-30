@@ -61,6 +61,17 @@ export const BATALKAN_WORK_ORDER = gql`
   }
 `;
 
+export const RESET_LAPORAN_STATUS_UNTUK_REASSIGN = gql`
+  mutation ResetLaporanStatusUntukReassign($idLaporan: ID!) {
+    resetLaporanStatusUntukReassign(idLaporan: $idLaporan) {
+      success
+      message
+      statusSebelum
+      statusSesudah
+    }
+  }
+`;
+
 // ─── Backward-compat stubs (halaman lama masih import ini) ───────────────────
 
 export const UPDATE_WORK_ORDER_STATUS = BATALKAN_WORK_ORDER;

@@ -17,9 +17,10 @@ import {
   getTeknisiUsers,
   cekPrerequisitePekerjaan,
 } from '@/lib/graphql/teknisiServer';
-import { useQuery as useApolloQuery } from '@apollo/client/react';
+import { useQuery as useApolloQuery, useMutation as useApolloMutation } from '@apollo/client/react';
 import { GET_ALL_CONNECTION_DATA } from '@/lib/graphql/queries/connectionData';
 import { GET_ALL_LAPORAN } from '@/lib/graphql/queries/reports';
+import { RESET_LAPORAN_STATUS_UNTUK_REASSIGN } from '@/lib/graphql/mutations/workOrder';
 import {
   Grid,
   Card,
@@ -305,6 +306,9 @@ export default function WorkOrderManagement() {
   const [prerequisiteMsg, setPrerequisiteMsg] = useState<boolean | null>(null);
   const [checkingPrereq, setCheckingPrereq] = useState(false);
 
+  // ─── Mutation: reset Laporan status sebelum reassign penyelesaian_laporan ──
+  const [resetLaporanMutation] = useApolloMutation(RESET_LAPORAN_STATUS_UNTUK_REASSIGN);
+
   // ─── Fetch Data ──────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     const token = localStorage.getItem('admin_token');
@@ -528,7 +532,16 @@ export default function WorkOrderManagement() {
       });
       if (res1.errors?.length) throw new Error(res1.errors[0].message);
 
-      // Step 2: Buat WO baru dengan jenis & koneksi yang sama, teknisi berbeda
+      // Step 2: Reset status Laporan jika penyelesaian_laporan (Rafli tidak reset otomatis)
+      if (selectedWO.jenisPekerjaan === 'penyelesaian_laporan' && selectedWO.idLaporan) {
+        try {
+          await resetLaporanMutation({ variables: { idLaporan: selectedWO.idLaporan } });
+        } catch (resetErr: any) {
+          console.warn('[handleReviewPenolakan] reset laporan gagal (lanjut buatWO):', resetErr.message);
+        }
+      }
+
+      // Step 3: Buat WO baru dengan jenis & koneksi yang sama, teknisi berbeda
       const newInput: Parameters<typeof srvBuatWorkOrder>[1] = {
         jenisPekerjaan: selectedWO.jenisPekerjaan,
         teknisiPenanggungJawab: reassignTeknisiId,
@@ -606,6 +619,15 @@ export default function WorkOrderManagement() {
     const token = localStorage.getItem('admin_token') || '';
     setMutating(true);
     try {
+      // Reset status Laporan jika penyelesaian_laporan (Rafli tidak reset otomatis)
+      if (selectedWO.jenisPekerjaan === 'penyelesaian_laporan' && selectedWO.idLaporan) {
+        try {
+          await resetLaporanMutation({ variables: { idLaporan: selectedWO.idLaporan } });
+        } catch (resetErr: any) {
+          console.warn('[handleBuatWOPengganti] reset laporan gagal (lanjut buatWO):', resetErr.message);
+        }
+      }
+
       const newInput: Parameters<typeof srvBuatWorkOrder>[1] = {
         jenisPekerjaan: selectedWO.jenisPekerjaan,
         teknisiPenanggungJawab: reassignTeknisiId,
