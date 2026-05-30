@@ -149,7 +149,7 @@ const apolloClient = new ApolloClient({
     typePolicies: {
       Meteran: { keyFields: ['_id'] },
       Tagihan: { keyFields: ['_id'] },
-      Pelanggan: { keyFields: ['_id'] },
+      Pelanggan: { keyFields: ['id'] },       // schema pakai id bukan _id
       KelompokPelanggan: { keyFields: ['_id'] },
       KoneksiData: { keyFields: ['_id'] },
       SurveyData: { keyFields: ['_id'] },
