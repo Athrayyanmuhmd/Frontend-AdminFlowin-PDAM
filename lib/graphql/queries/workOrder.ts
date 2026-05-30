@@ -6,6 +6,7 @@ const WORK_ORDER_FRAGMENT = gql`
   fragment WorkOrderFields on WorkOrder {
     id
     idKoneksiData
+    idLaporan
     jenisPekerjaan
     status
     statusRespon
