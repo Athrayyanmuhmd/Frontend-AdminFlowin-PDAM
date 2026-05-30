@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../../../layouts/AdminProvider';
-import { getWorkOrdersPenyelesaianLaporan } from '@/lib/graphql/teknisiServer';
+import { useQuery } from '@apollo/client/react';
+import { GET_WORK_ORDERS } from '@/lib/graphql/queries/workOrder';
 import {
   Box, Card, CardContent, Typography, Button, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -47,9 +48,6 @@ export default function PenyelesaianLaporanPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
 
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [search, setSearch] = useFilterPersist('penyelesaian-laporan-search', '');
   const [filterStatus, setFilterStatus] = useFilterPersist('penyelesaian-laporan-status', '');
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
@@ -63,29 +61,14 @@ export default function PenyelesaianLaporanPage() {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated, router]);
 
-  const fetchData = useCallback(async () => {
-    const token = localStorage.getItem('admin_token');
-    if (!token) return;
-    setLoading(true);
-    setError('');
-    try {
-      const res = await getWorkOrdersPenyelesaianLaporan(token);
-      if (res.errors?.length) { setError(res.errors[0].message); return; }
-      setData((res.data as any)?.workOrders?.data ?? []);
-    } catch (err: any) {
-      setError(err.message ?? 'Gagal memuat data');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: queryData, loading, error: queryError, refetch } = useQuery(GET_WORK_ORDERS, {
+    variables: { filter: { jenisPekerjaan: 'penyelesaian_laporan' }, pagination: { page: 1, limit: 500 } },
+    skip: !isAuthenticated,
+    fetchPolicy: 'cache-and-network',
+  });
 
-  useEffect(() => { if (isAuthenticated) fetchData(); }, [isAuthenticated, fetchData]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const id = setInterval(fetchData, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [isAuthenticated, fetchData]);
+  const data: any[] = (queryData as any)?.workOrders?.data ?? [];
+  const error = queryError?.message ?? '';
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -143,7 +126,7 @@ export default function PenyelesaianLaporanPage() {
               Daftar work order yang dibuat untuk menyelesaikan laporan pelanggan
             </Typography>
           </Box>
-          <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
+          <Button variant='outlined' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading} size='small'>
             Refresh
           </Button>
         </Box>
@@ -164,7 +147,7 @@ export default function PenyelesaianLaporanPage() {
           ))}
         </Stack>
 
-        {error && <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {error && <Alert severity='error' sx={{ mb: 2 }}>{error}</Alert>}
 
         <Card sx={{ mb: 2 }}>
           <CardContent sx={{ pb: '12px !important' }}>
