@@ -15,7 +15,7 @@ import {
   Close, ZoomIn, ZoomOut, RestartAlt, Visibility, RadioButtonUnchecked,
   VerifiedUser, Build, Payment, AccountBalance,
   GroupAdd, Assignment, ThumbUp, ThumbDown, Image as ImageIcon,
-  People, LocationOn, AccessTime, OpenInNew,
+  People, LocationOn, AccessTime, OpenInNew, Upload,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
@@ -142,6 +142,44 @@ export default function ConnectionDataDetailPage() {
 
   // Local flag: immediately hide activation button after success (Apollo cache may lag)
   const [localActivated, setLocalActivated] = useState(false);
+
+  // Upload dokumen (walk-in)
+  const [uploadingDoc, setUploadingDoc] = useState<'NIK' | 'KK' | 'IMB' | null>(null);
+  const nikInputRef = React.useRef<HTMLInputElement | null>(null);
+  const kkInputRef  = React.useRef<HTMLInputElement | null>(null);
+  const imbInputRef = React.useRef<HTMLInputElement | null>(null);
+  const docInputRefs: Record<string, React.RefObject<HTMLInputElement | null>> = {
+    NIK: nikInputRef,
+    KK:  kkInputRef,
+    IMB: imbInputRef,
+  };
+
+  const handleUploadDokumen = async (jenis: 'NIK' | 'KK' | 'IMB', file: File) => {
+    setUploadingDoc(jenis);
+    setErrorMsg(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const token = localStorage.getItem('admin_token');
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:5000/api';
+      const res = await fetch(
+        `${baseUrl}/connection-data/${id}/upload-dokumen?jenis=${jenis}`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.pesan || 'Gagal mengupload dokumen');
+      setSuccess(`Dokumen ${jenis} berhasil diupload`);
+      refetch();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Gagal mengupload dokumen');
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
 
   // Document viewer
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -1398,46 +1436,122 @@ export default function ConnectionDataDetailPage() {
         <Card sx={{ mb: 3, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
           <CardContent>
             <SectionTitle icon={<Description />} title="Dokumen Pengajuan" />
+
+            {/* Hidden file inputs — satu per jenis dokumen */}
+            {(['NIK', 'KK', 'IMB'] as const).map((jenis) => (
+              <input
+                key={jenis}
+                ref={docInputRefs[jenis]}
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,application/pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadDokumen(jenis, file);
+                  // reset input agar file yang sama bisa dipilih lagi
+                  e.target.value = '';
+                }}
+              />
+            ))}
+
             <Grid container spacing={2}>
               {[
-                { label: 'Foto KTP (NIK)', url: data.NIKUrl, docType: 'NIK' },
-                { label: 'Foto KK', url: data.KKUrl, docType: 'KK' },
-                { label: 'Foto IMB', url: data.IMBUrl, docType: 'IMB' },
-              ].map((doc: { label: string; url: string; docType: string }) => (
-                <Grid item xs={12} sm={4} key={doc.label}>
-                  <Box
-                    sx={{
-                      border: '1.5px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      p: 2.5,
-                      textAlign: 'center',
-                      cursor: doc.url ? 'pointer' : 'default',
-                      transition: 'all 0.2s ease',
-                      '&:hover': doc.url
-                        ? { borderColor: 'primary.main', bgcolor: 'action.hover', transform: 'translateY(-2px)', boxShadow: 2 }
-                        : {},
-                    }}
-                    onClick={() => doc.url && openDocumentViewer(doc.url, doc.label, doc.docType)}
-                  >
-                    <Box sx={{
-                      width: 52, height: 52, borderRadius: '50%', mx: 'auto', mb: 1.5,
-                      bgcolor: 'grey.100',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <Description sx={{ fontSize: 26, color: doc.url ? 'primary.main' : 'text.disabled' }} />
+                { label: 'Foto KTP (NIK)', url: data.NIKUrl, docType: 'NIK' as const },
+                { label: 'Foto KK',        url: data.KKUrl,  docType: 'KK'  as const },
+                { label: 'Foto IMB',       url: data.IMBUrl, docType: 'IMB' as const },
+              ].map((doc) => {
+                const isUploading = uploadingDoc === doc.docType;
+                return (
+                  <Grid item xs={12} sm={4} key={doc.label}>
+                    <Box
+                      sx={{
+                        border: '1.5px solid',
+                        borderColor: doc.url ? 'primary.main' : 'divider',
+                        borderRadius: 2,
+                        p: 2.5,
+                        textAlign: 'center',
+                        cursor: doc.url ? 'pointer' : 'default',
+                        transition: 'all 0.2s ease',
+                        '&:hover': doc.url
+                          ? { bgcolor: 'action.hover', transform: 'translateY(-2px)', boxShadow: 2 }
+                          : {},
+                      }}
+                      onClick={() => doc.url && openDocumentViewer(doc.url, doc.label, doc.docType)}
+                    >
+                      <Box sx={{
+                        width: 52, height: 52, borderRadius: '50%', mx: 'auto', mb: 1.5,
+                        bgcolor: doc.url ? 'primary.50' : 'grey.100',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {isUploading
+                          ? <CircularProgress size={24} />
+                          : <Description sx={{ fontSize: 26, color: doc.url ? 'primary.main' : 'text.disabled' }} />
+                        }
+                      </Box>
+
+                      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+                        {doc.label}
+                      </Typography>
+
+                      <Chip
+                        size="small"
+                        label={doc.url ? 'Tersedia' : 'Belum Upload'}
+                        color={doc.url ? 'primary' : 'default'}
+                        variant="outlined"
+                        sx={{ mb: doc.url ? 0 : 1.5 }}
+                      />
+
+                      {/* Tombol upload — hanya muncul kalau belum ada dokumen & user adalah admin */}
+                      {!doc.url && userRole === 'admin' && (
+                        <Box sx={{ mt: 1.5 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={isUploading ? <CircularProgress size={14} /> : <Upload />}
+                            disabled={isUploading || !!uploadingDoc}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              docInputRefs[doc.docType].current?.click();
+                            }}
+                            sx={{ fontSize: '0.72rem' }}
+                          >
+                            {isUploading ? 'Mengupload...' : 'Upload Scan'}
+                          </Button>
+                        </Box>
+                      )}
+
+                      {/* Tombol ganti — muncul kalau sudah ada dokumen & user adalah admin */}
+                      {doc.url && userRole === 'admin' && (
+                        <Box sx={{ mt: 1 }}>
+                          <Button
+                            size="small"
+                            variant="text"
+                            startIcon={isUploading ? <CircularProgress size={14} /> : <Upload />}
+                            disabled={isUploading || !!uploadingDoc}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              docInputRefs[doc.docType].current?.click();
+                            }}
+                            sx={{ fontSize: '0.7rem', color: 'text.secondary' }}
+                          >
+                            {isUploading ? 'Mengupload...' : 'Ganti'}
+                          </Button>
+                        </Box>
+                      )}
                     </Box>
-                    <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{doc.label}</Typography>
-                    <Chip
-                      size="small"
-                      label={doc.url ? 'Tersedia' : 'Belum Upload'}
-                      color={doc.url ? 'primary' : 'default'}
-                      variant="outlined"
-                    />
-                  </Box>
-                </Grid>
-              ))}
+                  </Grid>
+                );
+              })}
             </Grid>
+
+            {/* Info walk-in */}
+            {(!data.NIKUrl || !data.KKUrl || !data.IMBUrl) && (
+              <Box sx={{ mt: 2 }}>
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  Dokumen yang belum tersedia dapat diupload oleh admin setelah scan berkas hardcopy dari pelanggan walk-in.
+                </Alert>
+              </Box>
+            )}
           </CardContent>
         </Card>
 
