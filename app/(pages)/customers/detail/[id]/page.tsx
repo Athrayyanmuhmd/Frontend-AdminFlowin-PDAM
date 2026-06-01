@@ -40,6 +40,7 @@ import {
   Receipt,
   Settings,
   CheckCircle,
+  Cancel,
   Warning,
   Refresh,
   Badge,
@@ -323,9 +324,9 @@ export default function CustomerDetailPage() {
                         variant='outlined'
                       />
                       <Chip
-                        icon={customer.accountStatus === 'active' ? <CheckCircle /> : <Warning />}
+                        icon={customer.accountStatus === 'active' ? <CheckCircle /> : <Cancel />}
                         label={customer.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
-                        color={customer.accountStatus === 'active' ? 'success' : 'default'}
+                        color={customer.accountStatus === 'active' ? 'success' : 'error'}
                       />
                       {customer.isVerified && (
                         <Chip icon={<CheckCircle />} label='Identitas Diverifikasi' color='info' size='small' />
@@ -664,6 +665,7 @@ export default function CustomerDetailPage() {
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant='body2' color='text.secondary'>Status Saat Ini</Typography>
                         <Chip
+                          icon={customer.accountStatus === 'active' ? <CheckCircle /> : <Cancel />}
                           label={customer.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
                           color={customer.accountStatus === 'active' ? 'success' : 'error'}
                           size='small'
