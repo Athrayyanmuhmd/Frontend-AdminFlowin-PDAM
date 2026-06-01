@@ -33,7 +33,11 @@ export default function DashboardLineChart({ data, darkMode = false }: Dashboard
           tickLine={false}
         />
         <YAxis
-          tickFormatter={(v) => `${(v / 1000000).toFixed(0)}jt`}
+          tickFormatter={(v) => {
+            if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
+            if (v >= 1_000)     return `${(v / 1_000).toFixed(0)}rb`;
+            return `${v}`;
+          }}
           tick={{ fill: textColor, fontSize: 11 }}
           axisLine={false}
           tickLine={false}
