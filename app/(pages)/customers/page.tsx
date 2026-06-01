@@ -133,6 +133,8 @@ export default function CustomerManagement() {
     id: customer._id,
     name: customer.namaLengkap,
     phone: customer.noHP,
+    customerType: customer.customerType || 'rumah_tangga',
+    accountStatus: customer.accountStatus || 'inactive',
     registrationDate: customer.createdAt ? new Date(customer.createdAt) : new Date(),
   }));
 
