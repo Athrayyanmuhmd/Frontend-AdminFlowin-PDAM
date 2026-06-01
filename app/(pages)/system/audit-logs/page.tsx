@@ -43,6 +43,7 @@ import {
   Error as ErrorIcon,
   Info,
   Policy,
+  Launch,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -94,6 +95,25 @@ const resourceTypes = [
   'Teknisi',
   'WorkOrder',
 ];
+
+// Mapping resource → halaman detail. Return null jika tidak ada halaman detail
+// untuk resource itu (mis. DOKUMEN_KREDENSIAL hanya abstraksi).
+function resourceToUrl(resource?: string, resourceId?: string | null): string | null {
+  if (!resource || !resourceId) return null;
+  switch (resource) {
+    case 'Pengguna':          return `/customers/detail/${resourceId}`;
+    case 'KoneksiData':       return `/operations/connection-data/${resourceId}`;
+    case 'Meteran':           return `/operations/meteran/${resourceId}`;
+    // Resource tanpa halaman detail dedicated — arahkan ke halaman list
+    case 'Billing':
+    case 'Tagihan':           return `/billing`;
+    case 'Admin':             return `/system/users`;
+    case 'KelompokPelanggan': return `/master-data/kelompok-pelanggan`;
+    case 'WorkOrder':         return `/operations/work-orders/${resourceId}`;
+    case 'Teknisi':           return `/operations/technicians`;
+    default:                  return null;
+  }
+}
 
 export default function AuditLogsPage() {
   const router = useRouter();
@@ -386,16 +406,51 @@ export default function AuditLogsPage() {
                   { label: 'Admin', value: selectedLog.namaAdmin },
                   { label: 'Aksi', value: selectedLog.aksi },
                   { label: 'Resource', value: selectedLog.resource },
-                  { label: 'Resource ID', value: selectedLog.resourceId || '-', mono: true },
-                  { label: 'Catatan', value: selectedLog.catatan || '-' },
-                ].map(({ label, value, mono }) => (
+                ].map(({ label, value }) => (
                   <Grid item xs={6} key={label}>
                     <Typography variant="caption" color="text.secondary">{label}</Typography>
-                    <Typography variant="body1" sx={mono ? { fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' } : {}}>
-                      {value}
-                    </Typography>
+                    <Typography variant="body1">{value}</Typography>
                   </Grid>
                 ))}
+
+                {/* Resource ID — clickable kalau resource punya halaman detail */}
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Resource ID</Typography>
+                  {(() => {
+                    const url = resourceToUrl(selectedLog.resource, selectedLog.resourceId);
+                    const idText = selectedLog.resourceId || '-';
+                    if (!url || !selectedLog.resourceId) {
+                      return (
+                        <Typography variant="body1" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}>
+                          {idText}
+                        </Typography>
+                      );
+                    }
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography variant="body1" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all' }}>
+                          {idText}
+                        </Typography>
+                        <Tooltip title={`Buka ${selectedLog.resource}`}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Launch sx={{ fontSize: 14 }} />}
+                            onClick={() => { setDetailsDialogOpen(false); router.push(url); }}
+                            sx={{ py: 0.25, px: 1, fontSize: '0.7rem', textTransform: 'none' }}
+                          >
+                            Buka
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                    );
+                  })()}
+                </Grid>
+
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">Catatan</Typography>
+                  <Typography variant="body1">{selectedLog.catatan || '-'}</Typography>
+                </Grid>
               </Grid>
 
               {selectedLog.nilaiBefore && (
