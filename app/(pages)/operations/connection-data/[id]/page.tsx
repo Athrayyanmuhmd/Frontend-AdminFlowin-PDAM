@@ -1709,7 +1709,9 @@ export default function ConnectionDataDetailPage() {
           <DialogContent>
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400, overflow: 'auto' }}>
               {viewerType === 'pdf' ? (
-                <iframe src={viewerImage} title={viewerTitle}
+                <iframe
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(viewerImage)}&embedded=true`}
+                  title={viewerTitle}
                   style={{ width: `${zoom}%`, height: 600, border: 'none', transition: 'width 0.3s ease' }} />
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element */
