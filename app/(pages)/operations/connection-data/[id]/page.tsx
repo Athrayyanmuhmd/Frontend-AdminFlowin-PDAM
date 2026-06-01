@@ -15,7 +15,7 @@ import {
   Close, ZoomIn, ZoomOut, RestartAlt, Visibility, RadioButtonUnchecked, Download,
   VerifiedUser, Build, Payment, AccountBalance,
   GroupAdd, Assignment, ThumbUp, ThumbDown, Image as ImageIcon,
-  People, LocationOn, AccessTime, OpenInNew, Upload,
+  People, LocationOn, AccessTime, OpenInNew, Upload, History,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import { useAdmin } from '../../../../layouts/AdminProvider';
@@ -53,6 +53,70 @@ function StatusAdminChip({ status }: { status?: string }) {
   if (!status || status === 'menunggu_review') return <Chip size="small" label="Menunggu Review" color="warning" />;
   if (status === 'disetujui') return <Chip size="small" label="Disetujui" color="success" icon={<CheckCircle sx={{ fontSize: 14 }} />} />;
   return <Chip size="small" label="Ditolak" color="error" icon={<Cancel sx={{ fontSize: 14 }} />} />;
+}
+
+// ─── Work Order Status Maps ──────────────────────────────────────────────────
+// Sinkron dengan /operations/work-orders agar label & warna konsisten lintas halaman.
+const WO_STATUS_LABEL: Record<string, string> = {
+  assigned: 'Belum Dimulai',
+  dikirim: 'Menunggu Review',
+  proses: 'Sedang Dikerjakan',
+  selesai: 'Selesai',
+  ditolak: 'Hasil Ditolak',
+  dibatalkan: 'Dibatalkan',
+};
+const WO_STATUS_COLOR: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
+  assigned: 'default',
+  dikirim: 'warning',
+  proses: 'info',
+  selesai: 'success',
+  ditolak: 'error',
+  dibatalkan: 'error',
+};
+
+function woLabel(status?: string): string {
+  if (!status) return 'Belum Ada';
+  return WO_STATUS_LABEL[status] ?? status.replace(/_/g, ' ');
+}
+function woColor(status?: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+  if (!status) return 'default';
+  return WO_STATUS_COLOR[status] ?? 'default';
+}
+
+// Badge kecil untuk menunjukkan riwayat WO yang dibatalkan untuk satu jenis pekerjaan.
+function CancelledHistoryBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      color="error"
+      icon={<History sx={{ fontSize: 14 }} />}
+      label={`${count} WO sebelumnya dibatalkan`}
+      sx={{ height: 22, fontSize: '0.7rem' }}
+    />
+  );
+}
+
+// Alert untuk menampilkan statusRespon WO (penolakan_diajukan/diterima/ditolak).
+function StatusResponAlert({ wo }: { wo: any }) {
+  if (!wo) return null;
+  if (wo.statusRespon === 'penolakan_diajukan') {
+    return (
+      <Alert severity="warning" sx={{ mt: 1, py: 0.5 }}>
+        <strong>Teknisi mengajukan penolakan WO.</strong> Admin harus me-review pengajuan penolakan di halaman work order
+        sebelum WO bisa dilanjutkan atau dibatalkan.
+      </Alert>
+    );
+  }
+  if (wo.statusRespon === 'penolakan_ditolak') {
+    return (
+      <Alert severity="info" sx={{ mt: 1, py: 0.5 }}>
+        Pengajuan penolakan teknisi telah ditolak admin — teknisi harus mengerjakan WO ini.
+      </Alert>
+    );
+  }
+  return null;
 }
 
 // ─── UI Helper Components ────────────────────────────────────────────────────
@@ -249,17 +313,55 @@ export default function ConnectionDataDetailPage() {
   const [tandaiLunasMut] = useMutation(TANDAI_LUNAS_RAB);
 
   // ─── Derived WO data ─────────────────────────────────────────────────────
-  const woSurvei = useMemo(() => workOrders.find((wo: any) => wo.jenisPekerjaan === 'survei'), [workOrders]);
-  const woRab = useMemo(() => workOrders.find((wo: any) => wo.jenisPekerjaan === 'rab'), [workOrders]);
-  const woPemasangan = useMemo(() => workOrders.find((wo: any) => wo.jenisPekerjaan === 'pemasangan'), [workOrders]);
+  // Pisahkan WO AKTIF (latest non-cancelled) dari WO yang dibatalkan agar:
+  // - status timeline tidak terkunci ke WO yang sudah dibatalkan
+  // - tombol "Buat WO Pengganti" muncul saat semua WO dibatalkan
+  // - sinkron dengan halaman /operations/work-orders yang membolehkan WO pengganti
+  const woByJenis = useMemo(() => {
+    const byJenis: Record<string, any[]> = {};
+    for (const wo of workOrders as any[]) {
+      const j = wo.jenisPekerjaan;
+      if (!j) continue;
+      (byJenis[j] ??= []).push(wo);
+    }
+    return byJenis;
+  }, [workOrders]);
+
+  const pickActiveWo = (jenis: string): any | undefined => {
+    const list = woByJenis[jenis] ?? [];
+    return list
+      .filter((wo: any) => wo.status !== 'dibatalkan')
+      .sort((a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
+  };
+  const countCancelledWo = (jenis: string): number =>
+    (woByJenis[jenis] ?? []).filter((wo: any) => wo.status === 'dibatalkan').length;
+
+  const woSurvei = useMemo(() => pickActiveWo('survei'), [woByJenis]);
+  const woRab = useMemo(() => pickActiveWo('rab'), [woByJenis]);
+  const woPemasangan = useMemo(() => pickActiveWo('pemasangan'), [woByJenis]);
+
+  const woSurveiCancelled = useMemo(() => countCancelledWo('survei'), [woByJenis]);
+  const woRabCancelled = useMemo(() => countCancelledWo('rab'), [woByJenis]);
+  const woPemasanganCancelled = useMemo(() => countCancelledWo('pemasangan'), [woByJenis]);
+
+  // Pernah ada WO untuk jenis ini? — membedakan "manual path" (tidak pernah pakai WO)
+  // vs "perlu pengganti" (semua WO sudah dibatalkan).
+  const woSurveiPernahAda = useMemo(() => (woByJenis['survei']?.length ?? 0) > 0, [woByJenis]);
+  const woRabPernahAda = useMemo(() => (woByJenis['rab']?.length ?? 0) > 0, [woByJenis]);
 
   // ─── Step conditions ─────────────────────────────────────────────────────
   const step1Done = !!data;
   const step2Done = isApproved;
-  // Survei: data harus ada DAN WO (jika ada) harus disetujui admin (status 'selesai')
-  const step3Done = step2Done && !!survei && (!woSurvei || woSurvei.status === 'selesai');
-  // RAB: data harus ada DAN WO (jika ada) harus disetujui admin (status 'selesai')
-  const step4Done = step3Done && !!rab && (!woRab || woRab.status === 'selesai');
+  // Survei: data harus ada DAN
+  //   - pernah ada WO → WO aktif harus 'selesai' (cancelled-only menahan step)
+  //   - tidak pernah ada WO → cukup data ada (manual path admin)
+  const step3Done = step2Done && !!survei && (
+    woSurveiPernahAda ? (!!woSurvei && woSurvei.status === 'selesai') : true
+  );
+  // RAB: aturan sama seperti survei
+  const step4Done = step3Done && !!rab && (
+    woRabPernahAda ? (!!woRab && woRab.status === 'selesai') : true
+  );
   // Fix: RAB payment status normalized to UPPERCASE by fieldResolver — compare case-insensitively
   // step5 requires both settlement AND admin confirmation
   const rabPaid = rab?.statusPembayaran?.toUpperCase() === 'SETTLEMENT';
@@ -473,9 +575,7 @@ export default function ConnectionDataDetailPage() {
 
   const getWoStatusChip = (wo: any) => {
     if (!wo) return null;
-    const color: 'success' | 'error' | 'info' = wo.status === 'selesai' ? 'success'
-      : wo.status === 'dibatalkan' ? 'error' : 'info';
-    return <Chip size="small" label={wo.status?.replace(/_/g, ' ')} color={color} />;
+    return <Chip size="small" label={woLabel(wo.status)} color={woColor(wo.status)} />;
   };
 
   // Renders admin approve/reject buttons for installation data docs
@@ -669,10 +769,13 @@ export default function ConnectionDataDetailPage() {
                       Survei Lapangan
                     </Typography>
                     {step2Done && !step3Done && (
-                      <Chip size="small" variant="outlined"
-                        label={woSurvei?.status === 'dikirim' ? 'Menunggu Review' : woSurvei ? woSurvei.status?.replace(/_/g, ' ') : 'Belum Ada'}
-                        color={woSurvei?.status === 'dikirim' ? 'warning' : woSurvei ? 'info' : 'default'}
-                      />
+                      <>
+                        <Chip size="small" variant="outlined"
+                          label={woLabel(woSurvei?.status)}
+                          color={woColor(woSurvei?.status)}
+                        />
+                        <CancelledHistoryBadge count={woSurveiCancelled} />
+                      </>
                     )}
                   </Box>
                 </StepLabel>
@@ -694,6 +797,7 @@ export default function ConnectionDataDetailPage() {
                               <strong>Teknisi:</strong> {woSurvei.teknisiPenanggungJawab.namaLengkap}
                             </Typography>
                           )}
+                          <StatusResponAlert wo={woSurvei} />
                           {/* Tombol review — muncul kapanpun WO status 'dikirim', terlepas dari ada/tidaknya data survei */}
                           {woSurvei.status === 'dikirim' && userRole === 'admin' && (
                             <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
@@ -734,17 +838,24 @@ export default function ConnectionDataDetailPage() {
                         </Box>
                       )}
 
-                      {/* Buat WO / input manual — hanya jika belum ada WO */}
+                      {/* Buat WO / input manual — jika tidak ada WO aktif (atau semua WO sudah dibatalkan) */}
                       {!woSurvei && userRole === 'admin' && (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button size="small" variant="contained" startIcon={<GroupAdd />}
-                            onClick={() => openWoCreateDialog('survei')}>
-                            Buat Work Order Survei
-                          </Button>
-                          <Button size="small" variant="outlined"
-                            onClick={() => router.push(`/operations/survey-data/create?connectionId=${data._id}`)}>
-                            Input Data Survei
-                          </Button>
+                        <Box>
+                          {woSurveiCancelled > 0 && (
+                            <Alert severity="warning" sx={{ mb: 1, py: 0.5 }}>
+                              Semua WO survei sebelumnya telah dibatalkan ({woSurveiCancelled}x). Admin perlu membuat WO pengganti agar proses dapat dilanjutkan.
+                            </Alert>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button size="small" variant="contained" startIcon={<GroupAdd />}
+                              onClick={() => openWoCreateDialog('survei')}>
+                              {woSurveiCancelled > 0 ? 'Buat WO Survei Pengganti' : 'Buat Work Order Survei'}
+                            </Button>
+                            <Button size="small" variant="outlined"
+                              onClick={() => router.push(`/operations/survey-data/create?connectionId=${data._id}`)}>
+                              Input Data Survei
+                            </Button>
+                          </Box>
                         </Box>
                       )}
                     </>
@@ -784,10 +895,13 @@ export default function ConnectionDataDetailPage() {
                       Dokumen DED / RAB
                     </Typography>
                     {step3Done && !step4Done && (
-                      <Chip size="small" variant="outlined"
-                        label={woRab?.status === 'dikirim' ? 'Menunggu Review' : woRab ? woRab.status?.replace(/_/g, ' ') : 'Belum Ada'}
-                        color={woRab?.status === 'dikirim' ? 'warning' : woRab ? 'info' : 'default'}
-                      />
+                      <>
+                        <Chip size="small" variant="outlined"
+                          label={woLabel(woRab?.status)}
+                          color={woColor(woRab?.status)}
+                        />
+                        <CancelledHistoryBadge count={woRabCancelled} />
+                      </>
                     )}
                   </Box>
                 </StepLabel>
@@ -809,6 +923,7 @@ export default function ConnectionDataDetailPage() {
                               <strong>Teknisi:</strong> {woRab.teknisiPenanggungJawab.namaLengkap}
                             </Typography>
                           )}
+                          <StatusResponAlert wo={woRab} />
                           {/* Tombol review — muncul kapanpun WO status 'dikirim' */}
                           {woRab.status === 'dikirim' && userRole === 'admin' && (
                             <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
@@ -849,17 +964,24 @@ export default function ConnectionDataDetailPage() {
                         </Box>
                       )}
 
-                      {/* Buat WO / input manual — hanya jika belum ada WO */}
+                      {/* Buat WO / input manual — jika tidak ada WO aktif (atau semua WO sudah dibatalkan) */}
                       {!woRab && userRole === 'admin' && (
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          <Button size="small" variant="contained" startIcon={<GroupAdd />}
-                            onClick={() => openWoCreateDialog('rab')}>
-                            Buat Work Order RAB
-                          </Button>
-                          <Button size="small" variant="outlined" startIcon={<AccountBalance />}
-                            onClick={() => router.push(`/operations/rab-connection/create?connectionId=${data._id}`)}>
-                            Buat RAB Manual
-                          </Button>
+                        <Box>
+                          {woRabCancelled > 0 && (
+                            <Alert severity="warning" sx={{ mb: 1, py: 0.5 }}>
+                              Semua WO RAB sebelumnya telah dibatalkan ({woRabCancelled}x). Admin perlu membuat WO pengganti agar proses dapat dilanjutkan.
+                            </Alert>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Button size="small" variant="contained" startIcon={<GroupAdd />}
+                              onClick={() => openWoCreateDialog('rab')}>
+                              {woRabCancelled > 0 ? 'Buat WO RAB Pengganti' : 'Buat Work Order RAB'}
+                            </Button>
+                            <Button size="small" variant="outlined" startIcon={<AccountBalance />}
+                              onClick={() => router.push(`/operations/rab-connection/create?connectionId=${data._id}`)}>
+                              Buat RAB Manual
+                            </Button>
+                          </Box>
                         </Box>
                       )}
                     </>
@@ -978,12 +1100,16 @@ export default function ConnectionDataDetailPage() {
                       Pemasangan Meteran
                     </Typography>
                     {step5Done && !step6Done && (
-                      pemasangan
-                        ? <StatusAdminChip status={pemasangan.statusAdmin} />
-                        : <Chip size="small" variant="outlined"
-                            label={woPemasangan ? woPemasangan.status?.replace(/_/g, ' ') : 'Menunggu Data'}
-                            color={woPemasangan ? 'info' : 'warning'}
-                          />
+                      <>
+                        {pemasangan
+                          ? <StatusAdminChip status={pemasangan.statusAdmin} />
+                          : <Chip size="small" variant="outlined"
+                              label={woPemasangan ? woLabel(woPemasangan.status) : 'Menunggu Data'}
+                              color={woPemasangan ? woColor(woPemasangan.status) : 'warning'}
+                            />
+                        }
+                        <CancelledHistoryBadge count={woPemasanganCancelled} />
+                      </>
                     )}
                   </Box>
                 </StepLabel>
@@ -1006,13 +1132,21 @@ export default function ConnectionDataDetailPage() {
                               {woPemasangan.teknisiPenanggungJawab.divisi && ` · ${woPemasangan.teknisiPenanggungJawab.divisi}`}
                             </Typography>
                           )}
+                          <StatusResponAlert wo={woPemasangan} />
                         </Box>
                       )}
                       {!woPemasangan && userRole === 'admin' && (
-                        <Button size="small" variant="contained" startIcon={<GroupAdd />} sx={{ mb: 1.5 }}
-                          onClick={() => openWoCreateDialog('pemasangan')}>
-                          Tugaskan Teknisi (Buat WO Pemasangan)
-                        </Button>
+                        <Box sx={{ mb: 1.5 }}>
+                          {woPemasanganCancelled > 0 && (
+                            <Alert severity="warning" sx={{ mb: 1, py: 0.5 }}>
+                              Semua WO pemasangan sebelumnya telah dibatalkan ({woPemasanganCancelled}x). Admin perlu menugaskan teknisi pengganti.
+                            </Alert>
+                          )}
+                          <Button size="small" variant="contained" startIcon={<GroupAdd />}
+                            onClick={() => openWoCreateDialog('pemasangan')}>
+                            {woPemasanganCancelled > 0 ? 'Tugaskan Teknisi Pengganti' : 'Tugaskan Teknisi (Buat WO Pemasangan)'}
+                          </Button>
+                        </Box>
                       )}
 
                       {/* Pemasangan data */}
