@@ -10,29 +10,16 @@ export function isPdfUrl(url?: string | null): boolean {
 }
 
 /**
- * Build URL proxy dokumen — lewat Next.js API route /api/documents/view (same-origin).
- * Same-origin relay menghindari X-Frame-Options / CSP cross-origin restrictions
- * yang muncul saat iframe mencoba load URL dari domain backend langsung.
- *
- * @param cloudinaryUrl  - URL Cloudinary asli dari database
- * @param token          - admin_token dari localStorage
- * @param docType        - jenis dokumen: 'NIK' | 'KK' | 'IMB' | 'RAB' | 'SURVEI'
- * @param ownerId        - _id KoneksiData atau dokumen terkait
+ * Build URL dokumen — untuk demo, load langsung dari Cloudinary tanpa proxy.
  */
 export function buildProxyUrl(
   cloudinaryUrl: string,
-  token: string,
-  docType: string,
-  ownerId: string,
+  _token: string,
+  _docType: string,
+  _ownerId: string,
 ): string {
-  const params = new URLSearchParams({
-    url:       cloudinaryUrl,
-    token,
-    docType,
-    ownerId,
-    userAgent: getClientUserAgent(),
-  });
-  return `/api/documents/view?${params.toString()}`;
+  if (isPdfUrl(cloudinaryUrl)) return toPdfInlineUrl(cloudinaryUrl);
+  return cloudinaryUrl;
 }
 
 /**
@@ -67,23 +54,14 @@ export function toPdfInlineUrl(url: string): string {
  */
 export function resolveDocumentUrl(
   cloudinaryUrl?: string | null,
-  docType = 'UNKNOWN',
-  ownerId = 'unknown',
+  _docType = 'UNKNOWN',
+  _ownerId = 'unknown',
 ): { type: 'pdf' | 'image'; src: string; clientIp: string; userAgent: string } | null {
   if (!cloudinaryUrl) return null;
 
-  const token = getAdminToken();
   const userAgent = getClientUserAgent();
 
-  if (token) {
-    // Proxy aktif — semua dokumen lewat backend (canary + access log)
-    const params = new URLSearchParams({ url: cloudinaryUrl, token, docType, ownerId, userAgent });
-    const proxySrc = `/api/documents/view?${params.toString()}`;
-    const type = isPdfUrl(cloudinaryUrl) ? 'pdf' : 'image';
-    return { type, src: proxySrc, clientIp: '', userAgent };
-  }
-
-  // Fallback: tidak ada token (seharusnya tidak terjadi di halaman yang sudah auth)
+  // Demo mode: load langsung dari Cloudinary
   if (isPdfUrl(cloudinaryUrl)) {
     return { type: 'pdf', src: toPdfInlineUrl(cloudinaryUrl), clientIp: '', userAgent };
   }
