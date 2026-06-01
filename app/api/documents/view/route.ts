@@ -17,9 +17,10 @@ function getRealClientIp(request: NextRequest): string {
 /**
  * GET /api/documents/view?url=<cloudinaryUrl>&token=<jwt>&docType=<type>&ownerId=<id>
  *
- * Hit backend agar AksesLog tercatat dengan fingerprint, lalu redirect ke Cloudinary.
- * Backend mengembalikan 302 → kita follow manual dan redirect ulang ke browser
- * agar iframe akhirnya load Cloudinary langsung.
+ * Same-origin relay ke BE_backend /documents/view.
+ * Backend streams file dengan Content-Disposition: inline → PDF preview di iframe.
+ * Jika backend redirect 302 (fallback saat Cloudinary tidak bisa di-fetch),
+ * teruskan redirect tersebut ke browser.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -46,19 +47,16 @@ export async function GET(request: NextRequest) {
           'X-Client-User-Agent': userAgent,
         },
         redirect: 'manual',
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(30_000),
       }
     );
 
-    // Backend redirect (302) ke Cloudinary → ambil Location lalu redirect browser ke sana
+    // Backend fallback redirect ke Cloudinary → teruskan ke browser
     if (backendRes.status >= 300 && backendRes.status < 400) {
       const location = backendRes.headers.get('location');
-      if (location) {
-        return NextResponse.redirect(location, 302);
-      }
+      if (location) return NextResponse.redirect(location, 302);
     }
 
-    // Selain redirect, kemungkinan error → relay body apa adanya
     if (!backendRes.ok) {
       const text = await backendRes.text().catch(() => '');
       console.error('[documents/view relay] backend error:', backendRes.status, text);
@@ -68,11 +66,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fallback: jika backend tidak redirect, redirect langsung ke Cloudinary URL
-    return NextResponse.redirect(url, 302);
+    // Stream-through: ambil body backend dan teruskan dengan header yang sama
+    const buffer = await backendRes.arrayBuffer();
+    const contentType = backendRes.headers.get('content-type') ?? 'application/octet-stream';
+
+    return new NextResponse(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type':           contentType,
+        'Content-Disposition':    'inline',
+        'Cache-Control':          'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
   } catch (err: any) {
     console.error('[documents/view relay] fetch failed:', err?.message ?? err);
-    // Backend down → tetap arahkan ke Cloudinary agar preview tetap jalan
+    // Backend tidak bisa dihubungi → fallback redirect ke Cloudinary langsung
     return NextResponse.redirect(url, 302);
   }
 }
