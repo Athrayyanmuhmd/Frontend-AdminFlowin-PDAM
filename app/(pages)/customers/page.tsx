@@ -133,7 +133,7 @@ export default function CustomerManagement() {
     id: customer._id,
     name: customer.namaLengkap,
     phone: customer.noHP,
-    customerType: customer.customerType || 'rumah_tangga',
+    customerType: customer.customerType || null,
     accountStatus: customer.accountStatus || 'inactive',
     registrationDate: customer.createdAt ? new Date(customer.createdAt) : new Date(),
   }));
@@ -375,20 +375,18 @@ export default function CustomerManagement() {
 
   // Reset halaman saat filter/search berubah
   useEffect(() => { setPage(1); }, [debouncedSearch, filterType, filterStatus]);
-  const getCustomerTypeLabel = (type: string) => {
+  const getCustomerTypeLabel = (type: string | null) => {
     switch (type) {
-      case 'rumah_tangga':
-        return 'Rumah Tangga';
-      case 'komersial':
-        return 'Komersial';
-      case 'industri':
-        return 'Industri';
-      case 'sosial':
-        return 'Sosial';
-      default:
-        return type;
+      case 'rumah_tangga': return 'Rumah Tangga';
+      case 'komersial':    return 'Komersial';
+      case 'industri':     return 'Industri';
+      case 'sosial':       return 'Sosial';
+      default:             return 'Belum Ditentukan';
     }
   };
+
+  const getCustomerTypeColor = (type: string | null) =>
+    type ? 'primary' : 'default';
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -761,7 +759,7 @@ export default function CustomerManagement() {
                       <Chip
                         label={getCustomerTypeLabel(customer.customerType)}
                         size='small'
-                        color='primary'
+                        color={getCustomerTypeColor(customer.customerType) as any}
                         variant='outlined'
                       />
                     </TableCell>

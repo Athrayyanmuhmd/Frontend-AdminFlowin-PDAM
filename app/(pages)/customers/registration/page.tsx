@@ -111,7 +111,7 @@ function CustomerRegistrationInner() {
     name: '',
     email: '',
     phone: '',
-    customerType: 'rumah_tangga',
+    customerType: '',
     birthDate: '',
     accountStatus: 'inactive',
   });
@@ -573,16 +573,17 @@ function CustomerRegistrationInner() {
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <FormControl fullWidth>
-                      <InputLabel>Jenis Pelanggan *</InputLabel>
+                      <InputLabel>Jenis Pelanggan (opsional)</InputLabel>
                       <Select
                         value={pelangganForm.customerType}
                         onChange={e => handlePelangganChange('customerType', e.target.value)}
-                        label="Jenis Pelanggan *"
+                        label="Jenis Pelanggan (opsional)"
                       >
-                        <MenuItem value="rumah_tangga">Rumah Tangga</MenuItem>
-                        <MenuItem value="komersial">Komersial</MenuItem>
-                        <MenuItem value="industri">Industri</MenuItem>
-                        <MenuItem value="sosial">Sosial</MenuItem>
+                        <MenuItem value=''>Belum Ditentukan — ditentukan setelah survei</MenuItem>
+                        <MenuItem value='rumah_tangga'>Rumah Tangga</MenuItem>
+                        <MenuItem value='komersial'>Komersial</MenuItem>
+                        <MenuItem value='industri'>Industri</MenuItem>
+                        <MenuItem value='sosial'>Sosial</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
