@@ -160,7 +160,7 @@ export default function CustomerDetailPage() {
       email: c.email || 'N/A',
       noHP: c.noHP || 'N/A',
       alamat: c.address || alamatFromKoneksi || '-',
-      customerType: c.customerType || 'rumah_tangga',
+      customerType: c.customerType || null,
       gender: c.gender || '-',
       birthDate: c.birthDate || '-',
       occupation: c.occupation || '-',
@@ -313,11 +313,13 @@ export default function CustomerDetailPage() {
                       <Chip
                         icon={<Person />}
                         label={
-                          customer.customerType === 'rumah_tangga'
-                            ? 'Rumah Tangga'
-                            : customer.customerType
+                          customer.customerType === 'rumah_tangga' ? 'Rumah Tangga' :
+                          customer.customerType === 'komersial'    ? 'Komersial'    :
+                          customer.customerType === 'industri'     ? 'Industri'     :
+                          customer.customerType === 'sosial'       ? 'Sosial'       :
+                          'Belum Ditentukan'
                         }
-                        color='primary'
+                        color={customer.customerType ? 'primary' : 'default'}
                         variant='outlined'
                       />
                       <Chip
@@ -684,7 +686,13 @@ export default function CustomerDetailPage() {
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Typography variant='body2' color='text.secondary'>Tipe Pelanggan</Typography>
                         <Typography variant='body2' sx={{ fontWeight: 500 }}>
-                          {customer.customerType === 'rumah_tangga' ? 'Rumah Tangga' : customer.customerType}
+                          {
+                            customer.customerType === 'rumah_tangga' ? 'Rumah Tangga' :
+                            customer.customerType === 'komersial'    ? 'Komersial'    :
+                            customer.customerType === 'industri'     ? 'Industri'     :
+                            customer.customerType === 'sosial'       ? 'Sosial'       :
+                            'Belum Ditentukan'
+                          }
                         </Typography>
                       </Box>
                     </Box>
