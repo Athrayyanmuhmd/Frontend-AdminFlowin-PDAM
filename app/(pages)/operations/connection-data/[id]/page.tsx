@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import {
   ArrowBack, CheckCircle, HourglassEmpty, Cancel, Description,
-  Close, ZoomIn, ZoomOut, RestartAlt, Visibility, RadioButtonUnchecked,
+  Close, ZoomIn, ZoomOut, RestartAlt, Visibility, RadioButtonUnchecked, Download,
   VerifiedUser, Build, Payment, AccountBalance,
   GroupAdd, Assignment, ThumbUp, ThumbDown, Image as ImageIcon,
   People, LocationOn, AccessTime, OpenInNew, Upload,
@@ -1697,10 +1697,18 @@ export default function ConnectionDataDetailPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="h6">{viewerTitle}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <IconButton size="small" onClick={() => setZoom(p => Math.max(p - 25, 50))} disabled={zoom <= 50}><ZoomOut /></IconButton>
-                <Typography variant="body2" sx={{ minWidth: 50, textAlign: 'center' }}>{zoom}%</Typography>
-                <IconButton size="small" onClick={() => setZoom(p => Math.min(p + 25, 300))} disabled={zoom >= 300}><ZoomIn /></IconButton>
-                <IconButton size="small" onClick={() => setZoom(100)}><RestartAlt /></IconButton>
+                {viewerType === 'image' && (
+                  <>
+                    <IconButton size="small" onClick={() => setZoom(p => Math.max(p - 25, 50))} disabled={zoom <= 50}><ZoomOut /></IconButton>
+                    <Typography variant="body2" sx={{ minWidth: 50, textAlign: 'center' }}>{zoom}%</Typography>
+                    <IconButton size="small" onClick={() => setZoom(p => Math.min(p + 25, 300))} disabled={zoom >= 300}><ZoomIn /></IconButton>
+                    <IconButton size="small" onClick={() => setZoom(100)}><RestartAlt /></IconButton>
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+                  </>
+                )}
+                <IconButton size="small" component="a" href={viewerImage} target="_blank" rel="noopener noreferrer" title="Download">
+                  <Download />
+                </IconButton>
                 <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
                 <IconButton onClick={() => setViewerOpen(false)}><Close /></IconButton>
               </Box>
