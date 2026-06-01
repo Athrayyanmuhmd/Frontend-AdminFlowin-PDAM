@@ -133,7 +133,7 @@ export default function CustomerDetailPage() {
   } = useQuery(GET_CUSTOMER, {
     variables: { id: customerId },
     skip: !customerId,
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: 'network-only',
   });
 
   // GraphQL Query - KoneksiData (harus sebelum customer useMemo agar tersedia sebagai fallback)
