@@ -57,8 +57,9 @@ export async function GET(request: NextRequest) {
 
     if (!backendRes.ok) {
       const text = await backendRes.text().catch(() => '');
+      console.error('[documents/view relay] backend error:', backendRes.status, text);
       return NextResponse.json(
-        { error: 'Backend error', detail: text },
+        { error: 'Backend error', status: backendRes.status, detail: text.slice(0, 500) },
         { status: backendRes.status }
       );
     }
@@ -69,14 +70,17 @@ export async function GET(request: NextRequest) {
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        'Content-Type':       contentType,
-        'Content-Length':      String(buffer.byteLength),
+        'Content-Type':        contentType,
         'Content-Disposition': 'inline',
         'Cache-Control':       'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (err: any) {
-    console.error('[documents/view relay]', err);
-    return NextResponse.json({ error: 'Gagal mengambil dokumen.' }, { status: 500 });
+    console.error('[documents/view relay] fetch failed:', err?.message ?? err);
+    return NextResponse.json(
+      { error: 'Gagal mengambil dokumen.', detail: err?.message ?? String(err) },
+      { status: 500 }
+    );
   }
 }

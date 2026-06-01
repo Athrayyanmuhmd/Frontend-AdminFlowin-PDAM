@@ -34,10 +34,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       // Security headers — berlaku untuk semua halaman
+      // X-Frame-Options: SAMEORIGIN agar /api/documents/view bisa di-embed di iframe same-origin
       {
         source: '/:path*',
         headers: [
-          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
