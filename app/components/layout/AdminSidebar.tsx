@@ -43,7 +43,6 @@ import {
   FactCheck,
   VerifiedUser,
   NotificationsActive,
-  PersonOff,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 
@@ -132,14 +131,8 @@ const adminMenuItems: MenuItem[] = [
         permission: 'billing:update',
         roles: ['admin'],
       },
-      {
-        id: 'billing-pemutusan',
-        title: 'Pemutusan',
-        icon: <PersonOff />,
-        path: '/billing/pemutusan',
-        permission: 'billing:update',
-        roles: ['admin'],
-      },
+      // Pemutusan: di-hide sementara — fitur belum dipakai
+      // (halaman tetap ada di /billing/pemutusan, hanya tidak muncul di sidebar)
     ],
   },
   {
