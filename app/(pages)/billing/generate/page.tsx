@@ -51,7 +51,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import dayjs from 'dayjs';
 import { GET_ALL_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/kelompokPelanggan';
@@ -148,15 +148,44 @@ export default function GenerateBills() {
     detailGagal: [] as DetailGagal[],
   });
 
-  // Fetch real meteran data — pakai useLazyQuery agar dipanggil eksplisit saat step 2
-  const [loadMeteran, { data: meteranData, loading: loadingMeteran }] = useLazyQuery(GET_ALL_METERAN, {
-    fetchPolicy: 'network-only',
-  });
+  // Fetch meteran via direct fetch — bypass Apollo cache/batching yang tidak reliabel
+  const [meteranList, setMeteranList] = useState<any[]>([]);
+  const [loadingMeteran, setLoadingMeteran] = useState(false);
+
+  const loadMeteran = async () => {
+    setLoadingMeteran(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+      const gqlUrl = process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:5000/graphql';
+      const res = await fetch(gqlUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          query: `query GetAllMeteranForBilling {
+            getAllMeteran {
+              _id NomorMeteran NomorAkun
+              IdKelompokPelanggan { _id NamaKelompok }
+              IdKoneksiData { IdPelanggan { _id namaLengkap email } }
+            }
+          }`,
+        }),
+      });
+      const json = await res.json();
+      setMeteranList(json?.data?.getAllMeteran || []);
+    } catch {
+      setMeteranList([]);
+    } finally {
+      setLoadingMeteran(false);
+    }
+  };
 
   const [generateTagihanMutation, { loading: generating }] = useMutation(GENERATE_TAGIHAN);
 
-  // Build accounts list from real meteran data
-  const allAccounts: AccountForBilling[] = ((meteranData as any)?.getAllMeteran || []).map((m: any) => ({
+  // Build accounts list from meteran data
+  const allAccounts: AccountForBilling[] = meteranList.map((m: any) => ({
     id: m._id,
     accountNumber: m.NomorAkun,
     customerName: m.IdKoneksiData?.IdPelanggan?.namaLengkap || '-',
