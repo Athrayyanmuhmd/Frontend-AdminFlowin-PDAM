@@ -51,7 +51,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import dayjs from 'dayjs';
 import { GET_ALL_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/kelompokPelanggan';
@@ -148,10 +148,9 @@ export default function GenerateBills() {
     detailGagal: [] as DetailGagal[],
   });
 
-  // Fetch real meteran data
-  const { data: meteranData, loading: loadingMeteran } = useQuery(GET_ALL_METERAN, {
-    fetchPolicy: 'cache-and-network',
-    skip: activeStep < 1,
+  // Fetch real meteran data — pakai useLazyQuery agar dipanggil eksplisit saat step 2
+  const [loadMeteran, { data: meteranData, loading: loadingMeteran }] = useLazyQuery(GET_ALL_METERAN, {
+    fetchPolicy: 'network-only',
   });
 
   const [generateTagihanMutation, { loading: generating }] = useMutation(GENERATE_TAGIHAN);
@@ -200,7 +199,9 @@ export default function GenerateBills() {
 
   const handleNext = () => {
     if (validateStep(activeStep)) {
-      setActiveStep((prev) => prev + 1);
+      const nextStep = activeStep + 1;
+      setActiveStep(nextStep);
+      if (nextStep === 1) loadMeteran();
     } else {
       setError('Mohon lengkapi semua field yang diperlukan');
     }
