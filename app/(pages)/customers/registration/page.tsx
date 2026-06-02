@@ -135,9 +135,13 @@ function CustomerRegistrationInner() {
       name: graphqlCustomer.namaLengkap || '',
       email: graphqlCustomer.email || '',
       phone: graphqlCustomer.noHP || '',
-      // Default ke '' (Belum Ditentukan) — admin harus konfirmasi setelah survei
-      // untuk hindari salah klasifikasi (UX risk: auto-save 'Rumah Tangga' tanpa verifikasi)
-      customerType: graphqlCustomer.customerType || '',
+      // Default ke '' (Belum Ditentukan) untuk user inactive/unverified — admin harus
+      // konfirmasi setelah survei untuk hindari salah klasifikasi (UX risk).
+      // User active/verified: tampilkan nilai DB apa adanya (klasifikasi sudah confirmed).
+      // Alasan: data lama dari sanitasi '' → 'rumah_tangga' tidak boleh dianggap final.
+      customerType: (graphqlCustomer.isVerified || graphqlCustomer.accountStatus === 'active')
+        ? (graphqlCustomer.customerType || '')
+        : '',
       birthDate: graphqlCustomer.birthDate ? graphqlCustomer.birthDate.split('T')[0] : '',
       accountStatus: graphqlCustomer.accountStatus || 'inactive',
     });
@@ -218,9 +222,11 @@ function CustomerRegistrationInner() {
               namaLengkap: pelangganForm.name,
               email: pelangganForm.email,
               noHP: pelangganForm.phone,
-              // Empty → undefined: jangan tulis '' ke DB (akan trigger enum validation
-              // error saat user.save() di mutation lain seperti aktivasi/deactivate)
-              customerType: pelangganForm.customerType || undefined,
+              // Empty → null (bukan undefined!): kalau undefined, mutation skip field
+              // → DB tetap simpan nilai lama (mis. 'rumah_tangga' dari sanitization
+              // lawas). Kirim null agar findByIdAndUpdate eksplisit reset ke null.
+              // Enum di User schema sudah include null.
+              customerType: pelangganForm.customerType || null,
               birthDate: pelangganForm.birthDate || undefined,
               accountStatus: pelangganForm.accountStatus,
             },
@@ -241,9 +247,8 @@ function CustomerRegistrationInner() {
             namaLengkap: pelangganForm.name,
             email: pelangganForm.email,
             noHP: pelangganForm.phone,
-            // Empty → undefined: backend akan pakai default enum (rumah_tangga)
-            // atau biarkan kosong tergantung schema; tidak menulis '' ke DB.
-            customerType: pelangganForm.customerType || undefined,
+            // Empty → null: schema default sudah null, tidak auto-klasifikasi.
+            customerType: pelangganForm.customerType || null,
             birthDate: pelangganForm.birthDate || undefined,
             accountStatus: pelangganForm.accountStatus,
           },
@@ -795,10 +800,12 @@ function CustomerRegistrationInner() {
                     size="small"
                     label={
                       pelangganForm.customerType === 'rumah_tangga' ? 'Rumah Tangga' :
-                      pelangganForm.customerType === 'komersial' ? 'Komersial' :
-                      pelangganForm.customerType === 'industri' ? 'Industri' : 'Sosial'
+                      pelangganForm.customerType === 'komersial'    ? 'Komersial'    :
+                      pelangganForm.customerType === 'industri'     ? 'Industri'     :
+                      pelangganForm.customerType === 'sosial'       ? 'Sosial'       :
+                      'Belum Ditentukan'
                     }
-                    color="info"
+                    color={pelangganForm.customerType ? 'info' : 'default'}
                     variant="outlined"
                   />
                 </InfoRow>
