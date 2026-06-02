@@ -135,7 +135,9 @@ function CustomerRegistrationInner() {
       name: graphqlCustomer.namaLengkap || '',
       email: graphqlCustomer.email || '',
       phone: graphqlCustomer.noHP || '',
-      customerType: graphqlCustomer.customerType || 'rumah_tangga',
+      // Default ke '' (Belum Ditentukan) — admin harus konfirmasi setelah survei
+      // untuk hindari salah klasifikasi (UX risk: auto-save 'Rumah Tangga' tanpa verifikasi)
+      customerType: graphqlCustomer.customerType || '',
       birthDate: graphqlCustomer.birthDate ? graphqlCustomer.birthDate.split('T')[0] : '',
       accountStatus: graphqlCustomer.accountStatus || 'inactive',
     });
@@ -216,7 +218,9 @@ function CustomerRegistrationInner() {
               namaLengkap: pelangganForm.name,
               email: pelangganForm.email,
               noHP: pelangganForm.phone,
-              customerType: pelangganForm.customerType,
+              // Empty → undefined: jangan tulis '' ke DB (akan trigger enum validation
+              // error saat user.save() di mutation lain seperti aktivasi/deactivate)
+              customerType: pelangganForm.customerType || undefined,
               birthDate: pelangganForm.birthDate || undefined,
               accountStatus: pelangganForm.accountStatus,
             },
@@ -237,7 +241,9 @@ function CustomerRegistrationInner() {
             namaLengkap: pelangganForm.name,
             email: pelangganForm.email,
             noHP: pelangganForm.phone,
-            customerType: pelangganForm.customerType,
+            // Empty → undefined: backend akan pakai default enum (rumah_tangga)
+            // atau biarkan kosong tergantung schema; tidak menulis '' ke DB.
+            customerType: pelangganForm.customerType || undefined,
             birthDate: pelangganForm.birthDate || undefined,
             accountStatus: pelangganForm.accountStatus,
           },
@@ -415,7 +421,7 @@ function CustomerRegistrationInner() {
                   onClick={() => {
                     setRegistrationResult(null);
                     setActiveStep(0);
-                    setPelangganForm({ nik: '', name: '', email: '', phone: '', customerType: 'rumah_tangga', birthDate: '', accountStatus: 'active' });
+                    setPelangganForm({ nik: '', name: '', email: '', phone: '', customerType: '', birthDate: '', accountStatus: 'active' });
                     setSambunganForm({ noKK: '', imb: '', alamat: '', kelurahan: '', kecamatan: '', luasBangunan: '', catatan: '', verifikasiLangsung: false });
                   }}
                 >
