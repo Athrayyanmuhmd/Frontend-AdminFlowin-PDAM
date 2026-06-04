@@ -11,52 +11,9 @@ import {
   LOGOUT_ADMIN,
   LOGOUT_TECHNICIAN,
 } from '../../lib/graphql/mutations/auth';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-
-const muiTheme = createTheme({
-  palette: {
-    primary: {
-      main: '#013494',
-    },
-    background: {
-      default: '#f0f2f5',
-    },
-  },
-  typography: {
-    fontFamily: "'Poppins', sans-serif",
-    h4: {
-      fontSize: '2.125rem',
-      '@media (max-width:600px)': {
-        fontSize: '1.4rem',
-      },
-    },
-    h5: {
-      fontSize: '1.5rem',
-      '@media (max-width:600px)': {
-        fontSize: '1.15rem',
-      },
-    },
-    h6: {
-      fontSize: '1.25rem',
-      '@media (max-width:600px)': {
-        fontSize: '1rem',
-      },
-    },
-  },
-  components: {
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          minWidth: 0,
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-          overflow: 'visible',
-        },
-      },
-    },
-  },
-});
+import muiTheme from '../theme';
 
 const GET_ALL_NOTIFIKASI_ADMIN = gql`
   query GetAllNotifikasiAdmin {

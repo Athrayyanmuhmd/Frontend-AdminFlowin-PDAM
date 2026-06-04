@@ -31,7 +31,7 @@ import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DashboardKPI } from '../../types/admin.types';
 import { GET_DASHBOARD_STATS, GET_CHART_KONSUMSI_PER_BULAN, GET_DISTRIBUSI_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/dashboard';
-import StatCard, { StatCardColor } from '../../components/ui/StatCard';
+import DashboardStatCard, { StatColor } from '../../components/ui/DashboardStatCard';
 
 const DashboardLineChart = nextDynamic(
   () => import('../../components/charts/DashboardLineChart'),
@@ -51,7 +51,7 @@ const DashboardPieChart = nextDynamic(
 
 const CHART_COLORS = ['#013494', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
 
-interface KpiConfig { icon: React.ReactNode; color: StatCardColor; format?: (v: number, unit: string) => string }
+interface KpiConfig { icon: React.ReactNode; color: StatColor; format?: (v: number, unit: string) => string }
 const KPI_CONFIG: Record<string, KpiConfig> = {
   '1': { icon: <People />,       color: 'info' },
   '2': { icon: <Speed />,        color: 'success' },
@@ -159,13 +159,14 @@ export default function Dashboard() {
           const cfg = KPI_CONFIG[kpi.id];
           return (
             <Grid item xs={12} sm={6} md={4} lg={3} key={kpi.id}>
-              <StatCard
+              <DashboardStatCard
                 color={cfg.color}
                 icon={cfg.icon}
                 title={kpi.name}
-                count={cfg.format ? cfg.format(kpi.value, kpi.unit) : kpi.value.toLocaleString('id-ID')}
-                subtitle={kpi.status === 'warning' ? 'Perlu perhatian' : 'Status normal'}
-                subtitleColor={kpi.status === 'warning' ? 'warning.main' : 'success.main'}
+                value={cfg.format ? cfg.format(kpi.value, kpi.unit) : kpi.value.toLocaleString('id-ID')}
+                trend={kpi.trend === 'up' ? 'up' : kpi.trend === 'down' ? 'down' : 'flat'}
+                status={kpi.status === 'warning' ? 'warning' : 'good'}
+                caption="Status terkini"
               />
             </Grid>
           );
@@ -180,33 +181,39 @@ export default function Dashboard() {
           </Typography>
           <Grid container spacing={3}>
             <Grid item xs={12} sm={4}>
-              <StatCard
+              <DashboardStatCard
                 color="warning"
                 icon={<HourglassEmpty />}
                 title="Menunggu Verifikasi"
-                count={(data as any).getDashboardStats.koneksiMenunggu ?? 0}
-                subtitle="Perlu ditinjau"
-                subtitleColor="warning.main"
+                value={(data as any).getDashboardStats.koneksiMenunggu ?? 0}
+                trend="flat"
+                status="warning"
+                statusLabel="Menunggu"
+                caption="Perlu ditinjau"
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <StatCard
+              <DashboardStatCard
                 color="success"
                 icon={<CheckCircle />}
                 title="Disetujui"
-                count={(data as any).getDashboardStats.koneksiDisetujui ?? 0}
-                subtitle="Pengajuan berhasil"
-                subtitleColor="success.main"
+                value={(data as any).getDashboardStats.koneksiDisetujui ?? 0}
+                trend="up"
+                status="good"
+                statusLabel="Disetujui"
+                caption="Pengajuan berhasil"
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <StatCard
+              <DashboardStatCard
                 color="error"
                 icon={<Cancel />}
                 title="Ditolak"
-                count={(data as any).getDashboardStats.koneksiDitolak ?? 0}
-                subtitle="Pengajuan ditolak"
-                subtitleColor="error.main"
+                value={(data as any).getDashboardStats.koneksiDitolak ?? 0}
+                trend="down"
+                status="bad"
+                statusLabel="Ditolak"
+                caption="Pengajuan ditolak"
               />
             </Grid>
           </Grid>

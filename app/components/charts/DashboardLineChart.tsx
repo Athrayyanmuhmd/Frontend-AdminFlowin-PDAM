@@ -2,8 +2,8 @@
 
 import React from 'react';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,39 +16,51 @@ interface DashboardLineChartProps {
   darkMode?: boolean;
 }
 
+/**
+ * Grafik pendapatan — area chart dengan gradient (acuan visual Attex).
+ * Data shape sama: { bulan, totalTagihan }.
+ */
 export default function DashboardLineChart({ data, darkMode = false }: DashboardLineChartProps) {
-  const textColor  = darkMode ? 'rgba(255,255,255,0.8)' : '#666';
-  const gridColor  = darkMode ? 'rgba(255,255,255,0.2)' : '#e0e0e0';
-  const lineColor  = darkMode ? '#fff' : '#013494';
-  const dotFill    = darkMode ? '#fff' : '#013494';
+  const textColor = darkMode ? 'rgba(255,255,255,0.8)' : '#697a8d';
+  const gridColor = darkMode ? 'rgba(255,255,255,0.15)' : '#eef0f3';
+  const lineColor = darkMode ? '#5b8def' : '#013494';
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+      <AreaChart data={data} margin={{ top: 12, right: 16, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={lineColor} stopOpacity={0.35} />
+            <stop offset="75%" stopColor={lineColor} stopOpacity={0.04} />
+            <stop offset="100%" stopColor={lineColor} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
         <XAxis
           dataKey="bulan"
           tick={{ fill: textColor, fontSize: 11 }}
-          axisLine={{ stroke: gridColor }}
+          axisLine={false}
           tickLine={false}
+          dy={6}
         />
         <YAxis
           tickFormatter={(v) => {
             if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
-            if (v >= 1_000)     return `${(v / 1_000).toFixed(0)}rb`;
+            if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
             return `${v}`;
           }}
           tick={{ fill: textColor, fontSize: 11 }}
           axisLine={false}
           tickLine={false}
-          width={36}
+          width={40}
         />
         <Tooltip
+          cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: '4 4' }}
           contentStyle={{
-            backgroundColor: 'rgba(255,255,255,0.95)',
+            backgroundColor: 'rgba(255,255,255,0.97)',
             border: 'none',
-            borderRadius: 8,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: 10,
+            boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
             fontSize: 12,
           }}
           formatter={(value: any, name: string) => [
@@ -58,16 +70,17 @@ export default function DashboardLineChart({ data, darkMode = false }: Dashboard
             name === 'totalTagihan' ? 'Total Pendapatan' : 'Jumlah Tagihan',
           ]}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="totalTagihan"
           stroke={lineColor}
-          strokeWidth={2.5}
-          dot={{ r: 4, fill: dotFill, strokeWidth: 0 }}
-          activeDot={{ r: 6, fill: dotFill }}
+          strokeWidth={3}
+          fill="url(#revenueGradient)"
+          dot={{ r: 3, fill: '#fff', stroke: lineColor, strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: lineColor, stroke: '#fff', strokeWidth: 2 }}
           name="totalTagihan"
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 }

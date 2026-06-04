@@ -3,6 +3,7 @@ import { Poppins } from 'next/font/google';
 import './globals.css';
 import AdminProvider from './layouts/AdminProvider';
 import NextTopLoader from 'nextjs-toploader';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -46,7 +47,9 @@ export default function RootLayout({
           speed={200}
           shadow='0 0 10px #013494,0 0 5px #013494'
         />
-        <AdminProvider>{children}</AdminProvider>
+        <AppRouterCacheProvider options={{ key: 'mui' }}>
+          <AdminProvider>{children}</AdminProvider>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );
