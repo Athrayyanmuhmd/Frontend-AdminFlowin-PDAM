@@ -97,6 +97,36 @@ const theme = createTheme({
         },
       },
     },
+    // Tabel gaya Attex (global): header grey rapi + border halus.
+    // Berlaku ke SEMUA tabel sehingga konsisten di seluruh halaman.
+    MuiTableCell: {
+      styleOverrides: {
+        head: ({ theme }) => ({
+          backgroundColor: theme.palette.grey[100],
+          color: theme.palette.text.secondary,
+          fontWeight: 700,
+          fontSize: '0.75rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          whiteSpace: 'nowrap',
+          borderBottom: `1px solid ${theme.palette.divider}`,
+        }),
+        root: ({ theme }) => ({
+          borderColor: theme.palette.divider,
+        }),
+      },
+    },
+    // Hover lembut untuk SEMUA baris isi tabel (tanpa perlu prop hover).
+    // Ditarget ke MuiTableBody agar baris header tidak ikut ter-hover.
+    MuiTableBody: {
+      styleOverrides: {
+        root: {
+          '& .MuiTableRow-root:hover': {
+            backgroundColor: 'rgba(1,52,148,0.035)',
+          },
+        },
+      },
+    },
   },
 });
 
