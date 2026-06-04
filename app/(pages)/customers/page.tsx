@@ -64,6 +64,8 @@ import {
 } from '@mui/icons-material';
 import AdminLayout from '../../layouts/AdminLayout';
 import { useAdmin } from '../../layouts/AdminProvider';
+import PageHeader from '../../components/ui/PageHeader';
+import DashboardStatCard from '../../components/ui/DashboardStatCard';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { User, CustomerAccount } from '../../types/admin.types';
 import { Checkbox } from '@mui/material';
@@ -438,9 +440,10 @@ export default function CustomerManagement() {
   return (
     <AdminLayout title='Manajemen Pelanggan'>
       <Box sx={{ mb: 3 }}>
-        <Typography variant='h4' component='h1' sx={{ fontWeight: 600, mb: 2 }}>
-          Sistem Informasi Pelanggan (SIP)
-        </Typography>
+        <PageHeader
+          title="Sistem Informasi Pelanggan (SIP)"
+          subtitle="Kelola data, status, dan verifikasi seluruh pelanggan PDAM"
+        />
 
         {error && !errorDismissed && (
           <Alert
@@ -455,92 +458,50 @@ export default function CustomerManagement() {
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'primary.main' }}>
-                    <Person />
-                  </Avatar>
-                  <Box>
-                    <Typography variant='h4' sx={{ fontWeight: 600 }}>
-                      {customers.length.toLocaleString('id-ID')}
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Total Pelanggan
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <DashboardStatCard
+              color="primary"
+              icon={<Person />}
+              title="Total Pelanggan"
+              value={customers.length.toLocaleString('id-ID')}
+              hideBadge
+              caption="Seluruh pelanggan terdaftar"
+            />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'success.main' }}>
-                    <AccountBalance />
-                  </Avatar>
-                  <Box>
-                    <Typography variant='h4' sx={{ fontWeight: 600 }}>
-                      {customers
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        .filter((c: any) => c.accountStatus === 'active')
-                        .length.toLocaleString('id-ID')}
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Pelanggan Aktif
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <DashboardStatCard
+              color="success"
+              icon={<AccountBalance />}
+              title="Pelanggan Aktif"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              value={customers.filter((c: any) => c.accountStatus === 'active').length.toLocaleString('id-ID')}
+              hideBadge
+              caption="Status akun aktif"
+            />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'warning.main' }}>
-                    <WaterDrop />
-                  </Avatar>
-                  <Box>
-                    <Typography variant='h4' sx={{ fontWeight: 600 }}>
-                      {customers
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        .filter((c: any) => c.customerType === 'rumah_tangga')
-                        .length.toLocaleString('id-ID')}
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Rumah Tangga
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <DashboardStatCard
+              color="warning"
+              icon={<WaterDrop />}
+              title="Rumah Tangga"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              value={customers.filter((c: any) => c.customerType === 'rumah_tangga').length.toLocaleString('id-ID')}
+              hideBadge
+              caption="Kategori rumah tangga"
+            />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'info.main' }}>
-                    <VerifiedUser />
-                  </Avatar>
-                  <Box>
-                    <Typography variant='h4' sx={{ fontWeight: 600 }}>
-                      {customers
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        .filter((c: any) => c.isVerified === true)
-                        .length.toLocaleString('id-ID')}
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                      Identitas Diverifikasi
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <DashboardStatCard
+              color="info"
+              icon={<VerifiedUser />}
+              title="Identitas Diverifikasi"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              value={customers.filter((c: any) => c.isVerified === true).length.toLocaleString('id-ID')}
+              hideBadge
+              caption="Identitas tervalidasi"
+            />
           </Grid>
         </Grid>
 
@@ -662,7 +623,22 @@ export default function CustomerManagement() {
         {/* Customer Table */}
         <Card>
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table sx={{ minWidth: 700 }}>
+            <Table
+              sx={{
+                minWidth: 700,
+                '& .MuiTableHead-root .MuiTableCell-root': {
+                  bgcolor: 'grey.100',
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  whiteSpace: 'nowrap',
+                },
+              }}
+            >
               <TableHead>
                 <TableRow>
                   <TableCell padding='checkbox'>

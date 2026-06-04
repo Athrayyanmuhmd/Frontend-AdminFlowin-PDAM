@@ -46,6 +46,7 @@ import {
   ContentCopy,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import SectionHeader from '../../../components/ui/SectionHeader';
 import {
   useGetCustomer,
   useCreateCustomer,
@@ -536,10 +537,7 @@ function CustomerRegistrationInner() {
           <Grid item xs={12} md={8}>
             <Card>
               <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={2.5}>
-                  <Person color="primary" />
-                  <Typography variant="h6" fontWeight={600}>Informasi Pribadi</Typography>
-                </Box>
+                <SectionHeader icon={<Person />} title="Informasi Pribadi" color="primary" />
                 <Divider sx={{ mb: 3 }} />
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
@@ -637,10 +635,7 @@ function CustomerRegistrationInner() {
             {/* Dokumen Identitas */}
             <Card>
               <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={2.5}>
-                  <Assignment color="primary" />
-                  <Typography variant="h6" fontWeight={600}>Dokumen Identitas</Typography>
-                </Box>
+                <SectionHeader icon={<Assignment />} title="Dokumen Identitas" color="info" />
                 <Divider sx={{ mb: 3 }} />
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
@@ -680,10 +675,7 @@ function CustomerRegistrationInner() {
             {/* Alamat & Properti */}
             <Card sx={{ mt: 3 }}>
               <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={2.5}>
-                  <Home color="primary" />
-                  <Typography variant="h6" fontWeight={600}>Alamat & Properti</Typography>
-                </Box>
+                <SectionHeader icon={<Home />} title="Alamat & Properti" color="success" />
                 <Divider sx={{ mb: 3 }} />
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
@@ -777,10 +769,7 @@ function CustomerRegistrationInner() {
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center" gap={1} mb={2.5}>
-                <Badge color="primary" />
-                <Typography variant="h6" fontWeight={600}>Ringkasan</Typography>
-              </Box>
+              <SectionHeader icon={<Badge />} title="Ringkasan" color="warning" />
               <Divider sx={{ mb: 2.5 }} />
               <Box display="flex" flexDirection="column" gap={2.5}>
                 <InfoRow label="Nama">

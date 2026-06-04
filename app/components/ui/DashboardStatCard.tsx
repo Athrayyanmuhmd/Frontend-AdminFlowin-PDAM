@@ -30,6 +30,8 @@ interface DashboardStatCardProps {
   status?: 'good' | 'warning' | 'bad' | 'neutral';
   statusLabel?: string;
   caption?: string;
+  /** Sembunyikan badge tren — berguna untuk kartu ringkasan jumlah (mis. daftar pelanggan) */
+  hideBadge?: boolean;
 }
 
 export default function DashboardStatCard({
@@ -41,6 +43,7 @@ export default function DashboardStatCard({
   status = 'neutral',
   statusLabel,
   caption = 'Status terkini',
+  hideBadge = false,
 }: DashboardStatCardProps) {
   const statusColorKey =
     status === 'good' ? 'success'
@@ -100,24 +103,26 @@ export default function DashboardStatCard({
       </Box>
 
       <Box sx={{ mt: 'auto', pt: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5,
-            px: 1,
-            py: 0.25,
-            borderRadius: 1.5,
-            bgcolor: (t) => alpha(t.palette[statusColorKey].main, 0.14),
-            color: (t) => t.palette[statusColorKey].main,
-            '& svg': { fontSize: 16 },
-          }}
-        >
-          <TrendIcon />
-          <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1 }}>
-            {statusLabel ?? (status === 'warning' ? 'Perlu perhatian' : 'Normal')}
-          </Typography>
-        </Box>
+        {!hideBadge && (
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+              px: 1,
+              py: 0.25,
+              borderRadius: 1.5,
+              bgcolor: (t) => alpha(t.palette[statusColorKey].main, 0.14),
+              color: (t) => t.palette[statusColorKey].main,
+              '& svg': { fontSize: 16 },
+            }}
+          >
+            <TrendIcon />
+            <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1 }}>
+              {statusLabel ?? (status === 'warning' ? 'Perlu perhatian' : 'Normal')}
+            </Typography>
+          </Box>
+        )}
         <Typography variant="caption" sx={{ color: 'text.disabled' }}>
           {caption}
         </Typography>

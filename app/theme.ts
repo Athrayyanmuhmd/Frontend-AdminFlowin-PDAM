@@ -25,6 +25,25 @@ const theme = createTheme({
     success:   { main: '#2E7D32' },
     warning:   { main: '#E65100' },
     error:     { main: '#B71C1C' },
+    // Skala abu-abu lembut bernuansa biru (acuan Attex) — dipakai untuk
+    // header tabel (grey.100) dan border halus.
+    grey: {
+      50: '#f8f9fb',
+      100: '#f4f6fa',
+      200: '#eaecf0',
+      300: '#dee2e6',
+      400: '#ced4da',
+      500: '#aab8c5',
+      600: '#818e9e',
+      700: '#444d57',
+      800: '#3f4650',
+      900: '#3a444b',
+      A100: '#f1f1f1',
+      A200: '#e3eaef',
+      A400: '#ced4da',
+      A700: '#444d57',
+    },
+    divider: '#e7eaf0',
     background: {
       default: '#f0f2f5',
     },
@@ -62,6 +81,19 @@ const theme = createTheme({
           boxShadow:
             '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
           overflow: 'visible',
+        },
+      },
+    },
+    // Tombol gaya Attex: flat (tanpa gradient/shadow), tidak UPPERCASE
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
         },
       },
     },
