@@ -51,6 +51,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import dayjs from 'dayjs';
@@ -623,9 +624,10 @@ export default function GenerateBills() {
   return (
     <AdminLayout title="Generate Tagihan">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 2 }}>
-          Generate Tagihan Bulanan
-        </Typography>
+        <PageHeader
+          title="Generate Tagihan Bulanan"
+          subtitle="Terbitkan tagihan air massal untuk periode terpilih"
+        />
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>

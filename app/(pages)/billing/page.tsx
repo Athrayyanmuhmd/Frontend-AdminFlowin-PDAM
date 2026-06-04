@@ -54,9 +54,11 @@ import {
   Autorenew,
   TrendingUp,
 } from '@mui/icons-material';
-import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
-import StatCard from '../../components/ui/StatCard';
+import PageHeader from '../../components/ui/PageHeader';
+import DashboardStatCard from '../../components/ui/DashboardStatCard';
+import { formatToIDR, formatM3, formatRupiahValue } from '../../utils/helper';
 import { GET_BILLINGS, GET_BILLING_STATS, GET_BILLING_CHART, UPDATE_STATUS_PEMBAYARAN, GENERATE_TAGIHAN_BULANAN } from '@/lib/graphql/queries/billing';
 
 const GET_ALL_METERAN_IDS = gql`
@@ -196,10 +198,10 @@ export default function BillingManagement() {
     const nomorAkun = b.IdMeteran?.NomorAkun || '-';
     const periode = formatPeriode(b.Periode);
     const tenggatWaktu = formatTanggal(b.TenggatWaktu);
-    const totalBiaya = (b.TotalBiaya || 0).toLocaleString('id-ID');
-    const biayaAir = (b.Biaya || 0).toLocaleString('id-ID');
-    const biayaBeban = (b.BiayaBeban || 0).toLocaleString('id-ID');
-    const denda = (b.Denda || 0).toLocaleString('id-ID');
+    const totalBiaya = formatRupiahValue(b.TotalBiaya);
+    const biayaAir = formatRupiahValue(b.Biaya);
+    const biayaBeban = formatRupiahValue(b.BiayaBeban);
+    const denda = formatRupiahValue(b.Denda);
     const isMerged = b.isMergedBilling ? `<p style="color:#e53935;font-size:12px">⚠️ Tagihan gabungan (${b.bulanCakupan} bulan)</p>` : '';
     const isDenda = b.jenisBilling === 'denda' ? `<p style="color:#e53935;font-size:12px">⚠️ Tagihan Denda Pemutusan</p>` : '';
 
@@ -231,7 +233,7 @@ export default function BillingManagement() {
     <tr><td>No. Meteran</td><td>${nomorMeteran}</td></tr>
     <tr><td>No. Akun</td><td>${nomorAkun}</td></tr>
     <tr><td>Periode Tagihan</td><td>${periode}</td></tr>
-    <tr><td>Pemakaian Air</td><td>${b.TotalPemakaian || 0} m³</td></tr>
+    <tr><td>Pemakaian Air</td><td>${formatM3(b.TotalPemakaian)}</td></tr>
     <tr><td>Biaya Pemakaian</td><td>Rp ${biayaAir}</td></tr>
     <tr><td>Biaya Beban</td><td>Rp ${biayaBeban}</td></tr>
     ${b.Denda ? `<tr><td>Denda</td><td>Rp ${denda}</td></tr>` : ''}
@@ -409,49 +411,57 @@ export default function BillingManagement() {
   return (
     <AdminLayout title="Manajemen Penagihan">
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 2 }}>
-          Manajemen Penagihan & Keuangan
-        </Typography>
-        
+        <PageHeader
+          title="Manajemen Penagihan & Keuangan"
+          subtitle="Pantau penerbitan tagihan, pembayaran, dan tunggakan pelanggan"
+        />
+
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 5, mt: 1 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
+            <DashboardStatCard
               color="primary"
               icon={<Receipt />}
               title="Total Tagihan"
-              count={`Rp ${totalRevenue.toLocaleString('id-ID')}`}
-              subtitle={`${billingStats?.totalTagihan || 0} tagihan diterbitkan`}
+              value={formatToIDR(totalRevenue)}
+              hideBadge
+              caption={`${billingStats?.totalTagihan || 0} tagihan diterbitkan`}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
+            <DashboardStatCard
               color="success"
               icon={<Payment />}
               title="Terkumpul"
-              count={`Rp ${totalCollected.toLocaleString('id-ID')}`}
-              subtitle={`${billingStats?.totalLunas || 0} tagihan lunas`}
-              subtitleColor="success.main"
+              value={formatToIDR(totalCollected)}
+              trend="up"
+              status="good"
+              statusLabel="Terkumpul"
+              caption={`${billingStats?.totalLunas || 0} tagihan lunas`}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
+            <DashboardStatCard
               color="info"
               icon={<TrendingUp />}
               title="Efisiensi Penagihan"
-              count={`${collectionRate.toFixed(1)}%`}
-              subtitle={collectionRate >= 80 ? 'Target tercapai' : 'Di bawah target'}
-              subtitleColor={collectionRate >= 80 ? 'success.main' : 'warning.main'}
+              value={`${collectionRate.toFixed(1)}%`}
+              trend={collectionRate >= 80 ? 'up' : 'down'}
+              status={collectionRate >= 80 ? 'good' : 'warning'}
+              statusLabel={collectionRate >= 80 ? 'Target tercapai' : 'Di bawah target'}
+              caption="Rasio pembayaran"
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
+            <DashboardStatCard
               color="error"
               icon={<Warning />}
               title="Tunggakan"
-              count={`Rp ${overdueAmount.toLocaleString('id-ID')}`}
-              subtitle={`${billingStats?.totalTunggakan || 0} belum terbayar`}
-              subtitleColor={overdueAmount > 0 ? 'error.main' : 'success.main'}
+              value={formatToIDR(overdueAmount)}
+              trend={overdueAmount > 0 ? 'down' : 'flat'}
+              status={overdueAmount > 0 ? 'bad' : 'good'}
+              statusLabel={overdueAmount > 0 ? 'Perlu ditagih' : 'Aman'}
+              caption={`${billingStats?.totalTunggakan || 0} belum terbayar`}
             />
           </Grid>
         </Grid>
@@ -465,31 +475,38 @@ export default function BillingManagement() {
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>Tren Pendapatan</Typography>
                   <Typography variant="body2" color="text.secondary">6 bulan terakhir</Typography>
                 </Box>
-                <Box sx={{ background: 'linear-gradient(195deg, #FFA726, #FB8C00)', borderRadius: '8px', px: 1.5, py: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, letterSpacing: '0.03em' }}>KEUANGAN</Typography>
+                <Box sx={{ bgcolor: 'rgba(1,52,148,0.1)', color: 'primary.main', borderRadius: '8px', px: 1.5, py: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.03em' }}>KEUANGAN</Typography>
                 </Box>
               </Box>
               <Box sx={{ flex: 1, px: 1, py: 2, minHeight: 280 }}>
                 <ResponsiveContainer width="100%" height={280}>
                   <ComposedChart data={revenueData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#666' }} axisLine={false} tickLine={false} />
+                    <defs>
+                      <linearGradient id="collectedFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#43A047" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#43A047" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#697a8d' }} axisLine={false} tickLine={false} dy={6} />
                     <YAxis
                       tickFormatter={(v) => {
                         if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
                         if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
                         return String(v);
                       }}
-                      tick={{ fontSize: 11, fill: '#666' }}
+                      tick={{ fontSize: 11, fill: '#697a8d' }}
                       axisLine={false}
                       tickLine={false}
                       width={50}
                     />
                     <RechartsTooltip
+                      cursor={{ fill: 'rgba(1,52,148,0.05)' }}
                       contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 12, padding: '8px 12px' }}
                       labelStyle={{ fontWeight: 600, marginBottom: 4, color: '#333' }}
                       formatter={(value: number, name: string) => [
-                        `Rp ${value.toLocaleString('id-ID')}`,
+                        formatToIDR(value),
                         name === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)',
                       ]}
                     />
@@ -498,8 +515,8 @@ export default function BillingManagement() {
                       iconSize={8}
                       formatter={(value) => <span style={{ fontSize: 12, color: '#555' }}>{value === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)'}</span>}
                     />
-                    <Bar dataKey="revenue" fill="#013494" fillOpacity={0.85} name="revenue" radius={[4, 4, 0, 0]} />
-                    <Line type="monotone" dataKey="collected" stroke="#43A047" strokeWidth={2.5} dot={{ r: 4, fill: '#43A047', strokeWidth: 0 }} activeDot={{ r: 6 }} name="collected" />
+                    <Bar dataKey="revenue" fill="#013494" fillOpacity={0.9} name="revenue" radius={[6, 6, 0, 0]} barSize={26} />
+                    <Area type="monotone" dataKey="collected" stroke="#43A047" strokeWidth={3} fill="url(#collectedFill)" dot={{ r: 3, fill: '#fff', stroke: '#43A047', strokeWidth: 2 }} activeDot={{ r: 6 }} name="collected" />
                   </ComposedChart>
                 </ResponsiveContainer>
               </Box>
@@ -605,7 +622,22 @@ export default function BillingManagement() {
         {/* Billing Table */}
         <Card>
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table sx={{ minWidth: 750 }}>
+            <Table
+              sx={{
+                minWidth: 750,
+                '& .MuiTableHead-root .MuiTableCell-root': {
+                  bgcolor: 'grey.100',
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  whiteSpace: 'nowrap',
+                },
+              }}
+            >
               <TableHead>
                 <TableRow>
                   <TableCell>Pelanggan</TableCell>
@@ -638,16 +670,16 @@ export default function BillingManagement() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {bill.TotalPemakaian} m³
+                        {formatM3(bill.TotalPemakaian)}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        Rp {(bill.TotalBiaya || 0).toLocaleString('id-ID')}
+                        {formatToIDR(bill.TotalBiaya)}
                       </Typography>
                       {bill.Denda > 0 && (
-                        <Typography variant="caption" color="error">
-                          + Denda: Rp {bill.Denda.toLocaleString('id-ID')}
+                        <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+                          + Denda: {formatToIDR(bill.Denda)}
                         </Typography>
                       )}
                     </TableCell>
@@ -742,9 +774,9 @@ export default function BillingManagement() {
                   <Typography><strong>No. Meteran:</strong> {selectedBilling.IdMeteran?.NomorMeteran || '-'}</Typography>
                   <Typography><strong>No. Akun:</strong> {selectedBilling.IdMeteran?.NomorAkun || '-'}</Typography>
                   <Typography><strong>Periode:</strong> {formatPeriodeBilling(selectedBilling)}</Typography>
-                  <Typography><strong>Pemakaian:</strong> {selectedBilling.TotalPemakaian} m³</Typography>
-                  <Typography><strong>Biaya Air:</strong> Rp {(selectedBilling.Biaya || 0).toLocaleString('id-ID')}</Typography>
-                  <Typography><strong>Biaya Beban:</strong> Rp {(selectedBilling.BiayaBeban || 0).toLocaleString('id-ID')}</Typography>
+                  <Typography><strong>Pemakaian:</strong> {formatM3(selectedBilling.TotalPemakaian)}</Typography>
+                  <Typography><strong>Biaya Air:</strong> {formatToIDR(selectedBilling.Biaya)}</Typography>
+                  <Typography><strong>Biaya Beban:</strong> {formatToIDR(selectedBilling.BiayaBeban)}</Typography>
                   <Typography><strong>Jatuh Tempo:</strong> {formatTanggal(selectedBilling.TenggatWaktu)}</Typography>
                 </Box>
               </Grid>
@@ -754,9 +786,9 @@ export default function BillingManagement() {
                   Rincian Pembayaran
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography><strong>Total Tagihan:</strong> Rp {(selectedBilling.TotalBiaya || 0).toLocaleString('id-ID')}</Typography>
+                  <Typography><strong>Total Tagihan:</strong> {formatToIDR(selectedBilling.TotalBiaya)}</Typography>
                   {selectedBilling.Denda > 0 && (
-                    <Typography color="error"><strong>Denda:</strong> Rp {selectedBilling.Denda.toLocaleString('id-ID')}</Typography>
+                    <Typography color="error"><strong>Denda:</strong> {formatToIDR(selectedBilling.Denda)}</Typography>
                   )}
                   <Typography><strong>Status:</strong> {getStatusLabel(selectedBilling.StatusPembayaran)}</Typography>
                   {selectedBilling.MetodePembayaran && (
@@ -851,7 +883,7 @@ export default function BillingManagement() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography><strong>Pelanggan:</strong> {selectedBilling.IdMeteran?.IdKoneksiData?.IdPelanggan?.namaLengkap || '-'}</Typography>
               <Typography><strong>Periode:</strong> {formatPeriode(selectedBilling.Periode)}</Typography>
-              <Typography><strong>Jumlah:</strong> Rp {(selectedBilling.TotalBiaya || 0).toLocaleString('id-ID')}</Typography>
+              <Typography><strong>Jumlah:</strong> {formatToIDR(selectedBilling.TotalBiaya)}</Typography>
             </Box>
           )}
         </DialogContent>

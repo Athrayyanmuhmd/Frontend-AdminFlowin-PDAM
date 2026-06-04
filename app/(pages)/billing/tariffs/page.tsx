@@ -49,6 +49,9 @@ import {
   LocalOffer,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
+import DashboardStatCard from '../../../components/ui/DashboardStatCard';
+import { formatToIDR } from '../../../utils/helper';
 import {
   GET_ALL_KELOMPOK_PELANGGAN,
   CREATE_KELOMPOK_PELANGGAN,
@@ -244,7 +247,7 @@ export default function TariffsPage() {
     finally { setDeleting(false); }
   };
 
-  const formatRupiah = (val: number) => `Rp ${(val || 0).toLocaleString('id-ID')}`;
+  const formatRupiah = (val: number) => formatToIDR(val);
 
   const kelompokList = (data as any)?.getAllKelompokPelanggan || [];
 
@@ -300,25 +303,18 @@ export default function TariffsPage() {
       <Fade in timeout={400}>
         <Box>
           {/* ─── Header Section ────────────────────────────────────────────── */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexWrap: 'wrap', gap: 2 }}>
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>Struktur Tarif Air</Typography>
-                  <Chip
-                    icon={<WaterDrop />}
-                    label={`${stats.totalKelompok} Kelompok`}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                    sx={{ ml: 1 }}
-                  />
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  {formatTanggal(today)} · Pengelolaan tarif dan kelompok pelanggan PDAM Tirta Daroy
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+          <PageHeader
+            title="Struktur Tarif Air"
+            subtitle={`${formatTanggal(today)} · Pengelolaan tarif dan kelompok pelanggan PDAM Tirta Daroy`}
+            actions={
+              <>
+                <Chip
+                  icon={<WaterDrop />}
+                  label={`${stats.totalKelompok} Kelompok`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
                 <Tooltip title="Segarkan Data">
                   <IconButton onClick={() => refetch()} sx={{ bgcolor: 'grey.100', '&:hover': { bgcolor: 'grey.200' } }}>
                     <Refresh />
@@ -327,138 +323,51 @@ export default function TariffsPage() {
                 <Button variant="contained" startIcon={<Add />} onClick={handleOpenAdd} sx={{ px: 3 }}>
                   Tambah Tarif
                 </Button>
-              </Stack>
-            </Box>
-          </Box>
+              </>
+            }
+          />
 
           {/* ─── Stats Cards ────────────────────────────────────────────── */}
           <Grid container spacing={2.5} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #1976d2 0%, #2196f3 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(25, 118, 210, 0.25)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Total Kelompok
-                      </Typography>
-                      <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {stats.totalKelompok}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        Kelompok tarif aktif
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Category sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="primary"
+                icon={<Category />}
+                title="Total Kelompok"
+                value={stats.totalKelompok}
+                hideBadge
+                caption="Kelompok tarif aktif"
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #388e3c 0%, #4caf50 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(56, 142, 60, 0.25)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Tarif Terendah
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {formatRupiah(stats.minTarif)}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        Per meter kubik
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <TrendingDown sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="success"
+                icon={<TrendingDown />}
+                title="Tarif Terendah"
+                value={formatRupiah(stats.minTarif)}
+                hideBadge
+                caption="Per meter kubik"
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #f57c00 0%, #ff9800 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(245, 124, 0, 0.25)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Tarif Tertinggi
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {formatRupiah(stats.maxTarif)}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        Per meter kubik
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <TrendingUp sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="warning"
+                icon={<TrendingUp />}
+                title="Tarif Tertinggi"
+                value={formatRupiah(stats.maxTarif)}
+                hideBadge
+                caption="Per meter kubik"
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(123, 31, 162, 0.25)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Rata-rata Tarif
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {formatRupiah(stats.avgTarif)}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        Per meter kubik
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <TrendingUp sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="info"
+                icon={<TrendingUp />}
+                title="Rata-rata Tarif"
+                value={formatRupiah(stats.avgTarif)}
+                hideBadge
+                caption="Per meter kubik"
+              />
             </Grid>
           </Grid>
 
@@ -516,15 +425,30 @@ export default function TariffsPage() {
             <Box sx={{ overflowX: 'auto' }}>
               <Table sx={{ minWidth: 800 }}>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: 'primary.main' }}>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5, pl: 3, width: 50 }}>#</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>Kode</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>Nama Kelompok</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>Kategori</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }} align="right">Tarif ≤ Batas</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }} align="right">Tarif &gt; Batas</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }} align="right">Biaya Beban</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }} align="center">Aksi</TableCell>
+                  <TableRow
+                    sx={{
+                      bgcolor: 'grey.100',
+                      '& .MuiTableCell-root': {
+                        color: 'text.secondary',
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        py: 1.5,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        whiteSpace: 'nowrap',
+                      },
+                    }}
+                  >
+                    <TableCell sx={{ pl: 3, width: 50 }}>#</TableCell>
+                    <TableCell>Kode</TableCell>
+                    <TableCell>Nama Kelompok</TableCell>
+                    <TableCell>Kategori</TableCell>
+                    <TableCell align="right">Tarif ≤ Batas</TableCell>
+                    <TableCell align="right">Tarif &gt; Batas</TableCell>
+                    <TableCell align="right">Biaya Beban</TableCell>
+                    <TableCell align="center">Aksi</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
