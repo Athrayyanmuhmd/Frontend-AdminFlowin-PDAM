@@ -54,7 +54,7 @@ import {
   Autorenew,
   TrendingUp,
 } from '@mui/icons-material';
-import { ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, Brush } from 'recharts';
 import AdminLayout from '../../layouts/AdminLayout';
 import PageHeader from '../../components/ui/PageHeader';
 import DashboardStatCard from '../../components/ui/DashboardStatCard';
@@ -473,23 +473,27 @@ export default function BillingManagement() {
               <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>Tren Pendapatan</Typography>
-                  <Typography variant="body2" color="text.secondary">6 bulan terakhir</Typography>
+                  <Typography variant="body2" color="text.secondary">Geser penggeser di bawah grafik untuk memperbesar periode</Typography>
                 </Box>
                 <Box sx={{ bgcolor: 'rgba(1,52,148,0.1)', color: 'primary.main', borderRadius: '8px', px: 1.5, py: 0.5 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.03em' }}>KEUANGAN</Typography>
                 </Box>
               </Box>
-              <Box sx={{ flex: 1, px: 1, py: 2, minHeight: 280 }}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <ComposedChart data={revenueData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <Box sx={{ flex: 1, px: 1, py: 2, minHeight: 300 }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={revenueData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                     <defs>
+                      <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#013494" stopOpacity={0.28} />
+                        <stop offset="100%" stopColor="#013494" stopOpacity={0} />
+                      </linearGradient>
                       <linearGradient id="collectedFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#43A047" stopOpacity={0.3} />
+                        <stop offset="0%" stopColor="#43A047" stopOpacity={0.28} />
                         <stop offset="100%" stopColor="#43A047" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" vertical={false} />
-                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#697a8d' }} axisLine={false} tickLine={false} dy={6} />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#697a8d' }} axisLine={false} tickLine={false} dy={6} minTickGap={16} />
                     <YAxis
                       tickFormatter={(v) => {
                         if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
@@ -502,7 +506,7 @@ export default function BillingManagement() {
                       width={50}
                     />
                     <RechartsTooltip
-                      cursor={{ fill: 'rgba(1,52,148,0.05)' }}
+                      cursor={{ stroke: '#013494', strokeWidth: 1, strokeDasharray: '4 4' }}
                       contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 12, padding: '8px 12px' }}
                       labelStyle={{ fontWeight: 600, marginBottom: 4, color: '#333' }}
                       formatter={(value: number, name: string) => [
@@ -515,9 +519,17 @@ export default function BillingManagement() {
                       iconSize={8}
                       formatter={(value) => <span style={{ fontSize: 12, color: '#555' }}>{value === 'revenue' ? 'Total Tagihan' : 'Terkumpul (Lunas)'}</span>}
                     />
-                    <Bar dataKey="revenue" fill="#013494" fillOpacity={0.9} name="revenue" radius={[6, 6, 0, 0]} barSize={26} />
-                    <Area type="monotone" dataKey="collected" stroke="#43A047" strokeWidth={3} fill="url(#collectedFill)" dot={{ r: 3, fill: '#fff', stroke: '#43A047', strokeWidth: 2 }} activeDot={{ r: 6 }} name="collected" />
-                  </ComposedChart>
+                    <Area type="monotone" dataKey="revenue" stroke="#013494" strokeWidth={2.5} fill="url(#revenueFill)" dot={{ r: 2.5, fill: '#fff', stroke: '#013494', strokeWidth: 2 }} activeDot={{ r: 6 }} name="revenue" />
+                    <Area type="monotone" dataKey="collected" stroke="#43A047" strokeWidth={2.5} fill="url(#collectedFill)" dot={{ r: 2.5, fill: '#fff', stroke: '#43A047', strokeWidth: 2 }} activeDot={{ r: 6 }} name="collected" />
+                    <Brush
+                      dataKey="month"
+                      height={26}
+                      stroke="#013494"
+                      fill="#f4f6fa"
+                      travellerWidth={8}
+                      tickFormatter={() => ''}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </Box>
               <Divider />
