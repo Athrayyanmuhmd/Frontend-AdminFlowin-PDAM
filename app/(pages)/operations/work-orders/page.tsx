@@ -176,6 +176,32 @@ const STATUS_CHIP_SX = {
   '& .MuiChip-label': { px: 1 },
 } as const;
 
+// Varian lebar penuh — dipakai di kolom Jenis/Status/Respon agar badge
+// satu kolom seragam lebarnya & sejajar (rapi seperti acuan tabel).
+const FULL_CHIP_SX = {
+  ...STATUS_CHIP_SX,
+  width: '100%',
+  justifyContent: 'center',
+  '& .MuiChip-label': {
+    flexGrow: 1,
+    px: 1,
+    textAlign: 'center',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+} as const;
+
+// Tombol kecil di kolom Respon — full width agar menyatu di bawah badge
+const RESPON_BTN_SX = {
+  width: '100%',
+  fontSize: 10,
+  py: 0.3,
+  px: 0.75,
+  minHeight: 0,
+  lineHeight: 1.4,
+} as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function parseFlexDate(v: string | number | null | undefined): Date | null {
@@ -1184,18 +1210,7 @@ export default function WorkOrderManagement() {
                                   size='small'
                                   color='primary'
                                   variant='outlined'
-                                  sx={{
-                                    ...STATUS_CHIP_SX,
-                                    width: '100%',
-                                    '& .MuiChip-label': {
-                                      px: 1,
-                                      width: '100%',
-                                      textAlign: 'center',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    },
-                                  }}
+                                  sx={FULL_CHIP_SX}
                                 />
                               </Tooltip>
                             </TableCell>
@@ -1218,40 +1233,46 @@ export default function WorkOrderManagement() {
 
                             {/* Tim Teknisi */}
                             <TableCell>
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                {wo.tim?.length > 0 ? (
-                                  <Tooltip
-                                    title={wo.tim.map((t: any) => `${t.namaLengkap}${t.divisi ? ` (${t.divisi})` : ''}`).join(' • ')}
-                                    arrow
-                                  >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'default', width: 'fit-content' }}>
-                                      <AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width: 22, height: 22, fontSize: 10, borderWidth: 1 } }}>
-                                        {wo.tim.map((t: any) => (
-                                          <Avatar key={t.id} sx={{ bgcolor: 'primary.main', width: 22, height: 22, fontSize: 10 }}>
-                                            {t.namaLengkap?.[0]?.toUpperCase()}
-                                          </Avatar>
-                                        ))}
-                                      </AvatarGroup>
-                                      <Typography variant='caption' color='text.secondary'>
-                                        {wo.tim.length} org
+                              {(() => {
+                                const hasTim = wo.tim?.length > 0;
+                                const hasStatus = wo.statusTim && wo.statusTim !== 'belum_diajukan';
+                                return (
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                    {hasTim ? (
+                                      <Tooltip
+                                        title={wo.tim.map((t: any) => `${t.namaLengkap}${t.divisi ? ` (${t.divisi})` : ''}`).join(' • ')}
+                                        arrow
+                                      >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'default', width: 'fit-content' }}>
+                                          <AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width: 22, height: 22, fontSize: 10, borderWidth: 1 } }}>
+                                            {wo.tim.map((t: any) => (
+                                              <Avatar key={t.id} sx={{ bgcolor: 'primary.main', width: 22, height: 22, fontSize: 10 }}>
+                                                {t.namaLengkap?.[0]?.toUpperCase()}
+                                              </Avatar>
+                                            ))}
+                                          </AvatarGroup>
+                                          <Typography variant='caption' color='text.secondary'>
+                                            {wo.tim.length} org
+                                          </Typography>
+                                        </Box>
+                                      </Tooltip>
+                                    ) : !hasStatus ? (
+                                      <Typography variant='caption' color='text.disabled' fontStyle='italic'>
+                                        Belum ada tim
                                       </Typography>
-                                    </Box>
-                                  </Tooltip>
-                                ) : (
-                                  <Typography variant='caption' color='text.disabled' fontStyle='italic'>
-                                    Belum ada tim
-                                  </Typography>
-                                )}
-                                {wo.statusTim && wo.statusTim !== 'belum_diajukan' && (
-                                  <Chip
-                                    size='small'
-                                    label={TIM_LABELS[wo.statusTim]}
-                                    color={TIM_COLORS[wo.statusTim]}
-                                    icon={wo.statusTim === 'diajukan' ? <HourglassEmpty sx={{ fontSize: '13px !important' }} /> : undefined}
-                                    sx={{ ...STATUS_CHIP_SX, height: 22, fontSize: 10, alignSelf: 'flex-start', maxWidth: '100%', '& .MuiChip-label': { px: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
-                                  />
-                                )}
-                              </Box>
+                                    ) : null}
+                                    {hasStatus && (
+                                      <Chip
+                                        size='small'
+                                        label={TIM_LABELS[wo.statusTim]}
+                                        color={TIM_COLORS[wo.statusTim]}
+                                        icon={wo.statusTim === 'diajukan' ? <HourglassEmpty sx={{ fontSize: '13px !important' }} /> : undefined}
+                                        sx={{ ...FULL_CHIP_SX, height: 22, fontSize: 10 }}
+                                      />
+                                    )}
+                                  </Box>
+                                );
+                              })()}
                             </TableCell>
 
                             {/* Status WO */}
@@ -1261,20 +1282,20 @@ export default function WorkOrderManagement() {
                                 label={STATUS_LABELS[wo.status] || wo.status}
                                 color={STATUS_COLORS[wo.status] || 'default'}
                                 size='small'
-                                sx={STATUS_CHIP_SX}
+                                sx={FULL_CHIP_SX}
                               />
                             </TableCell>
 
                             {/* Respon Teknisi */}
                             <TableCell align='center'>
-                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 0.5 }}>
                                 {wo.statusRespon ? (
                                   <Tooltip title={RESPON_LABELS[wo.statusRespon] || wo.statusRespon} arrow>
                                     <Chip
                                       size='small'
                                       label={RESPON_LABELS[wo.statusRespon] || wo.statusRespon}
                                       color={RESPON_COLORS[wo.statusRespon] || 'default'}
-                                      sx={{ ...STATUS_CHIP_SX, maxWidth: '100%', '& .MuiChip-label': { px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
+                                      sx={FULL_CHIP_SX}
                                     />
                                   </Tooltip>
                                 ) : (
@@ -1286,7 +1307,7 @@ export default function WorkOrderManagement() {
                                     variant='outlined'
                                     color='warning'
                                     startIcon={<InfoOutlined sx={{ fontSize: '12px !important' }} />}
-                                    sx={{ fontSize: 10, py: 0.25, px: 0.75, minHeight: 0, lineHeight: 1.4 }}
+                                    sx={RESPON_BTN_SX}
                                     onClick={() => { setSelectedWO(wo); setDlgAlasan(wo.alasanPenolakan); }}
                                   >
                                     Lihat Alasan
@@ -1297,7 +1318,7 @@ export default function WorkOrderManagement() {
                                     size='small'
                                     variant='contained'
                                     color='warning'
-                                    sx={{ fontSize: 10, py: 0.25, px: 0.75, minHeight: 0, lineHeight: 1.4 }}
+                                    sx={RESPON_BTN_SX}
                                     onClick={() => { setSelectedWO(wo); openAction('penolakan', true); }}
                                   >
                                     Review Penolakan
@@ -1309,7 +1330,7 @@ export default function WorkOrderManagement() {
                                     variant='contained'
                                     color='info'
                                     startIcon={<Person sx={{ fontSize: '12px !important' }} />}
-                                    sx={{ fontSize: 10, py: 0.25, px: 0.75, minHeight: 0, lineHeight: 1.4 }}
+                                    sx={RESPON_BTN_SX}
                                     onClick={() => { setSelectedWO(wo); openBuatPengganti(); }}
                                   >
                                     Re-assign
