@@ -546,9 +546,9 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           mb: 0.25,
           justifyContent: collapsed ? 'center' : 'flex-start',
           backgroundColor: isActive
-            ? '#ffffff'
+            ? 'rgba(8, 28, 61, 0.09)'
             : isChildActive
-            ? 'rgba(8, 28, 61, 0.06)'
+            ? 'rgba(8, 28, 61, 0.045)'
             : 'transparent',
           // Item aktif: latar putih + teks navy (revert)
           color: isActive ? '#081c3d' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.78)',
@@ -567,7 +567,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               }
             : undefined,
           '&:hover': {
-            backgroundColor: isActive ? '#ffffff' : 'rgba(8, 28, 61, 0.08)',
+            backgroundColor: isActive ? 'rgba(8, 28, 61, 0.12)' : 'rgba(8, 28, 61, 0.06)',
             color: '#081c3d',
           },
         }}
@@ -688,7 +688,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           border: 'none',
-          backgroundColor: '#c3cfe6',
+          backgroundColor: '#ffffff',
           color: '#081c3d',
           overflowX: 'hidden',
           transition:
@@ -704,8 +704,8 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 height: 'auto',
                 width: drawerWidth - 26,
                 borderRadius: '18px',
-                border: '1px solid rgba(8, 28, 61, 0.08)',
-                boxShadow: '0 12px 32px rgba(8, 28, 61, 0.16)',
+                border: '1px solid rgba(8, 28, 61, 0.05)',
+                boxShadow: '0 10px 34px rgba(8, 28, 61, 0.12)',
               }),
           // Scrollbar tipis & auto-hide: transparan saat diam, muncul saat hover/scroll
           scrollbarWidth: 'thin',

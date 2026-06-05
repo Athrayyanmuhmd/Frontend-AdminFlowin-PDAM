@@ -147,10 +147,10 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
         right: 14,
         width: 'auto',
         borderRadius: '18px',
-        backgroundColor: '#c3cfe6',
+        backgroundColor: '#ffffff',
         color: 'text.primary',
-        border: '1px solid rgba(8, 28, 61, 0.08)',
-        boxShadow: '0 6px 20px rgba(8, 28, 61, 0.10)',
+        border: '1px solid rgba(8, 28, 61, 0.05)',
+        boxShadow: '0 6px 24px rgba(8, 28, 61, 0.10)',
       }}
     >
       <Toolbar>
