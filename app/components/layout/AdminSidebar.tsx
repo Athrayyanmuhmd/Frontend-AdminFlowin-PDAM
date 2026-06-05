@@ -550,7 +550,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             : isChildActive
             ? 'rgba(255, 255, 255, 0.04)'
             : 'transparent',
-          color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.66)',
+          color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.9)',
           transition: 'background-color 0.2s ease, color 0.2s ease',
           '&::before': isActive
             ? {
@@ -573,7 +573,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       >
         <ListItemIcon
           sx={{
-            color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+            color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.82)',
             minWidth: collapsed ? 0 : 36,
             justifyContent: 'center',
             transition: 'color 0.2s ease',
@@ -592,8 +592,8 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             primary={item.title}
             primaryTypographyProps={{
               fontSize: level > 0 ? '0.8125rem' : '0.9375rem',
-              fontWeight: isHighlighted ? 600 : 400,
-              color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.72)',
+              fontWeight: isHighlighted ? 600 : 500,
+              color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.92)',
             }}
           />
         )}
@@ -604,7 +604,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               alignItems: 'center',
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.45)',
+              color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.75)',
               ml: 0.5,
             }}
           >
@@ -740,7 +740,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                     fontWeight: 700,
                     letterSpacing: '0.09em',
                     textTransform: 'uppercase',
-                    color: 'rgba(255, 255, 255, 0.36)',
+                    color: 'rgba(255, 255, 255, 0.6)',
                   }}
                 >
                   {item.section}
