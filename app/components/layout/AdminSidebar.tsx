@@ -497,37 +497,46 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           <ListItemButton
             onClick={() => handleItemClick(item)}
             sx={{
-              pl: level === 0 ? 1.5 : 1.5,
+              position: 'relative',
+              pl: 1.5,
               pr: 1.5,
               py: 0.75,
               borderRadius: 2,
               mb: 0.25,
+              // Gaya "soft": item aktif = latar tint biru + teks biru (bukan solid)
               backgroundColor: isActive
-                ? 'primary.main'
+                ? 'rgba(1, 52, 148, 0.10)'
                 : isChildActive
-                ? 'rgba(1, 52, 148, 0.08)'
+                ? 'rgba(1, 52, 148, 0.06)'
                 : 'transparent',
-              color: isActive ? 'primary.contrastText' : 'inherit',
-              transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+              color: isActive ? 'primary.main' : 'inherit',
+              transition: 'background-color 0.2s ease',
+              // Garis aksen kiri pada item aktif (gaya Attex)
+              '&::before': isActive
+                ? {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 3,
+                    height: '62%',
+                    borderRadius: '0 4px 4px 0',
+                    backgroundColor: 'primary.main',
+                  }
+                : undefined,
               '&:hover': {
                 backgroundColor: isActive
-                  ? 'primary.dark'
+                  ? 'rgba(1, 52, 148, 0.16)'
                   : isChildActive
-                  ? 'rgba(1, 52, 148, 0.12)'
+                  ? 'rgba(1, 52, 148, 0.10)'
                   : 'action.hover',
               },
-              ...(isActive && {
-                boxShadow: '0 2px 8px rgba(1,52,148,0.25)',
-              }),
             }}
           >
             <ListItemIcon
               sx={{
-                color: isActive
-                  ? 'primary.contrastText'
-                  : isChildActive
-                  ? 'primary.main'
-                  : 'text.secondary',
+                color: isHighlighted ? 'primary.main' : 'text.secondary',
                 minWidth: 36,
                 transition: 'color 0.2s ease',
               }}
@@ -545,7 +554,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               primaryTypographyProps={{
                 fontSize: level > 0 ? '0.8125rem' : '0.9375rem',
                 fontWeight: isHighlighted ? 600 : 400,
-                color: isChildActive && !isActive ? 'primary.main' : 'inherit',
+                color: isHighlighted ? 'primary.main' : 'inherit',
               }}
             />
             {item.children && (
@@ -555,7 +564,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                   alignItems: 'center',
                   transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  color: isActive ? 'primary.contrastText' : 'text.secondary',
+                  color: isHighlighted ? 'primary.main' : 'text.secondary',
                   ml: 0.5,
                 }}
               >
