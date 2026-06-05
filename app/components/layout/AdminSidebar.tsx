@@ -469,7 +469,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
 
   // Mini-rail: di desktop, saat "ditutup" sidebar mengecil jadi rel ikon (bukan hilang)
   const RAIL_W = 88;
-  const FULL_W = 304;
+  const FULL_W = 324;
   const collapsed = !open && !isMobile;
   const drawerWidth = isMobile ? FULL_W : open ? FULL_W : RAIL_W;
 
