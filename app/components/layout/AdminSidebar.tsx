@@ -551,7 +551,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             ? 'rgba(1, 52, 148, 0.045)'
             : 'transparent',
           // Item aktif: navy elegan + teks putih
-          color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.78)',
+          color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(0, 0, 0, 0.82)',
           transition: 'background-color 0.2s ease, color 0.2s ease',
           ...(isActive && { boxShadow: '0 6px 16px rgba(1, 52, 148, 0.28)' }),
           '&:hover': {
@@ -562,7 +562,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       >
         <ListItemIcon
           sx={{
-            color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.6)',
+            color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(0, 0, 0, 0.55)',
             minWidth: collapsed ? 0 : 34,
             justifyContent: 'center',
             transition: 'color 0.2s ease',
@@ -583,7 +583,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             primaryTypographyProps={{
               fontSize: level > 0 ? '0.8125rem' : '0.9rem',
               fontWeight: isActive ? 700 : isHighlighted ? 600 : 500,
-              color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.82)',
+              color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(0, 0, 0, 0.82)',
               lineHeight: 1.3,
             }}
           />
@@ -596,7 +596,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               flexShrink: 0,
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.6)',
+              color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(0, 0, 0, 0.55)',
             }}
           >
             <ExpandMore fontSize='small' />
@@ -737,7 +737,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               <IconButton
                 onClick={onToggle}
                 size='small'
-                sx={{ position: 'absolute', top: 6, right: 6, color: 'rgba(1, 52, 148, 0.55)' }}
+                sx={{ position: 'absolute', top: 6, right: 6, color: 'rgba(0, 0, 0, 0.5)' }}
               >
                 <ChevronLeft fontSize='small' />
               </IconButton>
@@ -771,7 +771,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                     fontWeight: 700,
                     letterSpacing: '0.09em',
                     textTransform: 'uppercase',
-                    color: 'rgba(1, 52, 148, 0.5)',
+                    color: 'rgba(0, 0, 0, 0.45)',
                   }}
                 >
                   {item.section}
