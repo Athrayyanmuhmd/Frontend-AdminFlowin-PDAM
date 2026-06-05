@@ -468,8 +468,8 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
     userRole === 'technician' ? technicianMenuItems : adminMenuItems;
 
   // Mini-rail: di desktop, saat "ditutup" sidebar mengecil jadi rel ikon (bukan hilang)
-  const RAIL_W = 76;
-  const FULL_W = 280;
+  const RAIL_W = 88;
+  const FULL_W = 288;
   const collapsed = !open && !isMobile;
   const drawerWidth = isMobile ? FULL_W : open ? FULL_W : RAIL_W;
 
@@ -665,13 +665,26 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         whiteSpace: 'nowrap',
         transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         '& .MuiDrawer-paper': {
-          width: drawerWidth,
           boxSizing: 'border-box',
-          borderRight: 'none',
+          border: 'none',
           backgroundColor: '#081c3d',
           color: '#fff',
           overflowX: 'hidden',
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition:
+            'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          // Sidebar "mengambang" (gaya Attex): jarak di semua sisi + sudut membulat
+          ...(isMobile
+            ? { width: drawerWidth }
+            : {
+                position: 'fixed',
+                top: '76px',
+                bottom: '14px',
+                left: '14px',
+                height: 'auto',
+                width: drawerWidth - 28,
+                borderRadius: '16px',
+                boxShadow: '0 12px 32px rgba(8, 28, 61, 0.28)',
+              }),
           // Scrollbar tipis di dalam sidebar
           '&::-webkit-scrollbar': { width: '6px' },
           '&::-webkit-scrollbar-thumb': {
@@ -682,7 +695,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         },
       }}
     >
-      <Toolbar />
+      {isMobile && <Toolbar />}
       <Box
         sx={{
           px: collapsed ? 1 : 2,
