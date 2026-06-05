@@ -469,7 +469,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
 
   // Mini-rail: di desktop, saat "ditutup" sidebar mengecil jadi rel ikon (bukan hilang)
   const RAIL_W = 88;
-  const FULL_W = 324;
+  const FULL_W = 342;
   const collapsed = !open && !isMobile;
   const drawerWidth = isMobile ? FULL_W : open ? FULL_W : RAIL_W;
 
@@ -546,35 +546,23 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           mb: 0.25,
           justifyContent: collapsed ? 'center' : 'flex-start',
           backgroundColor: isActive
-            ? 'rgba(8, 28, 61, 0.09)'
+            ? '#081c3d'
             : isChildActive
             ? 'rgba(8, 28, 61, 0.045)'
             : 'transparent',
-          // Item aktif: latar putih + teks navy (revert)
-          color: isActive ? '#081c3d' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.78)',
+          // Item aktif: navy elegan + teks putih
+          color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.78)',
           transition: 'background-color 0.2s ease, color 0.2s ease',
-          '&::before': isActive
-            ? {
-                content: '""',
-                position: 'absolute',
-                left: 0,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 3,
-                height: '62%',
-                borderRadius: '0 4px 4px 0',
-                backgroundColor: '#081c3d',
-              }
-            : undefined,
+          ...(isActive && { boxShadow: '0 6px 16px rgba(8, 28, 61, 0.28)' }),
           '&:hover': {
-            backgroundColor: isActive ? 'rgba(8, 28, 61, 0.12)' : 'rgba(8, 28, 61, 0.06)',
-            color: '#081c3d',
+            backgroundColor: isActive ? '#0c2647' : 'rgba(8, 28, 61, 0.06)',
+            color: isActive ? '#fff' : '#081c3d',
           },
         }}
       >
         <ListItemIcon
           sx={{
-            color: isActive ? '#081c3d' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.6)',
+            color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.6)',
             minWidth: collapsed ? 0 : 34,
             justifyContent: 'center',
             transition: 'color 0.2s ease',
@@ -595,7 +583,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             primaryTypographyProps={{
               fontSize: level > 0 ? '0.8125rem' : '0.9rem',
               fontWeight: isActive ? 700 : isHighlighted ? 600 : 500,
-              color: isActive ? '#081c3d' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.82)',
+              color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.82)',
               lineHeight: 1.3,
             }}
           />
@@ -608,7 +596,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               flexShrink: 0,
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              color: isActive ? '#081c3d' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.6)',
+              color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.6)',
             }}
           >
             <ExpandMore fontSize='small' />
@@ -702,7 +690,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 bottom: '14px',
                 left: '14px',
                 height: 'auto',
-                width: drawerWidth - 26,
+                width: drawerWidth - 22,
                 borderRadius: '18px',
                 border: '1px solid rgba(8, 28, 61, 0.05)',
                 boxShadow: '0 10px 34px rgba(8, 28, 61, 0.12)',
