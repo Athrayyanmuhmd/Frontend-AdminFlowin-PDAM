@@ -33,10 +33,24 @@ export default function Error({
           Terjadi Kesalahan
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {process.env.NODE_ENV === 'development'
-            ? error.message
-            : 'Halaman ini mengalami masalah. Silakan coba lagi.'}
+          Halaman ini mengalami masalah. Silakan coba lagi.
         </Typography>
+        {/* Detail error ditampilkan untuk membantu diagnosa (admin panel internal) */}
+        {error?.message && (
+          <Box
+            sx={{
+              mt: 1, p: 1.5, width: '100%', borderRadius: 2,
+              bgcolor: 'grey.100', border: '1px solid', borderColor: 'divider', textAlign: 'left',
+            }}
+          >
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'error.main', display: 'block', wordBreak: 'break-word' }}>
+              Detail: {error.message}
+            </Typography>
+            {error.digest && (
+              <Typography variant="caption" color="text.disabled">Kode: {error.digest}</Typography>
+            )}
+          </Box>
+        )}
         <Button variant="contained" onClick={reset}>
           Coba Lagi
         </Button>
