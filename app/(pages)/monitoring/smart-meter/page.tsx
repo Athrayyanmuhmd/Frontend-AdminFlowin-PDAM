@@ -53,23 +53,20 @@ import {
   LocalFireDepartment,
 } from '@mui/icons-material';
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  Legend,
   Area,
   AreaChart,
-  ComposedChart,
 } from 'recharts';
 import { useRouter } from 'next/navigation';
 import { useQuery, useLazyQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
+import DashboardStatCard from '../../../components/ui/DashboardStatCard';
+import { formatM3, formatToIDR } from '../../../utils/helper';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   GET_ALL_METERAN,
@@ -146,7 +143,7 @@ const formatBulanIndonesia = (dateStr: string) => {
   return `${bulan[parseInt(month)]} ${year}`;
 };
 
-const formatRupiah = (val: number) => `Rp ${(val || 0).toLocaleString('id-ID')}`;
+const formatRupiah = (val: number) => formatToIDR(val);
 
 export default function SmartMeterManagement() {
   const router = useRouter();
@@ -203,161 +200,72 @@ export default function SmartMeterManagement() {
       <Fade in timeout={400}>
         <Box>
           {/* ─── Header ─────────────────────────────────────────────────────── */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, flexWrap: 'wrap', gap: 2 }}>
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>Manajemen Meteran Pintar</Typography>
-                  <Chip
-                    icon={<WaterDrop />}
-                    label={`${meters.length} Meteran`}
-                    size="small"
-                    color="primary"
-                    variant="outlined"
-                  />
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  {formatTanggal(today)} · Monitoring pemakaian air real-time
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1}>
+          <PageHeader
+            title="Manajemen Meteran Pintar"
+            subtitle={`${formatTanggal(today)} · Monitoring pemakaian air real-time`}
+            actions={
+              <>
+                <Chip
+                  icon={<WaterDrop />}
+                  label={`${meters.length} Meteran`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
                 <Tooltip title="Segarkan Data">
                   <IconButton onClick={() => refetch()} sx={{ bgcolor: 'grey.100', '&:hover': { bgcolor: 'grey.200' } }}>
                     <Refresh />
                   </IconButton>
                 </Tooltip>
-              </Stack>
-            </Box>
-          </Box>
+              </>
+            }
+          />
 
           {/* ─── Stats Cards ────────────────────────────────────────────── */}
           <Grid container spacing={2.5} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(25, 118, 210, 0.3)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Total Meteran
-                      </Typography>
-                      <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {meters.length}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        {aktifMeters} aktif · {nonaktifMeters} nonaktif
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Speed sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="primary"
+                icon={<Speed />}
+                title="Total Meteran"
+                value={meters.length}
+                hideBadge
+                caption={`${aktifMeters} aktif · ${nonaktifMeters} nonaktif`}
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(76, 175, 80, 0.3)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Meteran Aktif
-                      </Typography>
-                      <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {aktifMeters}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        Sedang beroperasi
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <CheckCircle sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="success"
+                icon={<CheckCircle />}
+                title="Meteran Aktif"
+                value={aktifMeters}
+                trend="up"
+                status="good"
+                statusLabel="Beroperasi"
+                caption="Sedang beroperasi"
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #c62828 0%, #f44336 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(244, 67, 54, 0.3)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Meteran Nonaktif
-                      </Typography>
-                      <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {nonaktifMeters}
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        Perlu perhatian
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Error sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="error"
+                icon={<Error />}
+                title="Meteran Nonaktif"
+                value={nonaktifMeters}
+                trend={nonaktifMeters > 0 ? 'down' : 'flat'}
+                status={nonaktifMeters > 0 ? 'bad' : 'good'}
+                statusLabel={nonaktifMeters > 0 ? 'Perlu perhatian' : 'Aman'}
+                caption="Tidak beroperasi"
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #0288d1 0%, #03a9f4 100%)',
-                color: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(2, 136, 209, 0.3)',
-              }}>
-                <CardContent sx={{ py: 2.5, px: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        Total Pemakaian
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5 }}>
-                        {totalPemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 1 })} m³
-                      </Typography>
-                      <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                        Belum terbayar
-                      </Typography>
-                    </Box>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <WaterDrop sx={{ fontSize: 24 }} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+              <DashboardStatCard
+                color="info"
+                icon={<WaterDrop />}
+                title="Total Pemakaian"
+                value={formatM3(totalPemakaianBelumTerbayar, 1)}
+                hideBadge
+                caption="Belum terbayar"
+              />
             </Grid>
           </Grid>
 
@@ -395,15 +303,15 @@ export default function SmartMeterManagement() {
                 <Box sx={{ overflowX: 'auto' }}>
                   <Table sx={{ minWidth: 1000 }}>
                     <TableHead>
-                      <TableRow sx={{ bgcolor: 'primary.main' }}>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5, pl: 3, width: 50 }}>#</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>No. Meteran</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>Pelanggan</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>Kelompok Tarif</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }}>Lokasi</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }} align="center">Status</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }} align="right">Belum Bayar</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 600, py: 1.5 }} align="center">Aksi</TableCell>
+                      <TableRow>
+                        <TableCell sx={{ pl: 3, width: 50 }}>#</TableCell>
+                        <TableCell>No. Meteran</TableCell>
+                        <TableCell>Pelanggan</TableCell>
+                        <TableCell>Kelompok Tarif</TableCell>
+                        <TableCell>Lokasi</TableCell>
+                        <TableCell align="center">Status</TableCell>
+                        <TableCell align="right">Belum Bayar</TableCell>
+                        <TableCell align="center">Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -459,7 +367,7 @@ export default function SmartMeterManagement() {
                                 fontWeight={600}
                                 color={meter.pemakaianBelumTerbayar > 20 ? 'error.main' : 'text.primary'}
                               >
-                                {meter.pemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
+                                {formatM3(meter.pemakaianBelumTerbayar)}
                               </Typography>
                             </TableCell>
                             <TableCell align="center">
@@ -870,17 +778,25 @@ export default function SmartMeterManagement() {
                           </Box>
                         ) : (
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={monitoringData.chartHarian.map((d: any) => ({
+                            <AreaChart data={monitoringData.chartHarian.map((d: any) => ({
                               tanggal: formatTanggalPendek(d.tanggal),
                               tanggalLengkap: d.tanggal,
                               liter: d.liter,
                               m3: +(d.liter / 1000).toFixed(3),
-                            }))} margin={{ top: 10, right: 20, left: 20, bottom: 20 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                              <XAxis dataKey="tanggal" tick={{ fontSize: 10 }} interval={0} />
-                              <YAxis tickFormatter={(v: number) => `${v}L`} tick={{ fontSize: 10 }} />
+                            }))} margin={{ top: 10, right: 16, left: 0, bottom: 16 }}>
+                              <defs>
+                                <linearGradient id="colorHarian" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#0288d1" stopOpacity={0.28} />
+                                  <stop offset="95%" stopColor="#0288d1" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" vertical={false} />
+                              <XAxis dataKey="tanggal" tick={{ fontSize: 10, fill: '#697a8d' }} interval="preserveStartEnd" minTickGap={12} axisLine={false} tickLine={false} dy={6} />
+                              <YAxis tickFormatter={(v: number) => `${v}L`} tick={{ fontSize: 10, fill: '#697a8d' }} axisLine={false} tickLine={false} width={46} />
                               <RechartsTooltip
-                                formatter={(value: number, name: string) => [
+                                cursor={{ stroke: '#0288d1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 12 }}
+                                formatter={(value: number) => [
                                   `${value.toLocaleString('id-ID')} L (${(value / 1000).toFixed(3)} m³)`,
                                   'Pemakaian',
                                 ]}
@@ -889,8 +805,8 @@ export default function SmartMeterManagement() {
                                   return item ? item.tanggal : label;
                                 }}
                               />
-                              <Bar dataKey="liter" fill="#0288d1" name="Pemakaian (L)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                            </BarChart>
+                              <Area type="monotone" dataKey="liter" stroke="#0288d1" strokeWidth={2.5} fill="url(#colorHarian)" dot={{ r: 2.5, fill: '#fff', stroke: '#0288d1', strokeWidth: 2 }} activeDot={{ r: 6 }} name="Pemakaian (L)" />
+                            </AreaChart>
                           </ResponsiveContainer>
                         )}
                       </Box>
@@ -921,18 +837,22 @@ export default function SmartMeterManagement() {
                           </Box>
                         ) : (
                           <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={bulananData?.getRiwayatPenggunaanBulanan || []}>
+                            <AreaChart data={bulananData?.getRiwayatPenggunaanBulanan || []} margin={{ top: 10, right: 12, left: 0, bottom: 6 }}>
                               <defs>
                                 <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#4caf50" stopOpacity={0.3}/>
-                                  <stop offset="95%" stopColor="#4caf50" stopOpacity={0}/>
+                                  <stop offset="5%" stopColor="#2e7d32" stopOpacity={0.28}/>
+                                  <stop offset="95%" stopColor="#2e7d32" stopOpacity={0}/>
                                 </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                              <XAxis dataKey="bulan" tick={{ fontSize: 9 }} />
-                              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                              <RechartsTooltip formatter={(v: number) => [`${v.toLocaleString('id-ID')} m³`, 'Pemakaian']} />
-                              <Area type="monotone" dataKey="totalPemakaian" stroke="#4caf50" strokeWidth={2} fill="url(#colorTotal)" name="Total (m³)" />
+                              <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" vertical={false} />
+                              <XAxis dataKey="bulan" tick={{ fontSize: 9, fill: '#697a8d' }} axisLine={false} tickLine={false} dy={4} />
+                              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#697a8d' }} axisLine={false} tickLine={false} width={32} />
+                              <RechartsTooltip
+                                cursor={{ stroke: '#2e7d32', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 12 }}
+                                formatter={(v: number) => [`${v.toLocaleString('id-ID')} m³`, 'Pemakaian']}
+                              />
+                              <Area type="monotone" dataKey="totalPemakaian" stroke="#2e7d32" strokeWidth={2.5} fill="url(#colorTotal)" dot={{ r: 2.5, fill: '#fff', stroke: '#2e7d32', strokeWidth: 2 }} activeDot={{ r: 6 }} name="Total (m³)" />
                             </AreaChart>
                           </ResponsiveContainer>
                         )}
