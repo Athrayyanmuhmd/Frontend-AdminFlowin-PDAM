@@ -713,6 +713,7 @@ export default function BillingManagement() {
                           label={getStatusLabel(bill.StatusPembayaran)}
                           size="small"
                           color={getStatusColor(bill.StatusPembayaran) as any}
+                          sx={{ minWidth: 104, justifyContent: 'center' }}
                         />
                       </Box>
                     </TableCell>
