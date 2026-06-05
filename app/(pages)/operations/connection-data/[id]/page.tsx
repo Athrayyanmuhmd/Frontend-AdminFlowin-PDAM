@@ -655,7 +655,7 @@ export default function ConnectionDataDetailPage() {
         )}
 
         {/* ─── PROGRES (kiri) + DOKUMEN (kanan) — 2 kolom ───────────────────── */}
-        <Grid container spacing={3} sx={{ mb: 3, alignItems: 'flex-start' }}>
+        <Grid container spacing={3} sx={{ mb: 3, alignItems: 'stretch' }}>
           <Grid item xs={12} md={7}>
         <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
           <CardContent>
@@ -1442,7 +1442,7 @@ export default function ConnectionDataDetailPage() {
 
           {/* ─── DOKUMEN + INFO PELANGGAN/PROPERTI (kolom kanan) ─── */}
           <Grid item xs={12} md={5}>
-            <Stack spacing={3}>
+            <Stack spacing={3} sx={{ height: '100%' }}>
             <Card sx={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
               <CardContent>
                 <SectionTitle icon={<Description />} title="Dokumen Pengajuan" />
