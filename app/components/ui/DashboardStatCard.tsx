@@ -88,6 +88,7 @@ export default function DashboardStatCard({
         p: 2.5,
         display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'center',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
         '&:hover': {
           transform: 'translateY(-3px)',
@@ -95,7 +96,8 @@ export default function DashboardStatCard({
         },
       }}
     >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
+        {/* Kiri: judul, angka, badge perubahan (gaya widget Attex) */}
         <Box sx={{ minWidth: 0 }}>
           <Typography
             variant="body2"
@@ -105,87 +107,87 @@ export default function DashboardStatCard({
           </Typography>
           <Typography
             variant="h4"
-            sx={{ fontWeight: 700, mt: 0.75, lineHeight: 1.1, fontSize: { xs: '1.6rem', sm: '2rem' } }}
+            sx={{ fontWeight: 700, mt: 0.5, lineHeight: 1.1, fontSize: { xs: '1.5rem', sm: '1.9rem' } }}
           >
             {value}
           </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            width: 56,
-            height: 56,
-            flexShrink: 0,
-            borderRadius: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: (t) => alpha(t.palette[color].main, 0.12),
-            color: (t) => t.palette[color].main,
-            '& svg': { fontSize: 28 },
-          }}
-        >
-          {icon}
-        </Box>
-      </Box>
-
-      <Box sx={{ mt: 'auto', pt: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        {!hideBadge && (
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.5,
-              px: 1,
-              py: 0.25,
-              borderRadius: 1.5,
-              bgcolor: (t) => alpha(t.palette[statusColorKey].main, 0.14),
-              color: (t) => t.palette[statusColorKey].main,
-              '& svg': { fontSize: 16 },
-            }}
-          >
-            <TrendIcon />
-            <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1 }}>
-              {statusLabel ?? (status === 'warning' ? 'Perlu perhatian' : 'Normal')}
+          <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            {!hideBadge && (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1.5,
+                  bgcolor: (t) => alpha(t.palette[statusColorKey].main, 0.14),
+                  color: (t) => t.palette[statusColorKey].main,
+                  '& svg': { fontSize: 16 },
+                }}
+              >
+                <TrendIcon />
+                <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                  {statusLabel ?? (status === 'warning' ? 'Perlu perhatian' : 'Normal')}
+                </Typography>
+              </Box>
+            )}
+            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+              {caption}
             </Typography>
           </Box>
-        )}
-        <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-          {caption}
-        </Typography>
-      </Box>
-
-      {hasSpark && (
-        <Box sx={{ mt: 1.5, mx: -2.5, mb: -2.5, height: 46 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            {sparklineType === 'bar' ? (
-              <BarChart data={sparkData} margin={{ top: 6, right: 6, left: 6, bottom: 0 }} barCategoryGap="22%">
-                <YAxis hide domain={barDomain} />
-                <Bar dataKey="v" fill={alpha(mainColor, 0.75)} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-              </BarChart>
-            ) : (
-              <AreaChart data={sparkData} margin={{ top: 6, right: 4, left: 4, bottom: 4 }}>
-                <defs>
-                  <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={mainColor} stopOpacity={0.22} />
-                    <stop offset="100%" stopColor={mainColor} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <YAxis hide domain={lineDomain} />
-                <Area
-                  type="monotone"
-                  dataKey="v"
-                  stroke={mainColor}
-                  strokeWidth={2.25}
-                  fill={`url(#${gradId})`}
-                  dot={{ r: 2, fill: '#fff', stroke: mainColor, strokeWidth: 1.5 }}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            )}
-          </ResponsiveContainer>
         </Box>
-      )}
+
+        {/* Kanan: mini-chart (gaya Attex) — atau ikon jika tidak ada data chart */}
+        {hasSpark ? (
+          <Box sx={{ width: '42%', maxWidth: 165, minWidth: 84, height: 56, flexShrink: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              {sparklineType === 'bar' ? (
+                <BarChart data={sparkData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }} barCategoryGap="16%">
+                  <YAxis hide domain={barDomain} />
+                  <Bar dataKey="v" fill={mainColor} radius={[2, 2, 0, 0]} isAnimationActive={false} />
+                </BarChart>
+              ) : (
+                <AreaChart data={sparkData} margin={{ top: 4, right: 2, left: 2, bottom: 2 }}>
+                  <defs>
+                    <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={mainColor} stopOpacity={0.12} />
+                      <stop offset="100%" stopColor={mainColor} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <YAxis hide domain={lineDomain} />
+                  <Area
+                    type="monotone"
+                    dataKey="v"
+                    stroke={mainColor}
+                    strokeWidth={2}
+                    fill={`url(#${gradId})`}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              )}
+            </ResponsiveContainer>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              flexShrink: 0,
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: (t) => alpha(t.palette[color].main, 0.12),
+              color: (t) => t.palette[color].main,
+              '& svg': { fontSize: 28 },
+            }}
+          >
+            {icon}
+          </Box>
+        )}
+      </Box>
     </Card>
   );
 }
