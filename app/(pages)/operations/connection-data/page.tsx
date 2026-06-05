@@ -172,7 +172,7 @@ export default function ConnectionDataManagement() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      <Box>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Box>

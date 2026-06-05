@@ -615,7 +615,7 @@ export default function ConnectionDataDetailPage() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      <Box>
 
         {/* Header Card */}
         <Card sx={{

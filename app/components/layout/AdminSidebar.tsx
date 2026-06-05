@@ -546,11 +546,12 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           mb: 0.25,
           justifyContent: collapsed ? 'center' : 'flex-start',
           backgroundColor: isActive
-            ? 'rgba(255, 255, 255, 0.09)'
+            ? '#ffffff'
             : isChildActive
-            ? 'rgba(255, 255, 255, 0.04)'
+            ? 'rgba(255, 255, 255, 0.06)'
             : 'transparent',
-          color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.9)',
+          // Item aktif: latar putih + teks navy (revert)
+          color: isActive ? '#081c3d' : isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.9)',
           transition: 'background-color 0.2s ease, color 0.2s ease',
           '&::before': isActive
             ? {
@@ -566,14 +567,14 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               }
             : undefined,
           '&:hover': {
-            backgroundColor: isActive ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.06)',
-            color: '#fff',
+            backgroundColor: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.08)',
+            color: isActive ? '#081c3d' : '#fff',
           },
         }}
       >
         <ListItemIcon
           sx={{
-            color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.82)',
+            color: isActive ? '#081c3d' : isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.82)',
             minWidth: collapsed ? 0 : 34,
             justifyContent: 'center',
             transition: 'color 0.2s ease',
@@ -593,8 +594,8 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             sx={{ minWidth: 0, my: 0, pr: item.children ? 0.5 : 0 }}
             primaryTypographyProps={{
               fontSize: level > 0 ? '0.8125rem' : '0.9rem',
-              fontWeight: isHighlighted ? 600 : 500,
-              color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.92)',
+              fontWeight: isActive ? 700 : isHighlighted ? 600 : 500,
+              color: isActive ? '#081c3d' : isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.92)',
               lineHeight: 1.3,
             }}
           />
@@ -607,7 +608,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               flexShrink: 0,
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.75)',
+              color: isActive ? '#081c3d' : isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.75)',
             }}
           >
             <ExpandMore fontSize='small' />
@@ -628,6 +629,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           )}
         </ListItem>
 
+        {/* Submenu saat sidebar TERBUKA: collapse penuh */}
         {item.children && !collapsed && (
           <Collapse
             in={isExpanded}
@@ -649,6 +651,23 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               </List>
             </Box>
           </Collapse>
+        )}
+
+        {/* Submenu saat sidebar DITUTUP (mini-rail): tampilkan ikon anak untuk grup yang sedang aktif */}
+        {item.children && collapsed && isChildActive && (
+          <Box
+            sx={{
+              mx: 0.5,
+              my: 0.5,
+              py: 0.5,
+              borderRadius: 2,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            }}
+          >
+            <List component='div' disablePadding>
+              {item.children.map(child => renderMenuItem(child, level + 1))}
+            </List>
+          </Box>
         )}
       </React.Fragment>
     );
