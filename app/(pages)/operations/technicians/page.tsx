@@ -381,7 +381,7 @@ export default function TechnicianManagement() {
   if (userRole !== 'admin') {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity='error'>
             Akses ditolak. Hanya admin yang dapat mengelola teknisi.
           </Alert>
@@ -392,7 +392,7 @@ export default function TechnicianManagement() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3 }}>
+      <Box>
         {/* Header */}
         <PageHeader
           title="Manajemen Teknisi"

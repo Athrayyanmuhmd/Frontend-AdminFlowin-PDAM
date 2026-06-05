@@ -46,7 +46,7 @@ export default async function PengawasanSetelahPemasanganDetailPage({ params }: 
   const urlGambar: string[] = progres?.urlGambar ?? [];
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <Breadcrumbs separator={<NavigateNextIcon fontSize='small' />} sx={{ mb: 2 }}>
         <Typography variant='body2' color='text.secondary'>Operasi</Typography>
         <MuiLink component={Link} href='/operations/pengawasan-setelah-pemasangan' variant='body2' underline='hover' color='inherit'>

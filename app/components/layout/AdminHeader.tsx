@@ -157,22 +157,7 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
           <MenuIcon />
         </IconButton>
 
-        {/* Brand di paling kiri (gaya Attex) */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1, minWidth: 0 }}>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.15, color: 'text.primary' }} noWrap>
-              {user?.role === 'technician' ? 'Flowin Teknisi' : 'Flowin Admin'}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }} noWrap>
-              PDAM Tirta Daroy
-            </Typography>
-          </Box>
-          <Chip
-            label={user?.role === 'technician' ? 'Teknisi' : 'Administrator'}
-            size="small"
-            sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: '#081c3d', color: '#fff', fontWeight: 600 }}
-          />
-        </Box>
+        <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {/* Fullscreen */}

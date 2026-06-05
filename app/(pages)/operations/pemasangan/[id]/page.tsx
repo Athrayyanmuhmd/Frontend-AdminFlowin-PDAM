@@ -49,7 +49,7 @@ export default async function PemasanganDetailPage({ params }: { params: Promise
   ].filter(p => p.url);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <Button component={Link} href='/operations/pemasangan' startIcon={<ArrowBack />} variant='text' size='small'>
           Kembali

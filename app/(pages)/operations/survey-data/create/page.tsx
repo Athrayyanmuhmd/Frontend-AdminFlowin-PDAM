@@ -191,7 +191,7 @@ function CreateSurveyDataInner() {
   if (!connectionId) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity='error'>Connection ID tidak ditemukan</Alert>
           <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>
             Kembali
@@ -214,7 +214,7 @@ function CreateSurveyDataInner() {
   if (queryError || !connectionData) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity='error'>{queryError?.message || 'Data tidak ditemukan'}</Alert>
           <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>
             Kembali
@@ -228,7 +228,7 @@ function CreateSurveyDataInner() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3 }}>
+      <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <IconButton onClick={() => router.back()} sx={{ mr: 2 }}>
             <ArrowBack />

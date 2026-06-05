@@ -398,7 +398,7 @@ export default function LaporanPage() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3 }}>
+      <Box>
         {/* Header */}
         <Box
           sx={{

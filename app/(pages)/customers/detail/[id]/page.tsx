@@ -235,7 +235,7 @@ export default function CustomerDetailPage() {
   if (loading || loadingMeteran) {
     return (
       <AdminLayout title='Detail Pelanggan'>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <DetailSkeleton sections={[{ md: 4, rows: 6 }, { md: 8, rows: 7 }]} />
         </Box>
       </AdminLayout>

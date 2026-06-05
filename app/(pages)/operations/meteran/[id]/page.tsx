@@ -130,7 +130,7 @@ export default function MeteranDetail() {
   if (loading) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <DetailSkeleton sections={[{ md: 6, rows: 7 }, { md: 6, rows: 5 }, { md: 6, rows: 4 }, { md: 6, rows: 3 }]} />
         </Box>
       </AdminLayout>
@@ -140,7 +140,7 @@ export default function MeteranDetail() {
   if (error || !meteran) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <ErrorWithRetry
             message='Gagal memuat data meteran.'
             detail={error}
@@ -162,7 +162,7 @@ export default function MeteranDetail() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3 }}>
+      <Box>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <IconButton onClick={() => router.back()} sx={{ mr: 2 }}>

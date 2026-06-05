@@ -134,7 +134,7 @@ export default function PemutusanPage() {
 
   return (
     <AdminLayout>
-    <Box sx={{ p: 3 }}>
+    <Box>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={2} mb={3}>
         <PersonOffIcon color="error" sx={{ fontSize: 32 }} />

@@ -116,7 +116,7 @@ function CreateMeteranInner() {
   if (!connectionId) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity='error'>Connection ID tidak ditemukan</Alert>
           <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>Kembali</Button>
         </Box>
@@ -137,7 +137,7 @@ function CreateMeteranInner() {
   if (connError || !connectionData) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity='error'>{connError?.message || 'Data koneksi tidak ditemukan'}</Alert>
           <Button startIcon={<ArrowBack />} onClick={() => router.back()} sx={{ mt: 2 }}>Kembali</Button>
         </Box>
@@ -149,7 +149,7 @@ function CreateMeteranInner() {
 
   return (
     <AdminLayout>
-      <Box sx={{ p: 3 }}>
+      <Box>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <IconButton onClick={() => router.back()} sx={{ mr: 2 }}>

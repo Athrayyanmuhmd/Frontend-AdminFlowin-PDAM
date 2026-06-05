@@ -166,7 +166,7 @@ export default function PaymentsPage() {
   if (graphqlError) {
     return (
       <AdminLayout title="Manajemen Pembayaran">
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity="error" sx={{ mb: 2 }}>
             Gagal memuat data pembayaran: {graphqlError.message}
           </Alert>

@@ -549,7 +549,7 @@ export default function ConnectionDataDetailPage() {
   if (error) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity="error">Error: {error.message}</Alert>
           <Button sx={{ mt: 2 }} onClick={() => router.back()}>Kembali</Button>
         </Box>
@@ -559,7 +559,7 @@ export default function ConnectionDataDetailPage() {
   if (!data) {
     return (
       <AdminLayout>
-        <Box sx={{ p: 3 }}>
+        <Box>
           <Alert severity="warning">Data sambungan tidak ditemukan.</Alert>
           <Button sx={{ mt: 2 }} onClick={() => router.back()}>Kembali</Button>
         </Box>

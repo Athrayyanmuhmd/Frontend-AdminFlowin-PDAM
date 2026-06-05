@@ -15,6 +15,7 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Chip,
   Toolbar,
   Badge,
 } from '@mui/material';
@@ -706,19 +707,46 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       {isMobile && <Toolbar />}
       <Box
         sx={{
-          px: 1,
-          py: 1,
+          position: 'relative',
+          px: collapsed ? 1 : 2,
+          py: collapsed ? 1 : 2.5,
           display: 'flex',
-          justifyContent: collapsed ? 'center' : 'flex-end',
+          flexDirection: 'column',
+          alignItems: 'center',
           borderBottom: '1px solid',
           borderColor: 'rgba(255, 255, 255, 0.10)',
         }}
       >
-        <Tooltip title={collapsed ? 'Buka menu' : 'Tutup menu'} placement='right' arrow>
-          <IconButton onClick={onToggle} size='small' sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>
-            {collapsed ? <MenuIcon /> : <ChevronLeft />}
-          </IconButton>
-        </Tooltip>
+        {collapsed ? (
+          <Tooltip title='Buka menu' placement='right' arrow>
+            <IconButton onClick={onToggle} size='small' sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
+        ) : (
+          <>
+            <Tooltip title='Tutup menu' placement='right' arrow>
+              <IconButton
+                onClick={onToggle}
+                size='small'
+                sx={{ position: 'absolute', top: 6, right: 6, color: 'rgba(255, 255, 255, 0.6)' }}
+              >
+                <ChevronLeft fontSize='small' />
+              </IconButton>
+            </Tooltip>
+            <Typography variant='h6' sx={{ fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>
+              {userRole === 'technician' ? 'Flowin Teknisi' : 'Flowin Admin'}
+            </Typography>
+            <Typography variant='body2' sx={{ color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center' }}>
+              PDAM Tirta Daroy
+            </Typography>
+            <Chip
+              label={userRole === 'technician' ? 'Teknisi' : 'Administrator'}
+              size='small'
+              sx={{ mt: 1, bgcolor: 'rgba(255, 255, 255, 0.16)', color: '#fff', fontWeight: 600 }}
+            />
+          </>
+        )}
       </Box>
 
       <List sx={{ flexGrow: 1, pt: 1 }}>
