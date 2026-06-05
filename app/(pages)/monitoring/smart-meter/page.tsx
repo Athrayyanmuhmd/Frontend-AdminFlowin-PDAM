@@ -262,7 +262,7 @@ export default function SmartMeterManagement() {
                 color="info"
                 icon={<WaterDrop />}
                 title="Total Pemakaian"
-                value={formatM3(totalPemakaianBelumTerbayar, 1)}
+                value={formatM3(totalPemakaianBelumTerbayar)}
                 hideBadge
                 caption="Belum terbayar"
               />
@@ -515,230 +515,109 @@ export default function SmartMeterManagement() {
                 {/* Stats Row 1: Usage & Comparison */}
                 <Grid container spacing={2.5} sx={{ mb: 3 }}>
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{
-                      background: 'linear-gradient(135deg, #0288d1 0%, #03a9f4 100%)',
-                      color: 'white',
-                      borderRadius: 2,
-                      boxShadow: '0 4px 20px rgba(2, 136, 209, 0.25)',
-                    }}>
-                      <CardContent sx={{ py: 2.5, px: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Box>
-                            <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                              Pemakaian Bulan Ini
-                            </Typography>
-                            <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5 }}>
-                              {(monitoringData.bulanIni.totalPenggunaan / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
-                            </Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                              {monitoringData.bulanIni.periode}
-                            </Typography>
-                          </Box>
-                          <Box sx={{
-                            width: 48, height: 48, borderRadius: 2,
-                            bgcolor: 'rgba(255,255,255,0.15)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
-                            <WaterDrop sx={{ fontSize: 24 }} />
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                    <DashboardStatCard
+                      color="info"
+                      icon={<WaterDrop />}
+                      title="Pemakaian Bulan Ini"
+                      value={formatM3(monitoringData.bulanIni.totalPenggunaan / 1000)}
+                      hideBadge
+                      caption={monitoringData.bulanIni.periode}
+                    />
                   </Grid>
 
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{
-                      background: monitoringData.perbandingan?.status === 'naik'
-                        ? 'linear-gradient(135deg, #c62828 0%, #f44336 100%)'
-                        : monitoringData.perbandingan?.status === 'turun'
-                        ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)'
-                        : 'linear-gradient(135deg, #616161 0%, #9e9e9e 100%)',
-                      color: 'white',
-                      borderRadius: 2,
-                      boxShadow: monitoringData.perbandingan?.status === 'naik'
-                        ? '0 4px 20px rgba(244, 67, 54, 0.25)'
-                        : monitoringData.perbandingan?.status === 'turun'
-                        ? '0 4px 20px rgba(76, 175, 80, 0.25)'
-                        : '0 4px 20px rgba(158, 158, 158, 0.25)',
-                    }}>
-                      <CardContent sx={{ py: 2.5, px: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Box>
-                            <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                              vs Bulan Lalu
-                            </Typography>
-                            {monitoringData.perbandingan ? (
-                              <>
-                                <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  {monitoringData.perbandingan.status === 'naik' ? <TrendingUp sx={{ fontSize: 20 }} /> :
-                                   monitoringData.perbandingan.status === 'turun' ? <TrendingDown sx={{ fontSize: 20 }} /> : null}
-                                  {monitoringData.perbandingan.status === 'naik' ? '+' : monitoringData.perbandingan.status === 'turun' ? '-' : ''}
-                                  {monitoringData.perbandingan.persentase.toFixed(1)}%
-                                </Typography>
-                                <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                                  Bulan lalu: {(monitoringData.perbandingan.bulanLalu / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
-                                </Typography>
-                              </>
-                            ) : (
-                              <>
-                                <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>N/A</Typography>
-                                <Typography variant="caption" sx={{ opacity: 0.75 }}>Data bulan lalu belum ada</Typography>
-                              </>
-                            )}
-                          </Box>
-                          <Box sx={{
-                            width: 48, height: 48, borderRadius: 2,
-                            bgcolor: 'rgba(255,255,255,0.15)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
-                            {monitoringData.perbandingan?.status === 'naik' ? <TrendingUp sx={{ fontSize: 24 }} /> :
-                             monitoringData.perbandingan?.status === 'turun' ? <TrendingDown sx={{ fontSize: 24 }} /> : <ShowChart sx={{ fontSize: 24 }} />}
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                    {monitoringData.perbandingan ? (
+                      <DashboardStatCard
+                        color={monitoringData.perbandingan.status === 'naik' ? 'error' : monitoringData.perbandingan.status === 'turun' ? 'success' : 'info'}
+                        icon={monitoringData.perbandingan.status === 'turun' ? <TrendingDown /> : <TrendingUp />}
+                        title="vs Bulan Lalu"
+                        value={`${monitoringData.perbandingan.status === 'naik' ? '+' : monitoringData.perbandingan.status === 'turun' ? '-' : ''}${monitoringData.perbandingan.persentase.toFixed(1)}%`}
+                        trend={monitoringData.perbandingan.status === 'naik' ? 'up' : monitoringData.perbandingan.status === 'turun' ? 'down' : 'flat'}
+                        status={monitoringData.perbandingan.status === 'naik' ? 'bad' : monitoringData.perbandingan.status === 'turun' ? 'good' : 'neutral'}
+                        statusLabel={monitoringData.perbandingan.status === 'naik' ? 'Naik' : monitoringData.perbandingan.status === 'turun' ? 'Turun' : 'Tetap'}
+                        caption={`Bulan lalu: ${formatM3(monitoringData.perbandingan.bulanLalu / 1000)}`}
+                      />
+                    ) : (
+                      <DashboardStatCard
+                        color="info"
+                        icon={<ShowChart />}
+                        title="vs Bulan Lalu"
+                        value="N/A"
+                        hideBadge
+                        caption="Data bulan lalu belum ada"
+                      />
+                    )}
                   </Grid>
 
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{
-                      background: 'linear-gradient(135deg, #f57c00 0%, #ff9800 100%)',
-                      color: 'white',
-                      borderRadius: 2,
-                      boxShadow: '0 4px 20px rgba(245, 124, 0, 0.25)',
-                    }}>
-                      <CardContent sx={{ py: 2.5, px: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Box>
-                            <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                              Prediksi Akhir Bulan
-                            </Typography>
-                            <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5 }}>
-                              {(monitoringData.prediksi.prediksiAkhirBulan / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³
-                            </Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                              {(monitoringData.prediksi.rataRataHarian / 1000).toFixed(3)} m³/hari · {monitoringData.prediksi.hariTersisa} hari tersisa
-                            </Typography>
-                          </Box>
-                          <Box sx={{
-                            width: 48, height: 48, borderRadius: 2,
-                            bgcolor: 'rgba(255,255,255,0.15)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
-                            <Speed sx={{ fontSize: 24 }} />
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                    <DashboardStatCard
+                      color="warning"
+                      icon={<Speed />}
+                      title="Prediksi Akhir Bulan"
+                      value={formatM3(monitoringData.prediksi.prediksiAkhirBulan / 1000)}
+                      hideBadge
+                      caption={`${(monitoringData.prediksi.rataRataHarian / 1000).toFixed(2)} m³/hari · ${monitoringData.prediksi.hariTersisa} hari tersisa`}
+                    />
                   </Grid>
 
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{
-                      background: monitoringData.evaluasi.kategori === 'Hemat'
-                        ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)'
-                        : monitoringData.evaluasi.kategori === 'Normal'
-                        ? 'linear-gradient(135deg, #0288d1 0%, #03a9f4 100%)'
-                        : 'linear-gradient(135deg, #c62828 0%, #f44336 100%)',
-                      color: 'white',
-                      borderRadius: 2,
-                      boxShadow: monitoringData.evaluasi.kategori === 'Hemat'
-                        ? '0 4px 20px rgba(76, 175, 80, 0.25)'
-                        : monitoringData.evaluasi.kategori === 'Normal'
-                        ? '0 4px 20px rgba(2, 136, 209, 0.25)'
-                        : '0 4px 20px rgba(244, 67, 54, 0.25)',
-                    }}>
-                      <CardContent sx={{ py: 2.5, px: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <Box>
-                            <Typography variant="caption" sx={{ opacity: 0.85, textTransform: 'uppercase', letterSpacing: 1 }}>
-                              Kategori Pemakaian
-                            </Typography>
-                            <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.5 }}>
-                              {monitoringData.evaluasi.kategori}
-                            </Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                              {monitoringData.evaluasi.deskripsi}
-                            </Typography>
-                          </Box>
-                          <Box sx={{
-                            width: 48, height: 48, borderRadius: 2,
-                            bgcolor: 'rgba(255,255,255,0.15)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                          }}>
-                            {monitoringData.evaluasi.kategori === 'Hemat' ? <CheckCircle sx={{ fontSize: 24 }} /> :
-                             monitoringData.evaluasi.kategori === 'Normal' ? <MonitorHeart sx={{ fontSize: 24 }} /> : <LocalFireDepartment sx={{ fontSize: 24 }} />}
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                    <DashboardStatCard
+                      color={monitoringData.evaluasi.kategori === 'Hemat' ? 'success' : monitoringData.evaluasi.kategori === 'Normal' ? 'info' : 'error'}
+                      icon={monitoringData.evaluasi.kategori === 'Hemat' ? <CheckCircle /> : monitoringData.evaluasi.kategori === 'Normal' ? <MonitorHeart /> : <LocalFireDepartment />}
+                      title="Kategori Pemakaian"
+                      value={monitoringData.evaluasi.kategori}
+                      hideBadge
+                      caption={monitoringData.evaluasi.deskripsi}
+                    />
                   </Grid>
                 </Grid>
 
                 {/* Stats Row 2: Billing */}
                 <Grid container spacing={2.5} sx={{ mb: 3 }}>
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                      <CardContent sx={{ py: 2, px: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <WaterDrop color="primary" />
-                          <Typography variant="body2" color="text.secondary">Pemakaian Belum Terbayar</Typography>
-                        </Box>
-                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                          {monitoringData.estimasiBiayaBulanIni.pemakaianBelumTerbayar.toLocaleString('id-ID', { maximumFractionDigits: 3 })} m³
-                        </Typography>
-                      </CardContent>
-                    </Card>
+                    <DashboardStatCard
+                      color="primary"
+                      icon={<WaterDrop />}
+                      title="Pemakaian Belum Terbayar"
+                      value={formatM3(monitoringData.estimasiBiayaBulanIni.pemakaianBelumTerbayar)}
+                      hideBadge
+                      caption="Periode berjalan"
+                    />
                   </Grid>
 
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                      <CardContent sx={{ py: 2, px: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <AttachMoney color="info" />
-                          <Typography variant="body2" color="text.secondary">Estimasi Biaya Pemakaian</Typography>
-                        </Box>
-                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main' }}>
-                          {formatRupiah(monitoringData.estimasiBiayaBulanIni.estimasiBiaya)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
+                    <DashboardStatCard
+                      color="info"
+                      icon={<AttachMoney />}
+                      title="Estimasi Biaya Pemakaian"
+                      value={formatRupiah(monitoringData.estimasiBiayaBulanIni.estimasiBiaya)}
+                      hideBadge
+                      caption="Estimasi pemakaian"
+                    />
                   </Grid>
 
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                      <CardContent sx={{ py: 2, px: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <AttachMoney color="warning" />
-                          <Typography variant="body2" color="text.secondary">Biaya Beban</Typography>
-                        </Box>
-                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>
-                          {formatRupiah(monitoringData.estimasiBiayaBulanIni.biayaBeban)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
+                    <DashboardStatCard
+                      color="warning"
+                      icon={<AttachMoney />}
+                      title="Biaya Beban"
+                      value={formatRupiah(monitoringData.estimasiBiayaBulanIni.biayaBeban)}
+                      hideBadge
+                      caption="Tetap per bulan"
+                    />
                   </Grid>
 
                   <Grid item xs={12} sm={6} md={3}>
-                    <Card sx={{
-                      borderRadius: 2,
-                      border: '2px solid',
-                      borderColor: 'success.main',
-                      bgcolor: 'success.50'
-                    }}>
-                      <CardContent sx={{ py: 2, px: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <AttachMoney sx={{ color: 'success.dark' }} />
-                          <Typography variant="body2" sx={{ color: 'success.dark', fontWeight: 600 }}>Total Estimasi Tagihan</Typography>
-                        </Box>
-                        <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.dark' }}>
-                          {formatRupiah(monitoringData.estimasiBiayaBulanIni.totalEstimasi)}
-                        </Typography>
-                        {monitoringData.estimasiBiayaBulanIni.namaKelompok && (
-                          <Typography variant="caption" color="text.secondary">
-                            Tarif: {monitoringData.estimasiBiayaBulanIni.namaKelompok}
-                          </Typography>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <DashboardStatCard
+                      color="success"
+                      icon={<AttachMoney />}
+                      title="Total Estimasi Tagihan"
+                      value={formatRupiah(monitoringData.estimasiBiayaBulanIni.totalEstimasi)}
+                      trend="up"
+                      status="good"
+                      statusLabel="Estimasi"
+                      caption={monitoringData.estimasiBiayaBulanIni.namaKelompok ? `Tarif: ${monitoringData.estimasiBiayaBulanIni.namaKelompok}` : 'Total estimasi tagihan'}
+                    />
                   </Grid>
                 </Grid>
 
