@@ -737,6 +737,7 @@ export default function CustomerManagement() {
                         size='small'
                         color={getCustomerTypeColor(customer.customerType) as any}
                         variant='outlined'
+                        sx={{ minWidth: 116, justifyContent: 'center' }}
                       />
                     </TableCell>
                     <TableCell>
@@ -745,7 +746,7 @@ export default function CustomerManagement() {
                         label={getStatusLabel(customer.accountStatus)}
                         size='small'
                         color={getStatusColor(customer.accountStatus) as any}
-                        sx={{ fontWeight: 600 }}
+                        sx={{ fontWeight: 600, minWidth: 108, justifyContent: 'center' }}
                       />
                     </TableCell>
                     <TableCell>
@@ -755,7 +756,7 @@ export default function CustomerManagement() {
                         size='small'
                         color={customer.isVerified ? 'info' : 'default'}
                         variant={customer.isVerified ? 'filled' : 'outlined'}
-                        sx={{ fontWeight: 600 }}
+                        sx={{ fontWeight: 600, minWidth: 168, justifyContent: 'center' }}
                       />
                     </TableCell>
                     <TableCell>
