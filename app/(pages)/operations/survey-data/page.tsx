@@ -12,6 +12,7 @@ import {
 import { Search, Visibility, Refresh, FileDownload } from '@mui/icons-material';
 import { useTableSort } from '../../../hooks/useTableSort';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useFilterPersist } from '../../../hooks/useFilterPersist';
@@ -149,25 +150,23 @@ export default function SurveyDataPage() {
   return (
     <AdminLayout title='Data Survei'>
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-          <Box>
-            <Typography variant='h5' fontWeight={700}>Data Survei</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Work order survei yang telah disubmit oleh teknisi
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {selectedIds.size > 0 && (
-              <Typography variant='caption' color='text.secondary'>{selectedIds.size} baris dipilih</Typography>
-            )}
-            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || sorted.length === 0} size='small'>
-              {selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export CSV'}
-            </Button>
-            <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
-              Refresh
-            </Button>
-          </Box>
-        </Box>
+        <PageHeader
+          title="Data Survei"
+          subtitle="Work order survei yang telah disubmit oleh teknisi"
+          actions={
+            <>
+              {selectedIds.size > 0 && (
+                <Typography variant='caption' color='text.secondary'>{selectedIds.size} baris dipilih</Typography>
+              )}
+              <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || sorted.length === 0} size='small'>
+                {selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export CSV'}
+              </Button>
+              <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
+                Refresh
+              </Button>
+            </>
+          }
+        />
 
         {error && <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 

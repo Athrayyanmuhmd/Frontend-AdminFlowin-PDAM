@@ -17,6 +17,7 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { useTableSort } from '../../../hooks/useTableSort';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useFilterPersist } from '../../../hooks/useFilterPersist';
@@ -152,17 +153,15 @@ export default function PenyelesaianLaporanPage() {
   return (
     <AdminLayout title='Penyelesaian Laporan'>
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-          <Box>
-            <Typography variant='h5' fontWeight={700}>Work Order Penyelesaian Laporan</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Daftar work order yang dibuat untuk menyelesaikan laporan pelanggan
-            </Typography>
-          </Box>
-          <Button variant='outlined' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading} size='small'>
-            Refresh
-          </Button>
-        </Box>
+        <PageHeader
+          title="Penyelesaian Laporan"
+          subtitle="Daftar work order yang dibuat untuk menyelesaikan laporan pelanggan"
+          actions={
+            <Button variant='outlined' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading} size='small'>
+              Refresh
+            </Button>
+          }
+        />
 
         {/* Stats */}
         <Stack direction='row' spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }} useFlexGap>

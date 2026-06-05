@@ -49,6 +49,7 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import {
   useGetAllMeteran,
@@ -230,18 +231,17 @@ export default function MeteranListPage() {
   return (
     <AdminLayout title="Manajemen Meteran">
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            Manajemen Meteran
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <PageHeader
+          title="Manajemen Meteran"
+          subtitle="Kelola data meteran air pelanggan"
+          actions={
             <Tooltip title="Refresh">
               <IconButton onClick={() => refetch()} size="small">
                 <Refresh />
               </IconButton>
             </Tooltip>
-          </Box>
-        </Box>
+          }
+        />
 
         {/* Stats Cards */}
         <Grid container spacing={2} sx={{ mb: 3 }}>

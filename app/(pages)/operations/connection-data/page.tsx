@@ -41,6 +41,7 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
 import { useAdmin } from '../../../layouts/AdminProvider';
 import { GET_ALL_CONNECTION_DATA } from '@/lib/graphql/queries/connectionData';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
@@ -174,27 +175,23 @@ export default function ConnectionDataManagement() {
     <AdminLayout>
       <Box>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-          <Box>
-            <Typography variant='h5' gutterBottom>
-              Data Sambungan Air
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Kelola data pengajuan sambungan air dari pelanggan
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {selectedIds.size > 0 && (
-              <Typography variant='caption' color='text.secondary'>{selectedIds.size} baris dipilih</Typography>
-            )}
-            <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || sortedData.length === 0} size='small'>
-              {selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export CSV'}
-            </Button>
-            <Button variant='outlined' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading} size='small'>
-              Refresh
-            </Button>
-          </Box>
-        </Box>
+        <PageHeader
+          title="Data Sambungan Air"
+          subtitle="Kelola data pengajuan sambungan air dari pelanggan"
+          actions={
+            <>
+              {selectedIds.size > 0 && (
+                <Typography variant='caption' color='text.secondary'>{selectedIds.size} baris dipilih</Typography>
+              )}
+              <Button variant='outlined' startIcon={<FileDownload />} onClick={exportCSV} disabled={loading || sortedData.length === 0} size='small'>
+                {selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export CSV'}
+              </Button>
+              <Button variant='outlined' startIcon={<Refresh />} onClick={() => refetch()} disabled={loading} size='small'>
+                Refresh
+              </Button>
+            </>
+          }
+        />
 
         {/* Filters */}
         <Card sx={{ mb: 3 }}>

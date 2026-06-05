@@ -85,14 +85,22 @@ export default function AppBreadcrumbs() {
       aria-label="breadcrumb"
       sx={{
         mb: 2.5,
-        '& .MuiBreadcrumbs-separator': { mx: 0.75, color: 'text.disabled' },
+        // Semua item breadcrumb rata-tengah & tinggi seragam
+        '& .MuiBreadcrumbs-ol': { alignItems: 'center' },
+        '& .MuiBreadcrumbs-li': { display: 'flex', alignItems: 'center', minHeight: 24 },
+        '& .MuiBreadcrumbs-separator': {
+          mx: 0.75,
+          color: 'text.disabled',
+          display: 'flex',
+          alignItems: 'center',
+        },
       }}
     >
       <Link
         component={NextLink}
         href="/dashboard"
         underline="hover"
-        sx={{ ...crumbSx, display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+        sx={{ ...crumbSx, display: 'inline-flex', alignItems: 'center', gap: 0.5, lineHeight: 1 }}
       >
         <HomeRoundedIcon sx={{ fontSize: 17 }} />
         Beranda
@@ -100,11 +108,27 @@ export default function AppBreadcrumbs() {
 
       {crumbs.map((c, i) =>
         c.href ? (
-          <Link key={i} component={NextLink} href={c.href} underline="hover" sx={crumbSx}>
+          <Link
+            key={i}
+            component={NextLink}
+            href={c.href}
+            underline="hover"
+            sx={{ ...crumbSx, display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}
+          >
             {c.label}
           </Link>
         ) : (
-          <Typography key={i} sx={{ color: 'text.primary', fontSize: '0.82rem', fontWeight: 600 }}>
+          <Typography
+            key={i}
+            sx={{
+              color: 'text.primary',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              lineHeight: 1,
+            }}
+          >
             {c.label}
           </Typography>
         )

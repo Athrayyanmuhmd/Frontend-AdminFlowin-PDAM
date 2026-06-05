@@ -12,6 +12,7 @@ import {
 import { Search, Visibility, Refresh } from '@mui/icons-material';
 import { useTableSort } from '../../../hooks/useTableSort';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
 import TableSkeleton from '../../../components/ui/TableSkeleton';
 import EmptyState from '../../../components/ui/EmptyState';
 import { useFilterPersist } from '../../../hooks/useFilterPersist';
@@ -101,17 +102,15 @@ export default function RabConnectionPage() {
   return (
     <AdminLayout title='Data RAB'>
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography variant='h5' fontWeight={700}>Data RAB</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Work order RAB yang telah disubmit oleh teknisi
-            </Typography>
-          </Box>
-          <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
-            Refresh
-          </Button>
-        </Box>
+        <PageHeader
+          title="Data RAB"
+          subtitle="Work order RAB yang telah disubmit oleh teknisi"
+          actions={
+            <Button variant='outlined' startIcon={<Refresh />} onClick={fetchData} disabled={loading} size='small'>
+              Refresh
+            </Button>
+          }
+        />
 
         {error && <Alert severity='error' sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 

@@ -54,6 +54,7 @@ import {
   AddTask,
 } from '@mui/icons-material';
 import AdminLayout from '../../../layouts/AdminLayout';
+import PageHeader from '../../../components/ui/PageHeader';
 import {
   GET_ALL_LAPORAN,
   UPDATE_LAPORAN_STATUS,
@@ -400,23 +401,10 @@ export default function LaporanPage() {
     <AdminLayout>
       <Box>
         {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
-          <Box>
-            <Typography variant='h5' fontWeight={700}>
-              Laporan Pelanggan
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Kelola laporan masalah dari pelanggan PDAM
-            </Typography>
-          </Box>
-        </Box>
+        <PageHeader
+          title="Laporan Pelanggan"
+          subtitle="Kelola laporan masalah dari pelanggan PDAM"
+        />
 
         {/* Stats Cards */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
