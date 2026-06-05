@@ -469,7 +469,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
 
   // Mini-rail: di desktop, saat "ditutup" sidebar mengecil jadi rel ikon (bukan hilang)
   const RAIL_W = 88;
-  const FULL_W = 288;
+  const FULL_W = 304;
   const collapsed = !open && !isMobile;
   const drawerWidth = isMobile ? FULL_W : open ? FULL_W : RAIL_W;
 
@@ -574,7 +574,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         <ListItemIcon
           sx={{
             color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.82)',
-            minWidth: collapsed ? 0 : 36,
+            minWidth: collapsed ? 0 : 34,
             justifyContent: 'center',
             transition: 'color 0.2s ease',
           }}
@@ -590,10 +590,12 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         {!collapsed && (
           <ListItemText
             primary={item.title}
+            sx={{ minWidth: 0, my: 0, pr: item.children ? 0.5 : 0 }}
             primaryTypographyProps={{
-              fontSize: level > 0 ? '0.8125rem' : '0.9375rem',
+              fontSize: level > 0 ? '0.8125rem' : '0.9rem',
               fontWeight: isHighlighted ? 600 : 500,
               color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.92)',
+              lineHeight: 1.3,
             }}
           />
         )}
@@ -602,10 +604,10 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             sx={{
               display: 'flex',
               alignItems: 'center',
+              flexShrink: 0,
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
               color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.75)',
-              ml: 0.5,
             }}
           >
             <ExpandMore fontSize='small' />
@@ -681,7 +683,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 bottom: '14px',
                 left: '14px',
                 height: 'auto',
-                width: drawerWidth - 28,
+                width: drawerWidth - 26,
                 borderRadius: '16px',
                 boxShadow: '0 12px 32px rgba(8, 28, 61, 0.28)',
               }),
