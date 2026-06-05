@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -156,6 +157,18 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
         >
           <MenuIcon />
         </IconButton>
+
+        {/* Logo PDAM Tirta Daroy di sudut kiri (sama dgn halaman login) */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+          <Image
+            src="/assets/logo/logo-tirta-daroy.png"
+            alt="PERUMDAM Tirta Daroy"
+            width={150}
+            height={40}
+            style={{ objectFit: 'contain', maxHeight: 40, width: 'auto' }}
+            priority
+          />
+        </Box>
 
         <Box sx={{ flexGrow: 1 }} />
 
