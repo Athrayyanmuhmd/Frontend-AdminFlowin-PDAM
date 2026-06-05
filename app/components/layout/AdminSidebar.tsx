@@ -546,23 +546,23 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           mb: 0.25,
           justifyContent: collapsed ? 'center' : 'flex-start',
           backgroundColor: isActive
-            ? '#081c3d'
+            ? '#013494'
             : isChildActive
-            ? 'rgba(8, 28, 61, 0.045)'
+            ? 'rgba(1, 52, 148, 0.045)'
             : 'transparent',
           // Item aktif: navy elegan + teks putih
-          color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.78)',
+          color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.78)',
           transition: 'background-color 0.2s ease, color 0.2s ease',
-          ...(isActive && { boxShadow: '0 6px 16px rgba(8, 28, 61, 0.28)' }),
+          ...(isActive && { boxShadow: '0 6px 16px rgba(1, 52, 148, 0.28)' }),
           '&:hover': {
-            backgroundColor: isActive ? '#0c2647' : 'rgba(8, 28, 61, 0.06)',
-            color: isActive ? '#fff' : '#081c3d',
+            backgroundColor: isActive ? '#0a40a8' : 'rgba(1, 52, 148, 0.06)',
+            color: isActive ? '#fff' : '#013494',
           },
         }}
       >
         <ListItemIcon
           sx={{
-            color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.6)',
+            color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.6)',
             minWidth: collapsed ? 0 : 34,
             justifyContent: 'center',
             transition: 'color 0.2s ease',
@@ -583,7 +583,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             primaryTypographyProps={{
               fontSize: level > 0 ? '0.8125rem' : '0.9rem',
               fontWeight: isActive ? 700 : isHighlighted ? 600 : 500,
-              color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.82)',
+              color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.82)',
               lineHeight: 1.3,
             }}
           />
@@ -596,7 +596,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               flexShrink: 0,
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-              color: isActive ? '#fff' : isHighlighted ? '#081c3d' : 'rgba(8, 28, 61, 0.6)',
+              color: isActive ? '#fff' : isHighlighted ? '#013494' : 'rgba(1, 52, 148, 0.6)',
             }}
           >
             <ExpandMore fontSize='small' />
@@ -629,7 +629,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 ml: 3,
                 pl: 1,
                 borderLeft: '2px solid',
-                borderColor: isChildActive ? '#081c3d' : 'rgba(8, 28, 61, 0.15)',
+                borderColor: isChildActive ? '#013494' : 'rgba(1, 52, 148, 0.15)',
                 transition: 'border-color 0.3s ease',
                 my: 0.5,
               }}
@@ -649,7 +649,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               my: 0.5,
               py: 0.5,
               borderRadius: 2,
-              backgroundColor: 'rgba(8, 28, 61, 0.05)',
+              backgroundColor: 'rgba(1, 52, 148, 0.05)',
             }}
           >
             <List component='div' disablePadding>
@@ -677,7 +677,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           boxSizing: 'border-box',
           border: 'none',
           backgroundColor: '#ffffff',
-          color: '#081c3d',
+          color: '#013494',
           overflowX: 'hidden',
           transition:
             'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -692,8 +692,8 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 height: 'auto',
                 width: drawerWidth - 22,
                 borderRadius: '18px',
-                border: '1px solid rgba(8, 28, 61, 0.05)',
-                boxShadow: '0 10px 34px rgba(8, 28, 61, 0.12)',
+                border: '1px solid rgba(1, 52, 148, 0.05)',
+                boxShadow: '0 10px 34px rgba(1, 52, 148, 0.12)',
               }),
           // Scrollbar tipis & auto-hide: transparan saat diam, muncul saat hover/scroll
           scrollbarWidth: 'thin',
@@ -722,12 +722,12 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           flexDirection: 'column',
           alignItems: 'center',
           borderBottom: '1px solid',
-          borderColor: 'rgba(8, 28, 61, 0.10)',
+          borderColor: 'rgba(1, 52, 148, 0.10)',
         }}
       >
         {collapsed ? (
           <Tooltip title='Buka menu' placement='right' arrow>
-            <IconButton onClick={onToggle} size='small' sx={{ color: 'rgba(8, 28, 61, 0.7)' }}>
+            <IconButton onClick={onToggle} size='small' sx={{ color: 'rgba(1, 52, 148, 0.7)' }}>
               <MenuIcon />
             </IconButton>
           </Tooltip>
@@ -737,21 +737,21 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               <IconButton
                 onClick={onToggle}
                 size='small'
-                sx={{ position: 'absolute', top: 6, right: 6, color: 'rgba(8, 28, 61, 0.55)' }}
+                sx={{ position: 'absolute', top: 6, right: 6, color: 'rgba(1, 52, 148, 0.55)' }}
               >
                 <ChevronLeft fontSize='small' />
               </IconButton>
             </Tooltip>
-            <Typography variant='h6' sx={{ fontWeight: 700, color: '#081c3d', textAlign: 'center', lineHeight: 1.2 }}>
+            <Typography variant='h6' sx={{ fontWeight: 700, color: '#013494', textAlign: 'center', lineHeight: 1.2 }}>
               {userRole === 'technician' ? 'Flowin Teknisi' : 'Flowin Admin'}
             </Typography>
-            <Typography variant='body2' sx={{ color: 'rgba(8, 28, 61, 0.65)', textAlign: 'center' }}>
+            <Typography variant='body2' sx={{ color: 'rgba(1, 52, 148, 0.65)', textAlign: 'center' }}>
               PDAM Tirta Daroy
             </Typography>
             <Chip
               label={userRole === 'technician' ? 'Teknisi' : 'Administrator'}
               size='small'
-              sx={{ mt: 1, bgcolor: '#081c3d', color: '#fff', fontWeight: 600 }}
+              sx={{ mt: 1, bgcolor: '#013494', color: '#fff', fontWeight: 600 }}
             />
           </>
         )}
@@ -771,14 +771,14 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                     fontWeight: 700,
                     letterSpacing: '0.09em',
                     textTransform: 'uppercase',
-                    color: 'rgba(8, 28, 61, 0.5)',
+                    color: 'rgba(1, 52, 148, 0.5)',
                   }}
                 >
                   {item.section}
                 </Typography>
               )}
               {item.section && collapsed && (
-                <Divider sx={{ my: 1, mx: 1.5, borderColor: 'rgba(8, 28, 61, 0.12)' }} />
+                <Divider sx={{ my: 1, mx: 1.5, borderColor: 'rgba(1, 52, 148, 0.12)' }} />
               )}
               {renderMenuItem(item)}
             </React.Fragment>
