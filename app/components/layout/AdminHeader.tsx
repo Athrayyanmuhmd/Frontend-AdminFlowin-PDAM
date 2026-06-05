@@ -147,11 +147,14 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
         right: 14,
         width: 'auto',
         borderRadius: '16px',
-        backgroundColor: 'background.paper',
+        // Glassmorphism: latar putih semi-transparan + blur
+        backgroundColor: 'rgba(255, 255, 255, 0.72)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
         color: 'text.primary',
         border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: '0 6px 24px rgba(8, 28, 61, 0.06)',
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        boxShadow: '0 8px 28px rgba(8, 28, 61, 0.10)',
       }}
     >
       <Toolbar>

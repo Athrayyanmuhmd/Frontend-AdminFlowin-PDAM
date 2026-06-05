@@ -688,7 +688,10 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           border: 'none',
-          backgroundColor: '#081c3d',
+          // Glassmorphism: navy semi-transparan + blur
+          backgroundColor: 'rgba(8, 28, 61, 0.82)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           color: '#fff',
           overflowX: 'hidden',
           transition:
