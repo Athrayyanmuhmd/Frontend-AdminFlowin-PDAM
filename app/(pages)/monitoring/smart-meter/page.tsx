@@ -60,6 +60,11 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  ComposedChart,
+  Bar,
+  Line,
+  LabelList,
+  Legend,
 } from 'recharts';
 import { useRouter } from 'next/navigation';
 import { useQuery, useLazyQuery } from '@apollo/client/react';
@@ -659,37 +664,61 @@ export default function SmartMeterManagement() {
                             </Typography>
                           </Box>
                         ) : (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={monitoringData.chartHarian.map((d: any) => ({
-                              tanggal: formatTanggalPendek(d.tanggal),
-                              tanggalLengkap: d.tanggal,
-                              liter: d.liter,
-                              m3: +(d.liter / 1000).toFixed(3),
-                            }))} margin={{ top: 10, right: 16, left: 0, bottom: 16 }}>
-                              <defs>
-                                <linearGradient id="colorHarian" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#0288d1" stopOpacity={0.28} />
-                                  <stop offset="95%" stopColor="#0288d1" stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" vertical={false} />
-                              <XAxis dataKey="tanggal" tick={{ fontSize: 10, fill: '#697a8d' }} interval="preserveStartEnd" minTickGap={12} axisLine={false} tickLine={false} dy={6} />
-                              <YAxis tickFormatter={(v: number) => `${v}L`} tick={{ fontSize: 10, fill: '#697a8d' }} axisLine={false} tickLine={false} width={46} />
-                              <RechartsTooltip
-                                cursor={{ stroke: '#0288d1', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 12 }}
-                                formatter={(value: number) => [
-                                  `${value.toLocaleString('id-ID')} L (${(value / 1000).toFixed(3)} m³)`,
-                                  'Pemakaian',
-                                ]}
-                                labelFormatter={(label: string) => {
-                                  const item = monitoringData.chartHarian.find((d: any) => formatTanggalPendek(d.tanggal) === label);
-                                  return item ? item.tanggal : label;
-                                }}
-                              />
-                              <Area type="monotone" dataKey="liter" stroke="#0288d1" strokeWidth={2.5} fill="url(#colorHarian)" dot={{ r: 2.5, fill: '#fff', stroke: '#0288d1', strokeWidth: 2 }} activeDot={{ r: 6 }} name="Pemakaian (L)" />
-                            </AreaChart>
-                          </ResponsiveContainer>
+                          (() => {
+                            // Batang = pemakaian harian (Liter); Garis = akumulatif (m³) di sumbu kanan,
+                            // dengan label angka di tiap titik (gaya gambar acuan).
+                            let run = 0;
+                            const data = monitoringData.chartHarian.map((d: any) => {
+                              run += d.liter;
+                              return {
+                                tanggal: formatTanggalPendek(d.tanggal),
+                                tanggalLengkap: d.tanggal,
+                                liter: d.liter,
+                                kumulatifM3: +(run / 1000).toFixed(2),
+                              };
+                            });
+                            const showLabels = data.length <= 16;
+                            // Label hijau (kotak rounded) untuk titik garis akumulatif
+                            const GreenLabel = (props: any) => {
+                              const { x, y, value } = props;
+                              if (x == null || y == null) return null;
+                              const text = String(value);
+                              const w = Math.max(20, text.length * 7 + 10);
+                              return (
+                                <g>
+                                  <rect x={x - w / 2} y={y - 24} width={w} height={16} rx={4} fill="#2e9e5b" />
+                                  <text x={x} y={y - 13} textAnchor="middle" fill="#fff" fontSize={10} fontWeight={700}>{text}</text>
+                                </g>
+                              );
+                            };
+                            return (
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={data} margin={{ top: 26, right: 6, left: 0, bottom: 16 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" vertical={false} />
+                                  <XAxis dataKey="tanggal" tick={{ fontSize: 10, fill: '#697a8d' }} interval="preserveStartEnd" minTickGap={12} axisLine={false} tickLine={false} dy={6} />
+                                  <YAxis yAxisId="left" tickFormatter={(v: number) => `${v}L`} tick={{ fontSize: 10, fill: '#697a8d' }} axisLine={false} tickLine={false} width={46} />
+                                  <YAxis yAxisId="right" orientation="right" tickFormatter={(v: number) => `${v}`} tick={{ fontSize: 10, fill: '#697a8d' }} axisLine={false} tickLine={false} width={40} />
+                                  <RechartsTooltip
+                                    contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 12 }}
+                                    labelFormatter={(label: string) => {
+                                      const item = data.find((d: any) => d.tanggal === label);
+                                      return item ? item.tanggalLengkap : label;
+                                    }}
+                                    formatter={(value: number, name: string) =>
+                                      name === 'Akumulatif (m³)'
+                                        ? [`${value} m³`, name]
+                                        : [`${Number(value).toLocaleString('id-ID')} L`, name]
+                                    }
+                                  />
+                                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                                  <Bar yAxisId="left" dataKey="liter" name="Harian (L)" fill="#5b73e8" fillOpacity={0.55} stroke="#5b73e8" strokeOpacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                  <Line yAxisId="right" type="monotone" dataKey="kumulatifM3" name="Akumulatif (m³)" stroke="#2e9e5b" strokeWidth={2.5} dot={{ r: 3, fill: '#fff', stroke: '#2e9e5b', strokeWidth: 2 }} activeDot={{ r: 5 }} isAnimationActive={false}>
+                                    {showLabels && <LabelList dataKey="kumulatifM3" content={GreenLabel} />}
+                                  </Line>
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            );
+                          })()
                         )}
                       </Box>
                     </Card>
