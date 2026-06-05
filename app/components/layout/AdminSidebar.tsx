@@ -43,6 +43,27 @@ import {
   FactCheck,
   VerifiedUser,
   NotificationsActive,
+  Groups,
+  PersonAdd,
+  ManageAccounts,
+  Payments,
+  ReceiptLong,
+  PostAdd,
+  PriceChange,
+  Engineering,
+  Map as MapIcon,
+  RequestQuote,
+  Construction,
+  ReportProblem,
+  Assignment,
+  MonitorHeart,
+  Sensors,
+  Category,
+  BarChart,
+  Insights,
+  AccountBalance,
+  Policy,
+  Tune,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 
@@ -69,7 +90,7 @@ const adminMenuItems: MenuItem[] = [
   {
     id: 'customers',
     title: 'Manajemen Pelanggan',
-    icon: <People />,
+    icon: <Groups />,
     roles: ['admin'],
     children: [
       {
@@ -83,7 +104,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'customer-registration',
         title: 'Registrasi Baru',
-        icon: <People />,
+        icon: <PersonAdd />,
         path: '/customers/registration',
         permission: 'customers:create',
         roles: ['admin'],
@@ -91,7 +112,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'customer-accounts',
         title: 'Akun Pelanggan',
-        icon: <AccountTree />,
+        icon: <ManageAccounts />,
         path: '/customers/accounts',
         permission: 'customers:read',
         roles: ['admin'],
@@ -102,13 +123,13 @@ const adminMenuItems: MenuItem[] = [
   {
     id: 'billing',
     title: 'Penagihan & Keuangan',
-    icon: <Receipt />,
+    icon: <Payments />,
     roles: ['admin'],
     children: [
       {
         id: 'billing-list',
         title: 'Tagihan',
-        icon: <Receipt />,
+        icon: <ReceiptLong />,
         path: '/billing',
         permission: 'billing:read',
         roles: ['admin'],
@@ -116,7 +137,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'billing-generate',
         title: 'Generate Tagihan',
-        icon: <Receipt />,
+        icon: <PostAdd />,
         path: '/billing/generate',
         permission: 'billing:create',
         roles: ['admin'],
@@ -126,7 +147,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'billing-tariffs',
         title: 'Struktur Tarif',
-        icon: <Receipt />,
+        icon: <PriceChange />,
         path: '/billing/tariffs',
         permission: 'billing:update',
         roles: ['admin'],
@@ -138,7 +159,7 @@ const adminMenuItems: MenuItem[] = [
   {
     id: 'operations',
     title: 'Operasi Lapangan',
-    icon: <Build />,
+    icon: <Engineering />,
     roles: ['admin'],
     children: [
       {
@@ -152,7 +173,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'survey-data',
         title: 'Data Survey',
-        icon: <Assessment />,
+        icon: <MapIcon />,
         path: '/operations/survey-data',
         permission: 'workorders:read',
         roles: ['admin'],
@@ -160,7 +181,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'rab-connection',
         title: 'RAB Sambungan',
-        icon: <Receipt />,
+        icon: <RequestQuote />,
         path: '/operations/rab-connection',
         permission: 'workorders:read',
         roles: ['admin'],
@@ -168,7 +189,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'technicians',
         title: 'Manajemen Teknisi',
-        icon: <Build />,
+        icon: <Construction />,
         path: '/operations/technicians',
         permission: 'workorders:read',
         roles: ['admin'],
@@ -184,7 +205,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'laporan',
         title: 'Laporan Pelanggan',
-        icon: <Report />,
+        icon: <ReportProblem />,
         path: '/operations/laporan',
         permission: 'workorders:read',
         roles: ['admin'],
@@ -200,7 +221,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'work-orders',
         title: 'Perintah Kerja',
-        icon: <Build />,
+        icon: <Assignment />,
         path: '/operations/work-orders',
         permission: 'workorders:read',
         roles: ['admin'],
@@ -252,7 +273,7 @@ const adminMenuItems: MenuItem[] = [
   {
     id: 'monitoring',
     title: 'Monitoring',
-    icon: <Speed />,
+    icon: <MonitorHeart />,
     roles: ['admin'],
     children: [
       // SCADA Real-time & Kualitas Air di-hide karena tidak ada dalam proposal
@@ -275,7 +296,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'smart-meters',
         title: 'Meteran Pintar',
-        icon: <Speed />,
+        icon: <Sensors />,
         path: '/monitoring/smart-meter',
         permission: 'system:execute',
         roles: ['admin'],
@@ -291,7 +312,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'kelompok-pelanggan',
         title: 'Kelompok Pelanggan',
-        icon: <Group />,
+        icon: <Category />,
         path: '/master-data/kelompok-pelanggan',
         permission: 'system:execute',
         roles: ['admin'],
@@ -308,28 +329,28 @@ const adminMenuItems: MenuItem[] = [
   {
     id: 'reports',
     title: 'Laporan & Analitik',
-    icon: <Assessment />,
+    icon: <BarChart />,
     roles: ['admin'],
     hidden: true,
     children: [
       {
         id: 'operational-reports',
         title: 'Laporan Operasional',
-        icon: <Report />,
+        icon: <Insights />,
         path: '/reports/operational',
         permission: 'reports:read',
       },
       {
         id: 'financial-reports',
         title: 'Laporan Keuangan',
-        icon: <Report />,
+        icon: <AccountBalance />,
         path: '/reports/financial',
         permission: 'reports:read',
       },
       {
         id: 'compliance-reports',
         title: 'Laporan Kepatuhan',
-        icon: <Report />,
+        icon: <Policy />,
         path: '/reports/compliance',
         permission: 'reports:read',
         hidden: true,
@@ -337,7 +358,7 @@ const adminMenuItems: MenuItem[] = [
       {
         id: 'custom-reports',
         title: 'Laporan Kustom',
-        icon: <Report />,
+        icon: <Tune />,
         path: '/reports/custom',
         permission: 'reports:create',
         roles: ['admin'],
@@ -383,7 +404,7 @@ const technicianMenuItems: MenuItem[] = [
   {
     id: 'my-tasks',
     title: 'Tugas Saya',
-    icon: <Build />,
+    icon: <Engineering />,
     roles: ['technician'],
     children: [
       {
@@ -396,14 +417,14 @@ const technicianMenuItems: MenuItem[] = [
       {
         id: 'survey-data',
         title: 'Data Survey',
-        icon: <Assessment />,
+        icon: <MapIcon />,
         path: '/operations/survey-data',
         roles: ['technician'],
       },
       {
         id: 'rab-connection',
         title: 'RAB Sambungan',
-        icon: <Receipt />,
+        icon: <RequestQuote />,
         path: '/operations/rab-connection',
         roles: ['technician'],
       },
