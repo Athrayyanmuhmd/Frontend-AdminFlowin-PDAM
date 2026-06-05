@@ -522,6 +522,7 @@ export default function SmartMeterManagement() {
                       value={formatM3(monitoringData.bulanIni.totalPenggunaan / 1000)}
                       hideBadge
                       caption={monitoringData.bulanIni.periode}
+                      sparkline={(monitoringData.chartHarian || []).map((d: any) => d.liter || 0)}
                     />
                   </Grid>
 
@@ -557,6 +558,8 @@ export default function SmartMeterManagement() {
                       value={formatM3(monitoringData.prediksi.prediksiAkhirBulan / 1000)}
                       hideBadge
                       caption={`${(monitoringData.prediksi.rataRataHarian / 1000).toFixed(2)} m³/hari · ${monitoringData.prediksi.hariTersisa} hari tersisa`}
+                      sparkline={(monitoringData.chartHarian || []).map((d: any) => d.liter || 0)}
+                      sparklineType="bar"
                     />
                   </Grid>
 

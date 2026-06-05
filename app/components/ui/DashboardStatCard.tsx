@@ -2,10 +2,17 @@
 
 import React from 'react';
 import { Card, Box, Typography } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import RemoveIcon from '@mui/icons-material/Remove';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+} from 'recharts';
 
 /**
  * Kartu statistik dashboard bergaya modern (acuan visual Attex).
@@ -32,6 +39,10 @@ interface DashboardStatCardProps {
   caption?: string;
   /** Sembunyikan badge tren — berguna untuk kartu ringkasan jumlah (mis. daftar pelanggan) */
   hideBadge?: boolean;
+  /** Deret angka untuk mini-chart (sparkline) di bawah kartu — gaya widget Attex */
+  sparkline?: number[];
+  /** Bentuk sparkline: 'line' (area) atau 'bar' */
+  sparklineType?: 'line' | 'bar';
 }
 
 export default function DashboardStatCard({
@@ -44,12 +55,20 @@ export default function DashboardStatCard({
   statusLabel,
   caption = 'Status terkini',
   hideBadge = false,
+  sparkline,
+  sparklineType = 'line',
 }: DashboardStatCardProps) {
+  const theme = useTheme();
+  const mainColor = theme.palette[color].main;
   const statusColorKey =
     status === 'good' ? 'success'
     : status === 'warning' ? 'warning'
     : status === 'bad' ? 'error'
     : 'info';
+
+  const hasSpark = Array.isArray(sparkline) && sparkline.length > 1;
+  const sparkData = hasSpark ? sparkline!.map((v, i) => ({ i, v })) : [];
+  const gradId = `spark-${color}`;
 
   const TrendIcon =
     trend === 'up' ? TrendingUpIcon : trend === 'down' ? TrendingDownIcon : RemoveIcon;
@@ -127,6 +146,36 @@ export default function DashboardStatCard({
           {caption}
         </Typography>
       </Box>
+
+      {hasSpark && (
+        <Box sx={{ mt: 1.5, mx: -2.5, mb: -2.5, height: 46 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            {sparklineType === 'bar' ? (
+              <BarChart data={sparkData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                <Bar dataKey="v" fill={mainColor} radius={[2, 2, 0, 0]} maxBarSize={8} isAnimationActive={false} />
+              </BarChart>
+            ) : (
+              <AreaChart data={sparkData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={mainColor} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={mainColor} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke={mainColor}
+                  strokeWidth={2}
+                  fill={`url(#${gradId})`}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            )}
+          </ResponsiveContainer>
+        </Box>
+      )}
     </Card>
   );
 }

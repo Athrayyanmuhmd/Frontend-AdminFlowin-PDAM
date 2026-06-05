@@ -426,6 +426,8 @@ export default function BillingManagement() {
               value={formatToIDR(totalRevenue)}
               hideBadge
               caption={`${billingStats?.totalTagihan || 0} tagihan diterbitkan`}
+              sparkline={revenueData.map((d: any) => d.revenue || 0)}
+              sparklineType="bar"
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -438,6 +440,7 @@ export default function BillingManagement() {
               status="good"
               statusLabel="Terkumpul"
               caption={`${billingStats?.totalLunas || 0} tagihan lunas`}
+              sparkline={revenueData.map((d: any) => d.collected || 0)}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -450,6 +453,7 @@ export default function BillingManagement() {
               status={collectionRate >= 80 ? 'good' : 'warning'}
               statusLabel={collectionRate >= 80 ? 'Target tercapai' : 'Di bawah target'}
               caption="Rasio pembayaran"
+              sparkline={revenueData.map((d: any) => (d.revenue > 0 ? Math.round((d.collected / d.revenue) * 100) : 0))}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -462,6 +466,8 @@ export default function BillingManagement() {
               status={overdueAmount > 0 ? 'bad' : 'good'}
               statusLabel={overdueAmount > 0 ? 'Perlu ditagih' : 'Aman'}
               caption={`${billingStats?.totalTunggakan || 0} belum terbayar`}
+              sparkline={revenueData.map((d: any) => Math.max(0, (d.revenue || 0) - (d.collected || 0)))}
+              sparklineType="bar"
             />
           </Grid>
         </Grid>
