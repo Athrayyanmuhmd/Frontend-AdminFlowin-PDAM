@@ -76,6 +76,7 @@ interface MenuItem {
   permission?: string;
   roles?: ('admin' | 'technician')[];
   hidden?: boolean; // Sembunyikan sementara tanpa menghapus kode
+  section?: string; // Label seksi yang tampil DI ATAS item ini (gaya Attex)
 }
 
 // Menu untuk Admin
@@ -86,12 +87,14 @@ const adminMenuItems: MenuItem[] = [
     icon: <Dashboard />,
     path: '/dashboard',
     roles: ['admin'],
+    section: 'Navigasi',
   },
   {
     id: 'customers',
     title: 'Manajemen Pelanggan',
     icon: <Groups />,
     roles: ['admin'],
+    section: 'Manajemen',
     children: [
       {
         id: 'customer-list',
@@ -160,6 +163,7 @@ const adminMenuItems: MenuItem[] = [
     id: 'operations',
     title: 'Operasi Lapangan',
     icon: <Engineering />,
+    section: 'Operasional',
     roles: ['admin'],
     children: [
       {
@@ -307,6 +311,7 @@ const adminMenuItems: MenuItem[] = [
     id: 'master-data',
     title: 'Master Data',
     icon: <Storage />,
+    section: 'Data & Laporan',
     roles: ['admin'],
     children: [
       {
@@ -370,6 +375,7 @@ const adminMenuItems: MenuItem[] = [
     title: 'Sistem',
     icon: <Settings />,
     roles: ['admin'],
+    section: 'Sistem',
     children: [
       {
         id: 'users',
@@ -400,12 +406,14 @@ const technicianMenuItems: MenuItem[] = [
     icon: <Dashboard />,
     path: '/dashboard',
     roles: ['technician'],
+    section: 'Navigasi',
   },
   {
     id: 'my-tasks',
     title: 'Tugas Saya',
     icon: <Engineering />,
     roles: ['technician'],
+    section: 'Pekerjaan',
     children: [
       {
         id: 'connection-data',
@@ -524,15 +532,15 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               py: 0.75,
               borderRadius: 2,
               mb: 0.25,
-              // Gaya "soft": item aktif = latar tint biru + teks biru (bukan solid)
+              // Sidebar gelap (gaya Attex): aktif = latar terang transparan + teks putih
               backgroundColor: isActive
-                ? 'rgba(1, 52, 148, 0.10)'
+                ? 'rgba(255, 255, 255, 0.09)'
                 : isChildActive
-                ? 'rgba(1, 52, 148, 0.06)'
+                ? 'rgba(255, 255, 255, 0.04)'
                 : 'transparent',
-              color: isActive ? 'primary.main' : 'inherit',
-              transition: 'background-color 0.2s ease',
-              // Garis aksen kiri pada item aktif (gaya Attex)
+              color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.66)',
+              transition: 'background-color 0.2s ease, color 0.2s ease',
+              // Garis aksen kiri pada item aktif (biru terang agar kontras di gelap)
               '&::before': isActive
                 ? {
                     content: '""',
@@ -543,21 +551,18 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                     width: 3,
                     height: '62%',
                     borderRadius: '0 4px 4px 0',
-                    backgroundColor: 'primary.main',
+                    backgroundColor: '#5b8def',
                   }
                 : undefined,
               '&:hover': {
-                backgroundColor: isActive
-                  ? 'rgba(1, 52, 148, 0.16)'
-                  : isChildActive
-                  ? 'rgba(1, 52, 148, 0.10)'
-                  : 'action.hover',
+                backgroundColor: isActive ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.06)',
+                color: '#fff',
               },
             }}
           >
             <ListItemIcon
               sx={{
-                color: isHighlighted ? 'primary.main' : 'text.secondary',
+                color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.5)',
                 minWidth: 36,
                 transition: 'color 0.2s ease',
               }}
@@ -575,7 +580,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
               primaryTypographyProps={{
                 fontSize: level > 0 ? '0.8125rem' : '0.9375rem',
                 fontWeight: isHighlighted ? 600 : 400,
-                color: isHighlighted ? 'primary.main' : 'inherit',
+                color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.72)',
               }}
             />
             {item.children && (
@@ -585,7 +590,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                   alignItems: 'center',
                   transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  color: isHighlighted ? 'primary.main' : 'text.secondary',
+                  color: isHighlighted ? '#fff' : 'rgba(255, 255, 255, 0.45)',
                   ml: 0.5,
                 }}
               >
@@ -606,7 +611,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 ml: 3,
                 pl: 1,
                 borderLeft: '2px solid',
-                borderColor: isChildActive ? 'primary.main' : 'divider',
+                borderColor: isChildActive ? '#5b8def' : 'rgba(255, 255, 255, 0.12)',
                 transition: 'border-color 0.3s ease',
                 my: 0.5,
               }}
@@ -636,14 +641,15 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           width: 280,
           boxSizing: 'border-box',
           borderRight: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: 'background.paper',
+          borderColor: 'rgba(255, 255, 255, 0.06)',
+          backgroundColor: '#2b2f36',
+          color: '#fff',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important',
         },
       }}
     >
       <Toolbar />
-      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
         <Box
           sx={{
             display: 'flex',
@@ -651,14 +657,14 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             justifyContent: 'space-between',
           }}
         >
-          <Typography variant='h6' component='div' sx={{ fontWeight: 600 }}>
+          <Typography variant='h6' component='div' sx={{ fontWeight: 700, color: '#fff' }}>
             {userRole === 'technician' ? 'Flowin Teknisi' : 'Flowin Admin'}
           </Typography>
-          <IconButton onClick={onToggle} size='small'>
+          <IconButton onClick={onToggle} size='small' sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
             <ChevronLeft />
           </IconButton>
         </Box>
-        <Typography variant='body2' color='text.secondary'>
+        <Typography variant='body2' sx={{ color: 'rgba(255, 255, 255, 0.55)' }}>
           PDAM Tirta Daroy
         </Typography>
         {userRole && (
@@ -672,13 +678,35 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       </Box>
 
       <List sx={{ flexGrow: 1, pt: 1 }}>
-        {menuItems.map((item: MenuItem) => renderMenuItem(item))}
+        {menuItems.map((item: MenuItem) =>
+          item.hidden ? null : (
+            <React.Fragment key={`grp-${item.id}`}>
+              {item.section && (
+                <Typography
+                  sx={{
+                    px: 2.5,
+                    pt: 2,
+                    pb: 0.75,
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.09em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255, 255, 255, 0.36)',
+                  }}
+                >
+                  {item.section}
+                </Typography>
+              )}
+              {renderMenuItem(item)}
+            </React.Fragment>
+          )
+        )}
       </List>
 
-      <Divider />
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
 
       <Box sx={{ p: 2 }}>
-        <Typography variant='body2' color='text.secondary' textAlign='center'>
+        <Typography variant='body2' textAlign='center' sx={{ color: 'rgba(255, 255, 255, 0.4)' }}>
           v1.0.0 - Admin Panel
         </Typography>
       </Box>
