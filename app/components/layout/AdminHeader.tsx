@@ -146,15 +146,40 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
         left: 14,
         right: 14,
         width: 'auto',
-        borderRadius: '16px',
-        // Glassmorphism: latar putih semi-transparan + blur
-        backgroundColor: 'rgba(255, 255, 255, 0.72)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
+        borderRadius: '18px',
+        overflow: 'hidden',
+        // Glassmorphism kuat (gaya glass-card)
+        backgroundColor: 'rgba(255, 255, 255, 0.55)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         color: 'text.primary',
-        border: '1px solid',
-        borderColor: 'rgba(255, 255, 255, 0.5)',
-        boxShadow: '0 8px 28px rgba(8, 28, 61, 0.10)',
+        border: '1px solid rgba(255, 255, 255, 0.5)',
+        boxShadow:
+          '0 8px 32px rgba(8, 28, 61, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.2)',
+        // Garis cahaya tepi atas
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background:
+            'linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent)',
+          zIndex: 2,
+        },
+        // Garis cahaya tepi kiri
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '1px',
+          height: '100%',
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.9), transparent, rgba(255,255,255,0.3))',
+          zIndex: 2,
+        },
       }}
     >
       <Toolbar>

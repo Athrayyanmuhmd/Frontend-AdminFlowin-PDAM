@@ -688,10 +688,10 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           border: 'none',
-          // Glassmorphism: navy semi-transparan + blur
-          backgroundColor: 'rgba(8, 28, 61, 0.82)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          // Glassmorphism kuat (navy): transparan + blur
+          backgroundColor: 'rgba(8, 28, 61, 0.6)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           color: '#fff',
           overflowX: 'hidden',
           transition:
@@ -706,8 +706,10 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 left: '14px',
                 height: 'auto',
                 width: drawerWidth - 26,
-                borderRadius: '16px',
-                boxShadow: '0 12px 32px rgba(8, 28, 61, 0.28)',
+                borderRadius: '18px',
+                border: '1px solid rgba(255, 255, 255, 0.16)',
+                boxShadow:
+                  '0 12px 36px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.06)',
               }),
           // Scrollbar tipis & auto-hide: transparan saat diam, muncul saat hover/scroll
           scrollbarWidth: 'thin',
