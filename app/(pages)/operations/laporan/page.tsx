@@ -508,7 +508,7 @@ export default function LaporanPage() {
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Alamat</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Teknisi</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Catatan</TableCell>
                     <TableCell sx={{ fontWeight: 700 }} align='center'>
                       Aksi
                     </TableCell>
@@ -565,27 +565,18 @@ export default function LaporanPage() {
                           </Box>
                         </TableCell>
                         <TableCell>
-                          <Box>
-                            <Chip
-                              label={
-                                JENIS_LAPORAN_LABELS[laporan.jenisLaporan] ||
-                                laporan.jenisLaporan
-                              }
-                              size='small'
-                              color={
-                                JENIS_COLORS[laporan.jenisLaporan] || 'default'
-                              }
-                              variant='outlined'
-                            />
-                            <Typography
-                              variant='caption'
-                              display='block'
-                              color='text.secondary'
-                              sx={{ mt: 0.5 }}
-                            >
-                              {laporan.namaLaporan}
-                            </Typography>
-                          </Box>
+                          <Chip
+                            label={
+                              JENIS_LAPORAN_LABELS[laporan.jenisLaporan] ||
+                              laporan.jenisLaporan
+                            }
+                            size='small'
+                            color={
+                              JENIS_COLORS[laporan.jenisLaporan] || 'default'
+                            }
+                            variant='outlined'
+                            sx={{ minWidth: 150, justifyContent: 'center' }}
+                          />
                         </TableCell>
                         <TableCell>
                           <Typography
@@ -607,33 +598,17 @@ export default function LaporanPage() {
                             }
                             size='small'
                             color={STATUS_COLORS[laporan.status] || 'default'}
+                            sx={{ minWidth: 100, justifyContent: 'center' }}
                           />
                         </TableCell>
                         <TableCell>
-                          {laporan.idTeknisi ? (
-                            <Box>
-                              <Typography
-                                variant='body2'
-                                fontWeight={600}
-                                noWrap
-                                sx={{ maxWidth: 120 }}
-                              >
-                                {laporan.idTeknisi.namaLengkap}
-                              </Typography>
-                              <Typography
-                                variant='caption'
-                                color='text.secondary'
-                              >
-                                {DIVISI_LABELS[laporan.idTeknisi.divisi] ||
-                                  laporan.idTeknisi.divisi ||
-                                  '-'}
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography variant='body2' color='text.disabled'>
-                              —
-                            </Typography>
-                          )}
+                          <Typography
+                            variant='body2'
+                            color='text.secondary'
+                            sx={{ maxWidth: 220 }}
+                          >
+                            {laporan.namaLaporan || '—'}
+                          </Typography>
                         </TableCell>
                         <TableCell align='center'>
                           <Stack

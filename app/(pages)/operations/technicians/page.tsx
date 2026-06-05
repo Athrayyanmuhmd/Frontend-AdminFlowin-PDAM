@@ -505,6 +505,7 @@ export default function TechnicianManagement() {
                               size='small'
                               variant='outlined'
                               color='primary'
+                              sx={{ minWidth: 160, justifyContent: 'center' }}
                             />
                           </TableCell>
                           <TableCell align='center'>
@@ -515,7 +516,7 @@ export default function TechnicianManagement() {
                                 size='small'
                                 onClick={() => handleToggleStatus(tech)}
                                 disabled={actionLoading}
-                                sx={{ cursor: 'pointer' }}
+                                sx={{ cursor: 'pointer', minWidth: 92, justifyContent: 'center' }}
                               />
                             </Tooltip>
                           </TableCell>

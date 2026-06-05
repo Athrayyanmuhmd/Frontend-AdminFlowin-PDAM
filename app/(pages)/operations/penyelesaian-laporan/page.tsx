@@ -256,7 +256,6 @@ export default function PenyelesaianLaporanPage() {
                           </TableSortLabel>
                         </TableCell>
                         <TableCell>Respon Teknisi</TableCell>
-                        <TableCell>Catatan Review</TableCell>
                         <TableCell sortDirection={sortKey === 'updatedAt' ? sortOrder : false}>
                           <TableSortLabel active={sortKey === 'updatedAt'} direction={sortKey === 'updatedAt' ? sortOrder : 'asc'} onClick={() => onSort('updatedAt')}>
                             Tanggal Update
@@ -297,12 +296,11 @@ export default function PenyelesaianLaporanPage() {
                               <Typography variant='caption' color='text.secondary'>{wo.teknisiPenanggungJawab?.divisi || ''}</Typography>
                             </TableCell>
                             <TableCell>
-                              <Chip label={st?.label ?? wo.status} color={(st?.color ?? 'default') as any} size='small' />
+                              <Chip label={st?.label ?? wo.status} color={(st?.color ?? 'default') as any} size='small' sx={{ minWidth: 110, justifyContent: 'center' }} />
                             </TableCell>
                             <TableCell>
-                              <Chip label={sr?.label ?? wo.statusRespon ?? '-'} color={sr?.color ?? 'default'} size='small' variant='outlined' />
+                              <Chip label={sr?.label ?? wo.statusRespon ?? '-'} color={sr?.color ?? 'default'} size='small' variant='outlined' sx={{ minWidth: 150, justifyContent: 'center' }} />
                             </TableCell>
-                            <TableCell><Typography variant='caption'>{wo.catatanReview || '-'}</Typography></TableCell>
                             <TableCell>{fmtDate(wo.updatedAt)}</TableCell>
                             <TableCell align='center'>
                               <Tooltip title='Lihat Detail'>
