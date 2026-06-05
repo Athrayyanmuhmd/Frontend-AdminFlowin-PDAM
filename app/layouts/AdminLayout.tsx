@@ -6,6 +6,7 @@ import { Box, CssBaseline, CircularProgress, Alert, useMediaQuery, useTheme } fr
 import { useAdmin } from './AdminProvider';
 import AdminSidebar from '../components/layout/AdminSidebar';
 import AdminHeader from '../components/layout/AdminHeader';
+import AppBreadcrumbs from '../components/ui/AppBreadcrumbs';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -111,6 +112,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             overflowX: 'auto',
           }}
         >
+          <AppBreadcrumbs />
           {children}
         </Box>
       </Box>

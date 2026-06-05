@@ -687,11 +687,18 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
                 borderRadius: '16px',
                 boxShadow: '0 12px 32px rgba(8, 28, 61, 0.28)',
               }),
-          // Scrollbar tipis di dalam sidebar
+          // Scrollbar tipis & auto-hide: transparan saat diam, muncul saat hover/scroll
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'transparent transparent',
+          '&:hover': { scrollbarColor: 'rgba(255,255,255,0.28) transparent' },
           '&::-webkit-scrollbar': { width: '6px' },
           '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(255,255,255,0.25)',
+            backgroundColor: 'transparent',
             borderRadius: '3px',
+            transition: 'background-color 0.3s ease',
+          },
+          '&:hover::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255,255,255,0.28)',
           },
           '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
         },
