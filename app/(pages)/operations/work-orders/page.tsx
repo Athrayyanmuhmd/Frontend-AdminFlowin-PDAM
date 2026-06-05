@@ -153,6 +153,29 @@ const TIM_COLORS: Record<string, 'default' | 'warning' | 'success' | 'error'> =
     ditolak: 'error',
   };
 
+const JENIS_LABELS: Record<string, string> = {
+  pemasangan: 'Pemasangan',
+  pengawasan_pemasangan: 'Pengawasan Pemasangan',
+  pengawasan_setelah_pemasangan: 'Pengawasan Setelah Pemasangan',
+  rab: 'RAB',
+  survei: 'Survei',
+  penyelesaian_laporan: 'Penyelesaian Laporan',
+};
+
+const jenisLabel = (v?: string) =>
+  (v && JENIS_LABELS[v]) || v?.replace(/_/g, ' ') || '—';
+
+// Gaya badge status seragam — tinggi & padding sama agar rapi & enak dilihat
+const STATUS_CHIP_SX = {
+  height: 24,
+  fontSize: 11,
+  fontWeight: 600,
+  borderRadius: '6px',
+  maxWidth: '100%',
+  '& .MuiChip-icon': { fontSize: 15, ml: '4px' },
+  '& .MuiChip-label': { px: 1 },
+} as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function parseFlexDate(v: string | number | null | undefined): Date | null {
@@ -1024,43 +1047,34 @@ export default function WorkOrderManagement() {
           ) : (
             <>
               <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size='small' sx={{ minWidth: 900 }}>
+                <Table size='small' sx={{ minWidth: 1120, tableLayout: 'fixed' }}>
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, width: 44 }}>
+                      <TableCell sx={{ width: 44 }}>
                         No
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>
+                      <TableCell sx={{ width: 200 }}>
                         Pelanggan
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: 120 }}>
+                      <TableCell sx={{ width: 170 }}>
                         Jenis
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: 150 }}>
+                      <TableCell sx={{ width: 150 }}>
                         Penanggung Jawab
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: 150 }}>
+                      <TableCell sx={{ width: 140 }}>
                         Tim Teknisi
                       </TableCell>
-                      <TableCell
-                        sx={{ fontWeight: 600, width: 120 }}
-                        align='center'
-                      >
+                      <TableCell sx={{ width: 130 }} align='center'>
                         Status WO
                       </TableCell>
-                      <TableCell
-                        sx={{ fontWeight: 600, width: 130 }}
-                        align='center'
-                      >
+                      <TableCell sx={{ width: 150 }} align='center'>
                         Respon Teknisi
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: 90 }}>
+                      <TableCell sx={{ width: 92 }}>
                         Dibuat
                       </TableCell>
-                      <TableCell
-                        sx={{ fontWeight: 600, width: 56 }}
-                        align='center'
-                      >
+                      <TableCell sx={{ width: 56 }} align='center'>
                         Aksi
                       </TableCell>
                     </TableRow>
@@ -1164,15 +1178,26 @@ export default function WorkOrderManagement() {
                             </TableCell>
 
                             <TableCell>
-                              <Chip
-                                label={
-                                  wo.jenisPekerjaan?.replace(/_/g, ' ') || '—'
-                                }
-                                size='small'
-                                color='primary'
-                                variant='outlined'
-                                sx={{ fontSize: 11 }}
-                              />
+                              <Tooltip title={jenisLabel(wo.jenisPekerjaan)} arrow>
+                                <Chip
+                                  label={jenisLabel(wo.jenisPekerjaan)}
+                                  size='small'
+                                  color='primary'
+                                  variant='outlined'
+                                  sx={{
+                                    ...STATUS_CHIP_SX,
+                                    width: '100%',
+                                    '& .MuiChip-label': {
+                                      px: 1,
+                                      width: '100%',
+                                      textAlign: 'center',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    },
+                                  }}
+                                />
+                              </Tooltip>
                             </TableCell>
 
                             <TableCell>
@@ -1222,8 +1247,8 @@ export default function WorkOrderManagement() {
                                     size='small'
                                     label={TIM_LABELS[wo.statusTim]}
                                     color={TIM_COLORS[wo.statusTim]}
-                                    icon={wo.statusTim === 'diajukan' ? <HourglassEmpty sx={{ fontSize: '12px !important' }} /> : undefined}
-                                    sx={{ fontSize: 10, height: 20, alignSelf: 'flex-start' }}
+                                    icon={wo.statusTim === 'diajukan' ? <HourglassEmpty sx={{ fontSize: '13px !important' }} /> : undefined}
+                                    sx={{ ...STATUS_CHIP_SX, height: 22, fontSize: 10, alignSelf: 'flex-start', maxWidth: '100%', '& .MuiChip-label': { px: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
                                   />
                                 )}
                               </Box>
@@ -1236,7 +1261,7 @@ export default function WorkOrderManagement() {
                                 label={STATUS_LABELS[wo.status] || wo.status}
                                 color={STATUS_COLORS[wo.status] || 'default'}
                                 size='small'
-                                sx={{ fontSize: 11 }}
+                                sx={STATUS_CHIP_SX}
                               />
                             </TableCell>
 
@@ -1244,12 +1269,14 @@ export default function WorkOrderManagement() {
                             <TableCell align='center'>
                               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                                 {wo.statusRespon ? (
-                                  <Chip
-                                    size='small'
-                                    label={RESPON_LABELS[wo.statusRespon] || wo.statusRespon}
-                                    color={RESPON_COLORS[wo.statusRespon] || 'default'}
-                                    sx={{ fontSize: 11 }}
-                                  />
+                                  <Tooltip title={RESPON_LABELS[wo.statusRespon] || wo.statusRespon} arrow>
+                                    <Chip
+                                      size='small'
+                                      label={RESPON_LABELS[wo.statusRespon] || wo.statusRespon}
+                                      color={RESPON_COLORS[wo.statusRespon] || 'default'}
+                                      sx={{ ...STATUS_CHIP_SX, maxWidth: '100%', '& .MuiChip-label': { px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
+                                    />
+                                  </Tooltip>
                                 ) : (
                                   <Typography variant='caption' color='text.disabled'>—</Typography>
                                 )}
