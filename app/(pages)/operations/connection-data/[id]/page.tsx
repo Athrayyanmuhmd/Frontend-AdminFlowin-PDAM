@@ -1440,9 +1440,10 @@ export default function ConnectionDataDetailPage() {
         </Card>
           </Grid>
 
-          {/* ─── DOKUMEN PENGAJUAN (kolom kanan) ─── */}
+          {/* ─── DOKUMEN + INFO PELANGGAN/PROPERTI (kolom kanan) ─── */}
           <Grid item xs={12} md={5}>
-            <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
+            <Stack spacing={3}>
+            <Card sx={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
               <CardContent>
                 <SectionTitle icon={<Description />} title="Dokumen Pengajuan" />
 
@@ -1531,6 +1532,54 @@ export default function ConnectionDataDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Informasi Pelanggan */}
+            <Card sx={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
+              <CardContent>
+                <SectionTitle icon={<People />} title="Informasi Pelanggan" />
+                <Stack spacing={2.5}>
+                  <InfoField label="Nama Lengkap" value={data.IdPelanggan?.namaLengkap} />
+                  <Divider />
+                  <InfoField label="Email" value={data.IdPelanggan?.email} />
+                  <Divider />
+                  <InfoField label="Nomor HP" value={data.IdPelanggan?.noHP} />
+                  <Divider />
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <InfoField label="NIK" value={data.NIK} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <InfoField label="Nomor KK" value={data.NoKK} />
+                    </Grid>
+                  </Grid>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* Informasi Properti */}
+            <Card sx={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
+              <CardContent>
+                <SectionTitle icon={<LocationOn />} title="Informasi Properti" />
+                <Stack spacing={2.5}>
+                  <InfoField label="Alamat Lengkap" value={data.Alamat} />
+                  <Divider />
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <InfoField label="Kelurahan" value={data.Kelurahan} />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <InfoField label="Kecamatan" value={data.Kecamatan} />
+                    </Grid>
+                  </Grid>
+                  <Divider />
+                  <InfoField
+                    label="Luas Bangunan"
+                    value={data.LuasBangunan != null ? `${data.LuasBangunan} m²` : undefined}
+                  />
+                </Stack>
+              </CardContent>
+            </Card>
+            </Stack>
           </Grid>
         </Grid>
 
@@ -1610,58 +1659,6 @@ export default function ConnectionDataDetailPage() {
             </Button>
           </DialogActions>
         </Dialog>
-
-        {/* Info Pelanggan + Info Properti — side by side */}
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={6}>
-            <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
-              <CardContent>
-                <SectionTitle icon={<People />} title="Informasi Pelanggan" />
-                <Stack spacing={2.5}>
-                  <InfoField label="Nama Lengkap" value={data.IdPelanggan?.namaLengkap} />
-                  <Divider />
-                  <InfoField label="Email" value={data.IdPelanggan?.email} />
-                  <Divider />
-                  <InfoField label="Nomor HP" value={data.IdPelanggan?.noHP} />
-                  <Divider />
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <InfoField label="NIK" value={data.NIK} />
-                    </Grid>
-                    <Grid item xs={6}>
-                      <InfoField label="Nomor KK" value={data.NoKK} />
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card sx={{ height: '100%', boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
-              <CardContent>
-                <SectionTitle icon={<LocationOn />} title="Informasi Properti" />
-                <Stack spacing={2.5}>
-                  <InfoField label="Alamat Lengkap" value={data.Alamat} />
-                  <Divider />
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <InfoField label="Kelurahan" value={data.Kelurahan} />
-                    </Grid>
-                    <Grid item xs={6}>
-                      <InfoField label="Kecamatan" value={data.Kecamatan} />
-                    </Grid>
-                  </Grid>
-                  <Divider />
-                  <InfoField
-                    label="Luas Bangunan"
-                    value={data.LuasBangunan != null ? `${data.LuasBangunan} m²` : undefined}
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
 
         {/* Timestamps */}
         <Card sx={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)' }}>
