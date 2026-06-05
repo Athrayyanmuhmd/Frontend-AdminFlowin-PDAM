@@ -12,6 +12,7 @@ import {
   Area,
   BarChart,
   Bar,
+  YAxis,
 } from 'recharts';
 
 /**
@@ -69,6 +70,13 @@ export default function DashboardStatCard({
   const hasSpark = Array.isArray(sparkline) && sparkline.length > 1;
   const sparkData = hasSpark ? sparkline!.map((v, i) => ({ i, v })) : [];
   const gradId = `spark-${color}`;
+  // Domain ber-padding agar garis "mengambang" rapi di tengah (tidak menukik ke pojok),
+  // dan batang punya headroom — tetap enak dilihat walau data sedikit.
+  const sparkMin = hasSpark ? Math.min(...sparkline!) : 0;
+  const sparkMax = hasSpark ? Math.max(...sparkline!) : 0;
+  const sparkPad = (sparkMax - sparkMin) * 0.45 || Math.abs(sparkMax) * 0.2 || 1;
+  const lineDomain: [number, number] = [sparkMin - sparkPad, sparkMax + sparkPad];
+  const barDomain: [number, number] = [0, sparkMax * 1.15 || 1];
 
   const TrendIcon =
     trend === 'up' ? TrendingUpIcon : trend === 'down' ? TrendingDownIcon : RemoveIcon;
@@ -151,24 +159,26 @@ export default function DashboardStatCard({
         <Box sx={{ mt: 1.5, mx: -2.5, mb: -2.5, height: 46 }}>
           <ResponsiveContainer width="100%" height="100%">
             {sparklineType === 'bar' ? (
-              <BarChart data={sparkData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                <Bar dataKey="v" fill={mainColor} radius={[2, 2, 0, 0]} maxBarSize={8} isAnimationActive={false} />
+              <BarChart data={sparkData} margin={{ top: 6, right: 6, left: 6, bottom: 0 }} barCategoryGap="22%">
+                <YAxis hide domain={barDomain} />
+                <Bar dataKey="v" fill={alpha(mainColor, 0.75)} radius={[3, 3, 0, 0]} isAnimationActive={false} />
               </BarChart>
             ) : (
-              <AreaChart data={sparkData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+              <AreaChart data={sparkData} margin={{ top: 6, right: 4, left: 4, bottom: 4 }}>
                 <defs>
                   <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={mainColor} stopOpacity={0.25} />
+                    <stop offset="0%" stopColor={mainColor} stopOpacity={0.22} />
                     <stop offset="100%" stopColor={mainColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
+                <YAxis hide domain={lineDomain} />
                 <Area
                   type="monotone"
                   dataKey="v"
                   stroke={mainColor}
-                  strokeWidth={2}
+                  strokeWidth={2.25}
                   fill={`url(#${gradId})`}
-                  dot={false}
+                  dot={{ r: 2, fill: '#fff', stroke: mainColor, strokeWidth: 1.5 }}
                   isAnimationActive={false}
                 />
               </AreaChart>
