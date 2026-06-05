@@ -679,7 +679,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
             ? { width: drawerWidth }
             : {
                 position: 'fixed',
-                top: '76px',
+                top: '90px',
                 bottom: '14px',
                 left: '14px',
                 height: 'auto',

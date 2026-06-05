@@ -136,14 +136,22 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
   };
 
   return (
-    <AppBar 
-      position="fixed" 
-      sx={{ 
+    <AppBar
+      position="fixed"
+      elevation={0}
+      sx={{
         zIndex: (theme) => theme.zIndex.drawer + 1,
+        // Header "mengambang" (gaya Attex): jarak di semua sisi + sudut membulat
+        top: 14,
+        left: 14,
+        right: 14,
+        width: 'auto',
+        borderRadius: '16px',
         backgroundColor: 'background.paper',
         color: 'text.primary',
-        borderBottom: '1px solid',
+        border: '1px solid',
         borderColor: 'divider',
+        boxShadow: '0 6px 24px rgba(8, 28, 61, 0.06)',
       }}
     >
       <Toolbar>
