@@ -146,19 +146,33 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
       }}
     >
       <Toolbar>
+        {/* Hamburger hanya di mobile (desktop sudah ada toggle di sidebar) */}
         <IconButton
           color="inherit"
           aria-label="toggle menu"
           onClick={onMenuToggle}
           edge="start"
-          sx={{ mr: 2 }}
+          sx={{ mr: 1, display: { xs: 'inline-flex', md: 'none' }, color: 'text.secondary' }}
         >
           <MenuIcon />
         </IconButton>
 
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-          {pageTitle}
-        </Typography>
+        {/* Brand di paling kiri (gaya Attex) */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1, minWidth: 0 }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.15, color: 'text.primary' }} noWrap>
+              {user?.role === 'technician' ? 'Flowin Teknisi' : 'Flowin Admin'}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }} noWrap>
+              PDAM Tirta Daroy
+            </Typography>
+          </Box>
+          <Chip
+            label={user?.role === 'technician' ? 'Teknisi' : 'Administrator'}
+            size="small"
+            sx={{ display: { xs: 'none', sm: 'inline-flex' }, bgcolor: '#081c3d', color: '#fff', fontWeight: 600 }}
+          />
+        </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {/* Fullscreen */}

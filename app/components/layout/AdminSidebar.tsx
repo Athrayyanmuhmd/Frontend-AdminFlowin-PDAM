@@ -15,7 +15,6 @@ import {
   Divider,
   IconButton,
   Tooltip,
-  Chip,
   Toolbar,
   Badge,
 } from '@mui/material';
@@ -707,45 +706,19 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
       {isMobile && <Toolbar />}
       <Box
         sx={{
-          px: collapsed ? 1 : 2,
-          py: 2,
+          px: 1,
+          py: 1,
+          display: 'flex',
+          justifyContent: collapsed ? 'center' : 'flex-end',
           borderBottom: '1px solid',
           borderColor: 'rgba(255, 255, 255, 0.10)',
         }}
       >
-        {collapsed ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <IconButton onClick={onToggle} size='small' sx={{ color: '#fff' }}>
-              <MenuIcon />
-            </IconButton>
-          </Box>
-        ) : (
-          <>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant='h6' component='div' sx={{ fontWeight: 700, color: '#fff' }}>
-                {userRole === 'technician' ? 'Flowin Teknisi' : 'Flowin Admin'}
-              </Typography>
-              <IconButton onClick={onToggle} size='small' sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                <ChevronLeft />
-              </IconButton>
-            </Box>
-            <Typography variant='body2' sx={{ color: '#fff', opacity: 0.85 }}>
-              PDAM Tirta Daroy
-            </Typography>
-            {userRole && (
-              <Chip
-                label={userRole === 'technician' ? 'Teknisi' : 'Administrator'}
-                size='small'
-                sx={{
-                  mt: 1,
-                  bgcolor: 'rgba(255, 255, 255, 0.16)',
-                  color: '#fff',
-                  fontWeight: 600,
-                }}
-              />
-            )}
-          </>
-        )}
+        <Tooltip title={collapsed ? 'Buka menu' : 'Tutup menu'} placement='right' arrow>
+          <IconButton onClick={onToggle} size='small' sx={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+            {collapsed ? <MenuIcon /> : <ChevronLeft />}
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <List sx={{ flexGrow: 1, pt: 1 }}>
@@ -777,13 +750,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
         )}
       </List>
 
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-
-      <Box sx={{ p: 2 }}>
-        <Typography variant='caption' textAlign='center' sx={{ color: 'rgba(255, 255, 255, 0.4)', display: 'block' }}>
-          {collapsed ? 'v1.0' : 'v1.0.0 - Admin Panel'}
-        </Typography>
-      </Box>
+      <Box sx={{ pb: 1.5 }} />
     </Drawer>
   );
 }
