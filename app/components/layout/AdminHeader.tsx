@@ -14,15 +14,16 @@ import {
   Tooltip,
   Chip,
 } from '@mui/material';
+import { Divider } from '@mui/material';
 import {
   Menu as MenuIcon,
   Notifications,
   AccountCircle,
   Logout,
   Settings,
-  AdminPanelSettings,
-  Brightness4,
-  Brightness7,
+  Fullscreen,
+  FullscreenExit,
+  KeyboardArrowDown,
 } from '@mui/icons-material';
 import { useAdmin } from '../../layouts/AdminProvider';
 import { useRouter, usePathname } from 'next/navigation';
@@ -87,6 +88,21 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
   // Jumlah unread yang sudah "dilihat" saat klik bell — badge shows delta dari sini
   const [clearedCount, setClearedCount] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  React.useEffect(() => {
+    const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
 
   const unreadNotifications = notifications.filter(n => !n.isRead);
   const criticalNotifications = unreadNotifications.filter(n => n.priority === 'critical');
@@ -144,19 +160,25 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
           {pageTitle}
         </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {/* Fullscreen */}
+          <Tooltip title={isFullscreen ? 'Keluar Layar Penuh' : 'Layar Penuh'}>
+            <IconButton color="inherit" onClick={toggleFullscreen} sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: 'text.secondary' }}>
+              {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
+            </IconButton>
+          </Tooltip>
+
+          {/* Settings */}
+          <Tooltip title="Pengaturan Sistem">
+            <IconButton color="inherit" onClick={() => router.push('/system/users')} sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: 'text.secondary' }}>
+              <Settings />
+            </IconButton>
+          </Tooltip>
+
           {/* Notifications */}
           <Tooltip title="Notifikasi">
-            <IconButton
-              color="inherit"
-              onClick={handleNotificationMenuOpen}
-              sx={{ position: 'relative' }}
-            >
-              <Badge
-                badgeContent={badgeCount}
-                color="error"
-                max={99}
-              >
+            <IconButton color="inherit" onClick={handleNotificationMenuOpen} sx={{ position: 'relative', color: 'text.secondary' }}>
+              <Badge badgeContent={badgeCount} color="error" max={99}>
                 <Notifications />
               </Badge>
               {criticalNotifications.length > 0 && (
@@ -181,22 +203,37 @@ export default function AdminHeader({ onMenuToggle, title }: AdminHeaderProps) {
             </IconButton>
           </Tooltip>
 
-          {/* User Profile */}
-          <Tooltip title="Profil Pengguna">
-            <IconButton
-              size="large"
-              edge="end"
-              aria-label="account of current user"
-              aria-controls="primary-search-account-menu"
-              aria-haspopup="true"
-              onClick={handleProfileMenuOpen}
-              color="inherit"
-            >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                {user?.username?.charAt(0).toUpperCase()}
-              </Avatar>
-            </IconButton>
-          </Tooltip>
+          <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5, display: { xs: 'none', sm: 'block' } }} />
+
+          {/* User Profile — avatar + nama + role (gaya Attex) */}
+          <Box
+            onClick={handleProfileMenuOpen}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              borderRadius: 2,
+              pl: 0.5,
+              pr: { xs: 0.5, md: 1 },
+              py: 0.5,
+              transition: 'background-color 0.2s ease',
+              '&:hover': { bgcolor: 'action.hover' },
+            }}
+          >
+            <Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: '0.95rem' }}>
+              {user?.username?.charAt(0).toUpperCase()}
+            </Avatar>
+            <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'left' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }} noWrap>
+                {user?.username}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
+                {user?.role === 'administrator' ? 'Administrator' : 'Teknisi'}
+              </Typography>
+            </Box>
+            <KeyboardArrowDown sx={{ fontSize: 18, color: 'text.secondary', display: { xs: 'none', md: 'block' } }} />
+          </Box>
         </Box>
 
         {/* Profile Menu */}
