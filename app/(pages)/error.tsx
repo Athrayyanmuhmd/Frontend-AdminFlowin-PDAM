@@ -12,6 +12,21 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
+    // ChunkLoadError: terjadi saat ada deploy baru sementara browser masih
+    // memegang halaman lama (hash chunk berubah → file lama 404). Auto-reload
+    // sekali untuk mengambil versi terbaru; pengaman 10 dtk agar tidak loop.
+    const isChunkError =
+      /Loading chunk [\w-]+ failed|ChunkLoadError|Loading CSS chunk|importing a module script failed/i.test(
+        error?.message || ''
+      );
+    if (isChunkError && typeof window !== 'undefined') {
+      const last = Number(sessionStorage.getItem('chunkReloadAt') || 0);
+      if (Date.now() - last > 10000) {
+        sessionStorage.setItem('chunkReloadAt', String(Date.now()));
+        window.location.reload();
+        return;
+      }
+    }
     console.error('Page error:', error);
   }, [error]);
 
