@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, alpha } from '@mui/material/styles';
 
 /**
  * Tema MUI terpusat untuk Aqualink Admin Panel.
@@ -84,7 +84,7 @@ const theme = createTheme({
         },
       },
     },
-    // Tombol gaya Attex: flat (tanpa gradient/shadow), tidak UPPERCASE
+    // Tombol gaya "soft" Attex: latar tint lembut + teks warna; hover -> solid + teks putih.
     MuiButton: {
       defaultProps: {
         disableElevation: true,
@@ -94,6 +94,42 @@ const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           borderRadius: 8,
+        },
+        contained: ({ theme, ownerState }) => {
+          const c = ownerState.color;
+          if (!c || c === 'inherit') return {};
+          const pal = (theme.palette as any)[c];
+          if (!pal?.main) return {};
+          return {
+            backgroundColor: alpha(pal.main, 0.14),
+            color: pal.main,
+            boxShadow: 'none',
+            '&:hover': {
+              backgroundColor: pal.main,
+              color: pal.contrastText || '#fff',
+              boxShadow: 'none',
+            },
+            '&:active': { backgroundColor: pal.main, color: pal.contrastText || '#fff' },
+            '&.Mui-disabled': { backgroundColor: alpha(pal.main, 0.08), color: alpha(pal.main, 0.4) },
+          };
+        },
+      },
+    },
+    // Badge/Chip gaya "soft" Attex: filled berwarna -> latar tint + teks warna.
+    MuiChip: {
+      styleOverrides: {
+        root: { fontWeight: 600 },
+        filled: ({ theme, ownerState }) => {
+          const c = ownerState.color;
+          if (!c || c === 'default') return {};
+          const pal = (theme.palette as any)[c];
+          if (!pal?.main) return {};
+          return {
+            backgroundColor: alpha(pal.main, 0.16),
+            color: pal.main,
+            '& .MuiChip-icon': { color: pal.main },
+            '& .MuiChip-deleteIcon': { color: alpha(pal.main, 0.7), '&:hover': { color: pal.main } },
+          };
         },
       },
     },
