@@ -668,7 +668,7 @@ export default function AdminSidebar({ open, onToggle, onClose, isMobile = false
           width: drawerWidth,
           boxSizing: 'border-box',
           borderRight: 'none',
-          backgroundColor: '#013494',
+          backgroundColor: '#081c3d',
           color: '#fff',
           overflowX: 'hidden',
           transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
