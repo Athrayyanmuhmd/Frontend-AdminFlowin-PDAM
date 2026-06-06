@@ -50,6 +50,7 @@ import {
 import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import AdminLayout from '../../../../layouts/AdminLayout';
+import PageHeader from '../../../../components/ui/PageHeader';
 import { GET_CUSTOMER, UPDATE_CUSTOMER } from '../../../../../lib/graphql/queries/customers';
 import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billing';
 import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
@@ -276,150 +277,153 @@ export default function CustomerDetailPage() {
         )}
 
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Button startIcon={<ArrowBack />} onClick={() => router.push('/customers')}>
-              Kembali
-            </Button>
-            <Typography variant='h4' component='h1' sx={{ fontWeight: 600 }}>
-              Detail Pelanggan
-            </Typography>
-          </Box>
-          <Button
-            variant='contained'
-            startIcon={<Edit />}
-            onClick={() => router.push(`/customers/registration?edit=${customerId}`)}
-          >
-            Edit Pelanggan
-          </Button>
-        </Box>
+        <PageHeader
+          title="Detail Pelanggan"
+          subtitle={customer.namaLengkap}
+          actions={
+            <>
+              <Button startIcon={<ArrowBack />} variant='outlined' onClick={() => router.push('/customers')}>
+                Kembali
+              </Button>
+              <Button
+                variant='contained'
+                startIcon={<Edit />}
+                onClick={() => router.push(`/customers/registration?edit=${customerId}`)}
+              >
+                Edit Pelanggan
+              </Button>
+            </>
+          }
+        />
 
-        {/* Customer Info Card */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={8}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
-                  <Avatar sx={{ width: { xs: 56, md: 72 }, height: { xs: 56, md: 72 }, bgcolor: 'primary.main', fontSize: { xs: '1.5rem', md: '2rem' }, flexShrink: 0 }}>
-                    {customer.namaLengkap?.charAt(0) || '?'}
-                  </Avatar>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant='h5' sx={{ fontWeight: 600, mb: 1 }}>
-                      {customer.namaLengkap}
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                      NIK: {customer.NIK}
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                      <Chip
-                        icon={<Person />}
-                        label={
-                          customer.customerType === 'rumah_tangga' ? 'Rumah Tangga' :
-                          customer.customerType === 'komersial'    ? 'Komersial'    :
-                          customer.customerType === 'industri'     ? 'Industri'     :
-                          customer.customerType === 'sosial'       ? 'Sosial'       :
-                          'Belum Ditentukan'
-                        }
-                        color={customer.customerType ? 'primary' : 'default'}
-                        variant='outlined'
-                      />
-                      <Chip
-                        icon={customer.accountStatus === 'active' ? <CheckCircle /> : <Cancel />}
-                        label={customer.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
-                        color={customer.accountStatus === 'active' ? 'success' : 'error'}
-                      />
-                      {customer.isVerified && (
-                        <Chip icon={<CheckCircle />} label='Identitas Diverifikasi' color='info' size='small' />
-                      )}
+        <Grid container spacing={3}>
+          {/* ─── KIRI: Kartu Profil (gaya Attex) ─── */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ textAlign: 'center' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Avatar sx={{ width: 96, height: 96, mx: 'auto', bgcolor: 'primary.main', fontSize: '2.4rem', mb: 1.5 }}>
+                  {customer.namaLengkap?.charAt(0) || '?'}
+                </Avatar>
+                <Typography variant='h5' sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                  {customer.namaLengkap}
+                </Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                  NIK: {customer.NIK}
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                  <Chip
+                    icon={<Person />}
+                    label={
+                      customer.customerType === 'rumah_tangga' ? 'Rumah Tangga' :
+                      customer.customerType === 'komersial'    ? 'Komersial'    :
+                      customer.customerType === 'industri'     ? 'Industri'     :
+                      customer.customerType === 'sosial'       ? 'Sosial'       :
+                      'Belum Ditentukan'
+                    }
+                    color={customer.customerType ? 'primary' : 'default'}
+                    variant='outlined'
+                    size='small'
+                  />
+                  <Chip
+                    icon={customer.accountStatus === 'active' ? <CheckCircle /> : <Cancel />}
+                    label={customer.accountStatus === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                    color={customer.accountStatus === 'active' ? 'success' : 'error'}
+                    size='small'
+                  />
+                  {customer.isVerified && (
+                    <Chip icon={<CheckCircle />} label='Diverifikasi' color='info' size='small' />
+                  )}
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography variant='caption' sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Informasi Kontak
+                  </Typography>
+                  <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.75 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                      <Email sx={{ fontSize: 20, color: 'primary.main', mt: 0.2 }} />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant='caption' color='text.secondary' display='block'>Email</Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 500, wordBreak: 'break-word' }}>{customer.email}</Typography>
+                      </Box>
                     </Box>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <Phone sx={{ fontSize: 20, color: 'text.secondary' }} />
-                          <Typography variant='body2'>{customer.noHP}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <Email sx={{ fontSize: 20, color: 'text.secondary' }} />
-                          <Typography variant='body2'>{customer.email}</Typography>
-                        </Box>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                          <LocationOn sx={{ fontSize: 20, color: 'text.secondary' }} />
-                          <Typography variant='body2'>{customer.alamat}</Typography>
-                        </Box>
-                      </Grid>
-                    </Grid>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                      <Phone sx={{ fontSize: 20, color: 'primary.main', mt: 0.2 }} />
+                      <Box>
+                        <Typography variant='caption' color='text.secondary' display='block'>Nomor HP</Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 500 }}>{customer.noHP}</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                      <LocationOn sx={{ fontSize: 20, color: 'primary.main', mt: 0.2 }} />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant='caption' color='text.secondary' display='block'>Alamat</Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 500, wordBreak: 'break-word' }}>{customer.alamat}</Typography>
+                      </Box>
+                    </Box>
                   </Box>
                 </Box>
-              </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-              <Grid item xs={12} md={4}>
-                <Card variant='outlined' sx={{ bgcolor: 'primary.50' }}>
-                  <CardContent>
-                    <Typography variant='h6' gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <WaterDrop color='primary' />
-                      Info Meteran
-                    </Typography>
-                    <Divider sx={{ my: 1 }} />
-                    {meteranInfo ? (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        <Box>
-                          <Typography variant='caption' color='text.secondary'>No. Meteran</Typography>
-                          <Typography variant='body1' sx={{ fontWeight: 600 }}>{meteranInfo.meterNumber}</Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant='caption' color='text.secondary'>No. Akun</Typography>
-                          <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                            {meteranInfo.accountNumber}
-                          </Typography>
-                        </Box>
-                        <Divider />
-                        <Box>
-                          <Typography variant='caption' color='text.secondary'>Kategori Tarif</Typography>
-                          <Chip label={meteranInfo.tariffCategory} size='small' color='primary' sx={{ mt: 0.5 }} />
-                        </Box>
-                        <Box>
-                          <Typography variant='caption' color='text.secondary'>Total Pemakaian</Typography>
-                          <Typography variant='body1' sx={{ fontWeight: 600, color: 'primary.main' }}>
-                            {meteranInfo.totalUsage || 0} m³
-                          </Typography>
-                        </Box>
-                        {meteranInfo.unpaidUsage > 0 && (
-                          <Box>
-                            <Typography variant='caption' color='text.secondary'>Belum Terbayar</Typography>
-                            <Typography variant='body1' sx={{ fontWeight: 600, color: 'warning.main' }}>
-                              {meteranInfo.unpaidUsage} m³
-                            </Typography>
-                          </Box>
-                        )}
-                        <Divider />
-                        {meteranInfo.installationDate && (
-                          <Box>
-                            <Typography variant='caption' color='text.secondary'>Tgl. Instalasi</Typography>
-                            <Typography variant='body2'>
-                              {meteranInfo.installationDate.toLocaleDateString('id-ID', {
-                                day: 'numeric', month: 'long', year: 'numeric',
-                              })}
-                            </Typography>
-                          </Box>
-                        )}
-                        {meteranInfo.alamat && meteranInfo.alamat !== '-' && (
-                          <Box>
-                            <Typography variant='caption' color='text.secondary'>Alamat Instalasi</Typography>
-                            <Typography variant='body2'>{meteranInfo.alamat}</Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    ) : (
-                      <Alert severity='info' sx={{ mt: 1 }}>Belum ada meteran terpasang</Alert>
+          {/* ─── KANAN: Info Meteran + Tabs ─── */}
+          <Grid item xs={12} md={8}>
+
+            {/* Info Meteran */}
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant='h6' gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
+                  <WaterDrop color='primary' />
+                  Info Meteran
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                {meteranInfo ? (
+                  <Grid container spacing={2.5}>
+                    <Grid item xs={6} sm={4}>
+                      <Typography variant='caption' color='text.secondary'>No. Meteran</Typography>
+                      <Typography variant='body1' sx={{ fontWeight: 700 }}>{meteranInfo.meterNumber}</Typography>
+                    </Grid>
+                    <Grid item xs={6} sm={4}>
+                      <Typography variant='caption' color='text.secondary'>No. Akun</Typography>
+                      <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 600 }}>{meteranInfo.accountNumber}</Typography>
+                    </Grid>
+                    <Grid item xs={6} sm={4}>
+                      <Typography variant='caption' color='text.secondary' display='block'>Kategori Tarif</Typography>
+                      <Chip label={meteranInfo.tariffCategory} size='small' color='primary' sx={{ mt: 0.5 }} />
+                    </Grid>
+                    <Grid item xs={6} sm={4}>
+                      <Typography variant='caption' color='text.secondary'>Total Pemakaian</Typography>
+                      <Typography variant='body1' sx={{ fontWeight: 700, color: 'primary.main' }}>{meteranInfo.totalUsage || 0} m³</Typography>
+                    </Grid>
+                    {meteranInfo.unpaidUsage > 0 && (
+                      <Grid item xs={6} sm={4}>
+                        <Typography variant='caption' color='text.secondary'>Belum Terbayar</Typography>
+                        <Typography variant='body1' sx={{ fontWeight: 700, color: 'warning.main' }}>{meteranInfo.unpaidUsage} m³</Typography>
+                      </Grid>
                     )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
+                    {meteranInfo.installationDate && (
+                      <Grid item xs={6} sm={4}>
+                        <Typography variant='caption' color='text.secondary'>Tgl. Instalasi</Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 500 }}>
+                          {meteranInfo.installationDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </Typography>
+                      </Grid>
+                    )}
+                    {meteranInfo.alamat && meteranInfo.alamat !== '-' && (
+                      <Grid item xs={12}>
+                        <Typography variant='caption' color='text.secondary'>Alamat Instalasi</Typography>
+                        <Typography variant='body2' sx={{ fontWeight: 500 }}>{meteranInfo.alamat}</Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+                ) : (
+                  <Alert severity='info'>Belum ada meteran terpasang</Alert>
+                )}
+              </CardContent>
+            </Card>
 
         {/* Tabs */}
         <Card>
@@ -789,6 +793,8 @@ export default function CustomerDetailPage() {
             </Grid>
           </TabPanel>
         </Card>
+          </Grid>
+        </Grid>
       </Box>
 
       {/* Dialog Konfirmasi Aktivasi */}
