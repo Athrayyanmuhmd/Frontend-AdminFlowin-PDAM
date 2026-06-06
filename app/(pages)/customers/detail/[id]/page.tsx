@@ -56,7 +56,7 @@ import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billi
 import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
 import { GET_KONEKSI_DATA_BY_PELANGGAN } from '../../../../../lib/graphql/queries/connectionData';
 import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
-import { buildProxyUrl, getAdminToken, isPdfUrl } from '../../../../utils/documentUrl';
+import { buildProxyUrl, getAdminToken } from '../../../../utils/documentUrl';
 
 const KONFIRMASI_PEMBAYARAN_LOKET = gql`
   mutation KonfirmasiPembayaranLoket($userId: ID!) {
@@ -83,7 +83,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`customer-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: { xs: 2, sm: 3 } }}>{children}</Box>}
     </div>
   );
 }
@@ -515,7 +515,7 @@ export default function CustomerDetailPage() {
                 {/* Status Pengajuan */}
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
-                    <Typography variant='h6' sx={{ fontWeight: 600 }}>Status Pengajuan Sambungan</Typography>
+                    <Typography variant='h6' sx={{ fontWeight: 700 }}>Status Pengajuan Sambungan</Typography>
                     <Chip
                       label={
                         koneksiData.StatusPengajuan === 'APPROVED' ? 'Disetujui' :
@@ -549,7 +549,7 @@ export default function CustomerDetailPage() {
                 <Grid item xs={12} md={6}>
                   <Card variant='outlined'>
                     <CardContent>
-                      <Typography variant='subtitle1' sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant='subtitle1' sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Badge color='primary' />
                         Dokumen Identitas
                       </Typography>
@@ -601,7 +601,7 @@ export default function CustomerDetailPage() {
                 <Grid item xs={12} md={6}>
                   <Card variant='outlined'>
                     <CardContent>
-                      <Typography variant='subtitle1' sx={{ fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant='subtitle1' sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                         <LocationOn color='primary' />
                         Alamat & Properti
                       </Typography>
@@ -661,7 +661,7 @@ export default function CustomerDetailPage() {
               <Grid item xs={12} md={6}>
                 <Card variant='outlined'>
                   <CardContent>
-                    <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
+                    <Typography variant='h6' gutterBottom sx={{ fontWeight: 700 }}>
                       Status Akun
                     </Typography>
                     <Divider sx={{ mb: 2 }} />
@@ -751,7 +751,7 @@ export default function CustomerDetailPage() {
               <Grid item xs={12} md={6}>
                 <Card variant='outlined'>
                   <CardContent>
-                    <Typography variant='h6' gutterBottom sx={{ fontWeight: 600 }}>
+                    <Typography variant='h6' gutterBottom sx={{ fontWeight: 700 }}>
                       Verifikasi & Info
                     </Typography>
                     <Divider sx={{ mb: 2 }} />
