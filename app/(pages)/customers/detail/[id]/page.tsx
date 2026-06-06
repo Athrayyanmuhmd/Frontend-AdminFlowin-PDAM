@@ -51,6 +51,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import AdminLayout from '../../../../layouts/AdminLayout';
 import PageHeader from '../../../../components/ui/PageHeader';
+import { formatM3 } from '../../../../utils/helper';
 import { GET_CUSTOMER, UPDATE_CUSTOMER } from '../../../../../lib/graphql/queries/customers';
 import { GET_TAGIHAN_BY_METERAN } from '../../../../../lib/graphql/queries/billing';
 import { GET_METERAN_BY_PELANGGAN } from '../../../../../lib/graphql/queries/meteran';
@@ -396,12 +397,12 @@ export default function CustomerDetailPage() {
                     </Grid>
                     <Grid item xs={6} sm={4}>
                       <Typography variant='caption' color='text.secondary'>Total Pemakaian</Typography>
-                      <Typography variant='body1' sx={{ fontWeight: 700, color: 'primary.main' }}>{meteranInfo.totalUsage || 0} m³</Typography>
+                      <Typography variant='body1' sx={{ fontWeight: 700, color: 'primary.main' }}>{formatM3(meteranInfo.totalUsage, 3)}</Typography>
                     </Grid>
                     {meteranInfo.unpaidUsage > 0 && (
                       <Grid item xs={6} sm={4}>
                         <Typography variant='caption' color='text.secondary'>Belum Terbayar</Typography>
-                        <Typography variant='body1' sx={{ fontWeight: 700, color: 'warning.main' }}>{meteranInfo.unpaidUsage} m³</Typography>
+                        <Typography variant='body1' sx={{ fontWeight: 700, color: 'warning.main' }}>{formatM3(meteranInfo.unpaidUsage, 3)}</Typography>
                       </Grid>
                     )}
                     {meteranInfo.installationDate && (
