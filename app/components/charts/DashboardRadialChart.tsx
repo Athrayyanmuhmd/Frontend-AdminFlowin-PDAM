@@ -28,7 +28,7 @@ export default function DashboardRadialChart({ data }: DashboardRadialChartProps
   const max = Math.max(1, ...data.map((d) => d.value));
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', gap: 2 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', gap: 2, pl: 2, pr: 1 }}>
       {/* Legend kiri */}
       <Box sx={{ flexShrink: 0, minWidth: 0 }}>
         {data.map((d) => (
@@ -63,14 +63,25 @@ export default function DashboardRadialChart({ data }: DashboardRadialChartProps
             />
             <Tooltip
               cursor={false}
-              contentStyle={{
-                backgroundColor: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                fontSize: 12,
+              content={({ active, payload }: any) => {
+                if (!active || !payload || !payload.length) return null;
+                const item = payload[0]?.payload;
+                return (
+                  <Box
+                    sx={{
+                      bgcolor: '#fff',
+                      borderRadius: 2,
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      px: 1.5,
+                      py: 1,
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                      {item?.name}: {item?.value} pelanggan
+                    </Typography>
+                  </Box>
+                );
               }}
-              formatter={(value: number, _n: string, p: any) => [`${value} pelanggan`, p?.payload?.name]}
             />
           </RadialBarChart>
         </ResponsiveContainer>
