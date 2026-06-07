@@ -17,7 +17,6 @@ import {
 } from '@mui/material';
 import DetailSkeleton from '../../../../components/ui/DetailSkeleton';
 import ErrorWithRetry from '../../../../components/ui/ErrorWithRetry';
-import PrintButton from '../../../../components/ui/PrintButton';
 import {
   ArrowBack,
   Speed,
@@ -181,7 +180,6 @@ export default function MeteranDetail() {
             color='success'
             sx={{ fontWeight: 'bold' }}
           />
-          <PrintButton />
         </Box>
 
         <Grid container spacing={3}>
@@ -326,7 +324,7 @@ export default function MeteranDetail() {
 
           {/* Informasi Pelanggan */}
           <Grid item xs={12} md={6}>
-            <Card>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <Person sx={{ mr: 1, color: 'primary.main' }} />
@@ -358,7 +356,7 @@ export default function MeteranDetail() {
 
           {/* Pemakaian & Pembayaran */}
           <Grid item xs={12} md={6}>
-            <Card>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <WaterDrop sx={{ mr: 1, color: 'primary.main' }} />
