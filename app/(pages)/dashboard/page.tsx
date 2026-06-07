@@ -30,7 +30,8 @@ import { Skeleton } from '@mui/material';
 import { useQuery } from '@apollo/client/react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DashboardKPI } from '../../types/admin.types';
-import { GET_DASHBOARD_STATS, GET_CHART_KONSUMSI_PER_BULAN, GET_DISTRIBUSI_KELOMPOK_PELANGGAN } from '@/lib/graphql/queries/dashboard';
+import { GET_DASHBOARD_STATS, GET_CHART_KONSUMSI_PER_BULAN } from '@/lib/graphql/queries/dashboard';
+import { GET_ALL_CUSTOMERS } from '@/lib/graphql/queries/customers';
 import DashboardStatCard, { StatColor } from '../../components/ui/DashboardStatCard';
 
 const DashboardLineChart = nextDynamic(
@@ -41,15 +42,22 @@ const DashboardLineChart = nextDynamic(
   }
 );
 
-const DashboardPieChart = nextDynamic(
-  () => import('../../components/charts/DashboardPieChart'),
+const DashboardRadialChart = nextDynamic(
+  () => import('../../components/charts/DashboardRadialChart'),
   {
     ssr: false,
     loading: () => <Skeleton variant="circular" width={180} height={180} sx={{ mx: 'auto' }} />,
   }
 );
 
-const CHART_COLORS = ['#013494', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+// Label & warna untuk distribusi jenis pelanggan (samakan dengan halaman Daftar Pelanggan)
+const JENIS_PELANGGAN: { key: string; label: string; color: string }[] = [
+  { key: 'rumah_tangga', label: 'Rumah Tangga', color: '#013494' },
+  { key: 'komersial', label: 'Komersial', color: '#4CAF50' },
+  { key: 'industri', label: 'Industri', color: '#FF9800' },
+  { key: 'sosial', label: 'Sosial', color: '#9C27B0' },
+  { key: 'belum', label: 'Belum Ditentukan', color: '#90A4AE' },
+];
 
 interface KpiConfig { icon: React.ReactNode; color: StatColor; format?: (v: number, unit: string) => string }
 const KPI_CONFIG: Record<string, KpiConfig> = {
@@ -80,7 +88,7 @@ export default function Dashboard() {
     skip: !isAuthenticated,
   });
 
-  const { data: distribusiData, error: distribusiError, refetch: refetchDistribusi } = useQuery(GET_DISTRIBUSI_KELOMPOK_PELANGGAN, {
+  const { data: pelangganData, error: distribusiError, refetch: refetchDistribusi } = useQuery(GET_ALL_CUSTOMERS, {
     fetchPolicy: 'cache-and-network',
     skip: !isAuthenticated,
   });
@@ -114,12 +122,15 @@ export default function Dashboard() {
   };
 
   const konsumsiChartData = (chartKonsumsiData as any)?.getChartKonsumsiPerBulan || [];
-  const distribusiChartData = ((distribusiData as any)?.getDistribusiKelompokPelanggan || []).map(
-    (item: { namaKelompok: string; jumlahMeteran: number }, index: number) => ({
-      ...item,
-      color: CHART_COLORS[index % CHART_COLORS.length],
-    })
-  );
+  // Distribusi per JENIS pelanggan (customerType) — sumber data sama dgn halaman Daftar Pelanggan
+  const allPelanggan = (pelangganData as any)?.getAllPengguna || [];
+  const distribusiChartData = JENIS_PELANGGAN.map((j) => ({
+    name: j.label,
+    value: allPelanggan.filter((p: any) =>
+      j.key === 'belum' ? !p.customerType : p.customerType === j.key
+    ).length,
+    fill: j.color,
+  })).filter((d) => d.value > 0);
 
   if (authLoading || !isAuthenticated) return null;
 
@@ -308,19 +319,20 @@ export default function Dashboard() {
                   Distribusi Pelanggan
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                  Berdasarkan kelompok
+                  Berdasarkan jenis pelanggan
                 </Typography>
               </Box>
               <Box
                 sx={{
-                  background: 'linear-gradient(195deg, #42424a, #191919)',
+                  bgcolor: 'rgba(1,52,148,0.1)',
+                  color: 'primary.main',
                   borderRadius: '8px',
                   px: 1.5,
                   py: 0.5,
                   flexShrink: 0,
                 }}
               >
-                <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, letterSpacing: '0.03em' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.03em' }}>
                   LIVE
                 </Typography>
               </Box>
@@ -340,12 +352,12 @@ export default function Dashboard() {
                   <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <People sx={{ color: 'text.disabled', fontSize: 24 }} />
                   </Box>
-                  <Typography variant="body2" color="text.disabled">Belum ada data meteran</Typography>
-                  <Typography variant="caption" color="text.disabled">Data muncul setelah meteran dipasang</Typography>
+                  <Typography variant="body2" color="text.disabled">Belum ada data pelanggan</Typography>
+                  <Typography variant="caption" color="text.disabled">Data muncul setelah pelanggan terdaftar</Typography>
                 </Box>
               ) : (
                 <Box sx={{ height: 220 }}>
-                  <DashboardPieChart data={distribusiChartData} />
+                  <DashboardRadialChart data={distribusiChartData} />
                 </Box>
               )}
             </Box>
