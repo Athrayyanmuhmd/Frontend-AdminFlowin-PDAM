@@ -65,7 +65,7 @@ export default function DashboardLineChart({ data, darkMode = false }: Dashboard
           }}
           formatter={(value: any, name: string) => [
             name === 'totalTagihan'
-              ? `Rp ${Number(value).toLocaleString('id-ID')}`
+              ? `Rp ${Math.round(Number(value)).toLocaleString('id-ID')}`
               : `${value} tagihan`,
             name === 'totalTagihan' ? 'Total Pendapatan' : 'Jumlah Tagihan',
           ]}
