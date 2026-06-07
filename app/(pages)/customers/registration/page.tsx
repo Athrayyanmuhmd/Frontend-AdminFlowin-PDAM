@@ -531,7 +531,7 @@ function CustomerRegistrationInner() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} alignItems="flex-start">
         {/* ─── STEP 1: Data Pelanggan ─── */}
         {(activeStep === 0 || isEditMode) && (
           <Grid item xs={12} md={8}>
