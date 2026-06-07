@@ -484,7 +484,8 @@ export default function TariffsPage() {
                             fontFamily: 'monospace', fontWeight: 700,
                             color: KATEGORI_COLORS[k.Kategori] || 'primary.main',
                             bgcolor: `${KATEGORI_COLORS[k.Kategori] || '#1976d2'}15`,
-                            px: 1.5, py: 0.5, borderRadius: 1, display: 'inline-block'
+                            px: 1.5, py: 0.5, borderRadius: 1, display: 'inline-block',
+                            minWidth: 60, textAlign: 'center'
                           }}>
                             {k.KodeKelompok ?? '-'}
                           </Typography>
@@ -505,6 +506,8 @@ export default function TariffsPage() {
                               fontSize: '0.7rem',
                               height: 24,
                               fontWeight: 600,
+                              minWidth: 150,
+                              justifyContent: 'center',
                               bgcolor: KATEGORI_COLORS[k.Kategori] ? `${KATEGORI_COLORS[k.Kategori]}20` : 'grey.100',
                               color: KATEGORI_COLORS[k.Kategori] || 'text.secondary',
                             }}
