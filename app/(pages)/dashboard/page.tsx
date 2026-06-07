@@ -253,19 +253,6 @@ export default function Dashboard() {
                   6 bulan terakhir
                 </Typography>
               </Box>
-              <Box
-                sx={{
-                  background: 'linear-gradient(195deg, #49a3f1, #1A73E8)',
-                  borderRadius: '8px',
-                  px: 1.5,
-                  py: 0.5,
-                  flexShrink: 0,
-                }}
-              >
-                <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, letterSpacing: '0.03em' }}>
-                  6 BULAN
-                </Typography>
-              </Box>
             </Box>
 
             {/* Chart area */}
@@ -320,20 +307,6 @@ export default function Dashboard() {
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
                   Berdasarkan jenis pelanggan
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  bgcolor: 'rgba(1,52,148,0.1)',
-                  color: 'primary.main',
-                  borderRadius: '8px',
-                  px: 1.5,
-                  py: 0.5,
-                  flexShrink: 0,
-                }}
-              >
-                <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.03em' }}>
-                  LIVE
                 </Typography>
               </Box>
             </Box>

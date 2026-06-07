@@ -29,6 +29,7 @@ import {
   Link as LinkIcon,
 } from '@mui/icons-material';
 import AdminLayout from '../../../../layouts/AdminLayout';
+import { formatM3 } from '../../../../utils/helper';
 import { useGetMeteran } from '../../../../../lib/graphql/hooks/useMeteran';
 
 interface Meteran {
@@ -371,7 +372,7 @@ export default function MeteranDetail() {
                       Total Pemakaian
                     </Typography>
                     <Typography variant='h6' color='primary.main'>
-                      {meteran.totalPemakaian} m³
+                      {formatM3(meteran.totalPemakaian, 3)}
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>
@@ -386,7 +387,7 @@ export default function MeteranDetail() {
                           : 'success.main'
                       }
                     >
-                      {meteran.pemakaianBelumTerbayar} m³
+                      {formatM3(meteran.pemakaianBelumTerbayar, 3)}
                     </Typography>
                   </Grid>
                   {meteran.jatuhTempo && (
