@@ -10,7 +10,9 @@
  */
 import React from 'react';
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { MockedProvider } from '@apollo/client/testing';
+// Apollo Client v4: MockedProvider pindah ke subpath /testing/react
+// (sebelumnya di /testing pada v3). MockLink tetap di /testing.
+import { MockedProvider } from '@apollo/client/testing/react';
 import { gql } from '@apollo/client';
 
 // Mock Next.js router
@@ -22,16 +24,20 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock auth service
-jest.mock('../../app/services/auth.service', () => ({
-  loginAdmin: jest.fn(),
-  loginTechnician: jest.fn(),
-  logoutAdmin: jest.fn(),
-  logoutTechnician: jest.fn(),
+// AdminProvider membungkus isinya dengan <ApolloWrapper> yang menyuntik
+// apolloClient ASLI (HttpLink → backend). Di test itu meng-override
+// MockedProvider sehingga query login/notifikasi memakai client asli (fetch
+// gagal di jsdom). Kita mock ApolloWrapper jadi pass-through agar hook
+// AdminProvider memakai client dari MockedProvider test.
+jest.mock('../../app/lib/ApolloWrapper', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-import { loginAdmin, loginTechnician } from '../../app/services/auth.service';
 import AdminProvider, { useAdmin } from '../../app/layouts/AdminProvider';
+// AdminProvider.login() melakukan login lewat GraphQL (useLazyQuery), bukan
+// auth.service — jadi kita mock query-nya via MockedProvider, bukan module service.
+import { LOGIN_ADMIN, LOGIN_TECHNICIAN } from '../../lib/graphql/mutations/auth';
 
 // Helper: komponen consumer untuk test hook
 function TestConsumer({ onRender }: { onRender: (ctx: ReturnType<typeof useAdmin>) => void }) {
@@ -129,73 +135,90 @@ describe('[WHITEBOX] useAdmin — Error Boundary', () => {
 // SUITE 3: Login Admin
 // ============================================================
 describe('[WHITEBOX] useAdmin — Login Flow', () => {
-  it('TC-ADM-06 ✅ login() dengan role "admin" memanggil loginAdmin service', async () => {
-    const mockLoginAdmin = loginAdmin as jest.Mock;
-    mockLoginAdmin.mockResolvedValue({
-      token: 'test-token-admin',
-      admin: {
-        _id: 'adminId001',
-        namaLengkap: 'Admin Test',
-        email: 'admin@test.com',
-        role: 'administrator',
-        NIP: 'NIP001',
-        noHP: '08123456789',
+  it('TC-ADM-06 ✅ login() admin sukses → return true & state terautentikasi', async () => {
+    const loginAdminMock = {
+      request: { query: LOGIN_ADMIN, variables: { email: 'admin@test.com', password: 'admin123' } },
+      result: {
+        data: {
+          loginAdmin: {
+            token: 'test-token-admin',
+            admin: {
+              _id: 'adminId001',
+              NIP: 'NIP001',
+              namaLengkap: 'Admin Test',
+              email: 'admin@test.com',
+              noHP: '08123456789',
+            },
+          },
+        },
       },
-    });
+    };
 
     let ctx: ReturnType<typeof useAdmin> | null = null;
-    renderWithProvider(<TestConsumer onRender={(c) => { ctx = c; }} />);
+    renderWithProvider(<TestConsumer onRender={(c) => { ctx = c; }} />, [notifMock, notifMock, loginAdminMock]);
 
     await waitFor(() => expect(ctx).not.toBeNull());
 
+    let result: boolean | undefined;
     await act(async () => {
-      await ctx!.login('admin@test.com', 'admin123', 'admin');
+      result = await ctx!.login('admin@test.com', 'admin123', 'admin');
     });
 
-    expect(mockLoginAdmin).toHaveBeenCalledWith('admin@test.com', 'admin123');
+    expect(result).toBe(true);
+    expect(ctx!.isAuthenticated).toBe(true);
+    expect(ctx!.userRole).toBe('admin');
   });
 
-  it('TC-ADM-07 ✅ login() dengan role "technician" memanggil loginTechnician service', async () => {
-    const mockLoginTech = loginTechnician as jest.Mock;
-    mockLoginTech.mockResolvedValue({
-      token: 'test-token-tech',
-      technician: {
-        _id: 'techId001',
-        namaLengkap: 'Teknisi Test',
-        email: 'tech@test.com',
-        role: 'teknisi',
-        NIP: 'NIPTEK001',
-        noHP: '08199999999',
+  it('TC-ADM-07 ✅ login() technician sukses → return true & userRole technician', async () => {
+    const loginTechMock = {
+      request: { query: LOGIN_TECHNICIAN, variables: { email: 'tech@test.com', password: 'teknisi123' } },
+      result: {
+        data: {
+          loginTechnician: {
+            token: 'test-token-tech',
+            technician: {
+              _id: 'techId001',
+              NIP: 'NIPTEK001',
+              namaLengkap: 'Teknisi Test',
+              email: 'tech@test.com',
+              noHP: '08199999999',
+            },
+          },
+        },
       },
-    });
+    };
 
     let ctx: ReturnType<typeof useAdmin> | null = null;
-    renderWithProvider(<TestConsumer onRender={(c) => { ctx = c; }} />);
+    renderWithProvider(<TestConsumer onRender={(c) => { ctx = c; }} />, [notifMock, notifMock, loginTechMock]);
 
     await waitFor(() => expect(ctx).not.toBeNull());
 
+    let result: boolean | undefined;
     await act(async () => {
-      await ctx!.login('tech@test.com', 'teknisi123', 'technician');
+      result = await ctx!.login('tech@test.com', 'teknisi123', 'technician');
     });
 
-    expect(mockLoginTech).toHaveBeenCalledWith('tech@test.com', 'teknisi123');
+    expect(result).toBe(true);
+    expect(ctx!.isAuthenticated).toBe(true);
+    expect(ctx!.userRole).toBe('technician');
   });
 
-  it('TC-ADM-08 ❌ login() yang gagal harus return false', async () => {
-    const mockLoginAdmin = loginAdmin as jest.Mock;
-    mockLoginAdmin.mockRejectedValue(new Error('Invalid credentials'));
+  it('TC-ADM-08 ❌ login() gagal harus throw (agar halaman login bisa tampilkan pesan error)', async () => {
+    // Perilaku production: pada kredensial salah, login() me-throw (re-throw) —
+    // BUKAN return false — supaya UI login bisa menampilkan pesan error.
+    const loginAdminErrorMock = {
+      request: { query: LOGIN_ADMIN, variables: { email: 'admin@test.com', password: 'salah' } },
+      result: { errors: [{ message: 'Email atau kata sandi salah.' }] },
+    };
 
     let ctx: ReturnType<typeof useAdmin> | null = null;
-    renderWithProvider(<TestConsumer onRender={(c) => { ctx = c; }} />);
+    renderWithProvider(<TestConsumer onRender={(c) => { ctx = c; }} />, [notifMock, loginAdminErrorMock]);
 
     await waitFor(() => expect(ctx).not.toBeNull());
 
-    let result: boolean;
     await act(async () => {
-      result = await ctx!.login('admin@test.com', 'salah', 'admin');
+      await expect(ctx!.login('admin@test.com', 'salah', 'admin')).rejects.toThrow();
     });
-
-    expect(result!).toBe(false);
   });
 });
 
